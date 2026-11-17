@@ -39,9 +39,12 @@ Dual-LUT stacking:
   profile automatically, and re-encodes the photo with the published transfer
   function before the LUT runs. Gamut is still treated as sRGB, so vendor LUTs are
   close but not byte-exact.
-- **RAW uploads are rejected with a message** — browsers cannot decode NEF/CR3/ARW/
-  DNG etc. Export a JPG first (or a TIFF → JPG); the app says so instead of failing
-  silently.
+- **RAW uploads work via the embedded preview** — browsers cannot demosaic NEF/CR3/
+  ARW/DNG, but almost every camera stores a ready-made JPEG preview inside the file
+  (a Nikon Z50 II NEF carries a full 5568×3712 frame). The app extracts the largest
+  embedded JPEG in ~1 s, locally. That is the camera's development, not a RAW
+  development: highlight recovery and white-balance re-processing are not possible
+  from those bytes.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in

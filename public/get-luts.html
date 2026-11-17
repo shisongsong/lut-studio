@@ -86,7 +86,9 @@ footer a:hover{color:var(--ink)}
     底部那一排的 <code>sRGB / F-Log / F-Log2 / V-Log</code> 按钮可以手动切换。
   </div>
   <div class="note" style="margin-top:12px">
-    浏览器解不了 RAW（NEF / CR3 / ARW / DNG 等），上传 RAW 会直接提示。先用相机软件导出 JPG 再用。
+    RAW（NEF / CR2 / ARW / DNG 等）可以直接上传：浏览器没法做去马赛克，但相机会在 RAW 里存一张
+    JPEG 预览，应用会自动把最大的那张抠出来用（尼康 Z50 II 的 NEF 里是完整的 5568×3712）。
+    这是相机自己的出片，不是 RAW 冲洗——没有高光恢复和重新白平衡。
   </div>
 
   <h2>官方来源</h2>

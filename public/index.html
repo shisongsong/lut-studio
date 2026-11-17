@@ -305,6 +305,7 @@ import { LOOKS } from '/js/looks.js';
 import { LookRenderer } from '/js/renderer.js';
 import { t, displayName, displayMeta, CAT_EN } from '/js/i18n.js';
 import { loadLuts, saveLut, deleteLut } from '/js/lut-store.js';
+import { extractRawPreview } from '/js/raw.js';
 
 const $ = (s) => document.querySelector(s);
 const el = {
@@ -1050,26 +1051,39 @@ function stepLook(dir){
 
 const RAW_EXT = /\.(nef|nrw|cr2|cr3|arw|srf|sr2|dng|raf|orf|rw2|pef|srw|3fr|erf|kdc|mos|iiq|x3f)$/i;
 
+function applyImage(img, name, note){
+  source = makeSource(img);
+  renderer.setImage(source);
+  sourceName = name.replace(/\.[^.]+$/, '').slice(0, 28) || 'Untitled';
+  el.metaName.textContent = sourceName.toUpperCase();
+  el.metaDims.textContent = `${source.width} × ${source.height}`;
+  state.fit = 'contain';
+  el.fitBtn.textContent = t(state.lang, 'fill');
+  sizeCanvases();
+  drawBase();
+  render({ instant: true });
+  updateQualityDims();
+  toast(note || t(state.lang, 'photoLoaded'));
+}
+
 async function loadFile(file){
+  // RAW: browsers cannot demosaic it, but nearly every camera embeds a JPEG
+  // preview (often full resolution). Pull that out instead of refusing the file.
   if (RAW_EXT.test(file.name)) {
-    toast(t(state.lang, 'rawUnsupported'));
+    toast(t(state.lang, 'rawExtracting'));
+    try {
+      const preview = await extractRawPreview(await file.arrayBuffer());
+      if (!preview) { toast(t(state.lang, 'rawUnsupported')); return; }
+      applyImage(preview.bitmap, file.name, `${t(state.lang, 'rawPreview')} · ${preview.width} × ${preview.height}`);
+    } catch {
+      toast(t(state.lang, 'rawUnsupported'));
+    }
     return;
   }
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null);
     const img = bitmap || await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
-    source = makeSource(img);
-    renderer.setImage(source);
-    sourceName = file.name.replace(/\.[^.]+$/, '').slice(0, 28) || 'Untitled';
-    el.metaName.textContent = sourceName.toUpperCase();
-    el.metaDims.textContent = `${source.width} × ${source.height}`;
-    state.fit = 'contain';
-    el.fitBtn.textContent = t(state.lang, 'fill');
-    sizeCanvases();
-    drawBase();
-    render({ instant: true });
-    updateQualityDims();
-    toast(t(state.lang, 'photoLoaded'));
+    applyImage(img, file.name);
   } catch { toast(t(state.lang, 'formatError')); }
 }
 

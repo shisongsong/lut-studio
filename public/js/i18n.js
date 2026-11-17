@@ -6,7 +6,9 @@ export const CAT_EN = {
 export const I18N = {
   zh: {
     all: '全部', importLut: '导入 LUT', myLuts: '我的 LUT', importOk: '已导入 {n} 个 LUT', importFail: '这个 .cube 读不了',
-    rawUnsupported: '浏览器解不了 RAW（NEF/CR3/ARW…），请先导出 JPG 再上传',
+    rawUnsupported: '这个 RAW 里没有可用的 JPEG 预览，请先用相机软件导出 JPG',
+    rawExtracting: '正在从 RAW 提取内嵌预览…',
+    rawPreview: '已从 RAW 提取内嵌预览（相机 JPEG）',
     logHint: '输入色彩空间：普通照片用 sRGB；套厂商 LOG LUT 时切到对应 LOG', photo: '照片', fit: '适应', fill: '铺满', dual: '双 LUT', dualOn: '双 LUT 已开',
     export: '导出', language: 'EN',
     hint: '拖动分割线 · 长按右侧看原图',
@@ -18,7 +20,9 @@ export const I18N = {
   },
   en: {
     all: 'All', importLut: 'Import LUT', myLuts: 'My LUTs', importOk: 'Imported {n} LUT(s)', importFail: 'Could not read that .cube',
-    rawUnsupported: 'Browsers cannot decode RAW (NEF/CR3/ARW…). Export a JPG first.',
+    rawUnsupported: 'No usable JPEG preview inside this RAW — export a JPG with the camera software.',
+    rawExtracting: 'Extracting the embedded preview from the RAW…',
+    rawPreview: 'Embedded preview extracted from the RAW (camera JPEG)',
     logHint: 'Input profile: sRGB for normal photos, switch to the matching LOG for vendor LOG LUTs', photo: 'Photo', fit: 'Fit', fill: 'Fill', dual: 'Dual LUT', dualOn: 'Dual LUT on',
     export: 'Export', language: '中文',
     hint: 'Drag the line · long-press right to see original',
