@@ -136,7 +136,11 @@ export class LookRenderer {
     gl.activeTexture(gl.TEXTURE0);
   }
 
-  /** Upload the photo once; thumbnails and previews reuse it. */
+  /**
+   * Upload the photo once; thumbnails and previews reuse it.
+   * Images larger than MAX_TEXTURE_SIZE are downscaled for the GPU preview;
+   * full-resolution export re-uploads crops instead (see exportImage()).
+   */
   setImage(source) {
     const gl = this.gl;
     const w = source.naturalWidth || source.width;
@@ -144,6 +148,16 @@ export class LookRenderer {
     if (!w || !h) throw new Error('图片尺寸无效');
     this.imgW = w;
     this.imgH = h;
+    let upload = source;
+    const max = this.maxTexture;
+    if (Math.max(w, h) > max) {
+      const k = max / Math.max(w, h);
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(w * k));
+      c.height = Math.max(1, Math.round(h * k));
+      c.getContext('2d', { alpha: false }).drawImage(source, 0, 0, c.width, c.height);
+      upload = c;
+    }
     if (this.imageTex) gl.deleteTexture(this.imageTex);
     this.imageTex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
@@ -152,7 +166,7 @@ export class LookRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, upload);
     gl.bindTexture(gl.TEXTURE_2D, null);
   }
 

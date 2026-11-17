@@ -60,6 +60,11 @@ a.tbtn{text-decoration:none}
 .meta b{font-weight:400;color:var(--muted)}
 
 .filmwrap{position:relative}
+.cats{display:flex;gap:16px;overflow-x:auto;scrollbar-width:none;padding:2px 0 8px;-webkit-overflow-scrolling:touch}
+.cats::-webkit-scrollbar{display:none}
+.cats button{flex:none;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:rgba(242,241,236,.58);padding-bottom:3px;border-bottom:1px solid transparent;transition:color .15s,border-color .15s;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.cats button:hover{color:var(--ink)}
+.cats button.on{color:var(--ink);border-color:var(--accent)}
 .film{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px 0 2px;cursor:grab;scroll-snap-type:x proximity}
 .film::-webkit-scrollbar{display:none}
 .film.drag{cursor:grabbing}
@@ -68,12 +73,14 @@ a.tbtn{text-decoration:none}
 .chip .slot-badge{position:absolute;right:4px;top:4px;font-family:var(--mono);font-size:6px;line-height:1;padding:2px 3px;background:rgba(10,10,11,.8);color:var(--ink);border:1px solid rgba(255,255,255,.25)}
 .chip .slot-badge.b{color:#141414;background:var(--ink);border-color:var(--ink)}
 .chip .n{position:absolute;left:5px;top:4px;font-family:var(--mono);font-size:7px;letter-spacing:.04em;color:rgba(255,255,255,.78);text-shadow:0 1px 3px rgba(0,0,0,.5)}
-.chip .nm{display:block;margin-top:5px;font-family:var(--mono);font-size:7.5px;letter-spacing:.03em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .18s}
+.chip .nm{display:block;margin-top:5px;font-family:var(--mono);font-size:8px;letter-spacing:.02em;color:rgba(242,241,236,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .18s}
 .chip:hover{opacity:1;transform:translateY(-2px)}
 .chip.on{opacity:1;transform:translateY(-3px)}
 .chip.on canvas{box-shadow:0 0 0 1.5px var(--accent)}
 .chip.b-on canvas{box-shadow:0 0 0 1.5px rgba(255,255,255,.55)}
 .chip.on .nm{color:var(--ink)}
+.chip .del{position:absolute;right:2px;top:2px;z-index:2;width:14px;height:14px;line-height:12px;text-align:center;font-size:11px;color:#fff;background:rgba(10,10,11,.78);border:1px solid rgba(255,255,255,.35)}
+.chip .del:hover{background:#fff;color:#0a0a0b}
 
 .strengths{position:fixed;right:26px;top:50%;transform:translateY(-50%);z-index:6;display:flex;flex-direction:column;gap:26px}
 .strength{display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--ink)}
@@ -139,7 +146,7 @@ a.tbtn{text-decoration:none}
   .meta{display:none}
   .chip{width:64px}
   .chip canvas{width:64px;height:42px}
-  .chip .nm{display:none}
+  .chip .nm{font-size:7.5px}
   .tag{display:none}
   .tag.before{left:14px}.tag.after{right:14px}
   .film{margin-right:-14px}
@@ -230,14 +237,16 @@ a.tbtn{text-decoration:none}
         <div class="track" id="trackB"><div class="fill" id="fillB"></div><div class="knob" id="knobB"></div></div>
       </div>
     </div>
+    <div class="cats" id="cats"></div>
     <div class="filmwrap"><div class="film" id="film"></div></div>
     <div class="quick">
       <button id="photoBtn">PHOTO</button>
       <button id="fitBtn">FILL</button>
       <button id="dualBtn" class="dual">DUAL LUT</button>
+      <button id="importBtn">导入 LUT</button>
       <button id="exportBtn" class="quick-export">导出 ↗</button>
     </div>
-    <div class="meta"><span id="metaName">LAGO DI BRAIES</span><b id="metaDims">1600 × 1067</b><span>OPEN SOURCE</span><span>24 LOOKS</span></div>
+    <div class="meta"><span id="metaName">LAGO DI BRAIES</span><b id="metaDims">1600 × 1067</b><span>OPEN SOURCE</span><span id="metaLooks">24 LOOKS</span></div>
   </div>
 </div>
 
@@ -263,13 +272,15 @@ a.tbtn{text-decoration:none}
 </div>
 
 <input type="file" id="fileInput" accept="image/*" hidden>
+<input type="file" id="importInput" accept=".cube,text/plain" multiple hidden>
 <div class="toast" id="toast"></div>
 <div class="drop" id="drop">DROP A PHOTO</div>
 
 <script type="module">
 import { LOOKS } from '/js/looks.js';
 import { LookRenderer } from '/js/renderer.js';
-import { t, displayName, displayMeta } from '/js/i18n.js';
+import { t, displayName, displayMeta, CAT_EN } from '/js/i18n.js';
+import { loadLuts, saveLut, deleteLut } from '/js/lut-store.js';
 
 const $ = (s) => document.querySelector(s);
 const el = {
@@ -282,7 +293,7 @@ const el = {
   photoBtn: $('#photoBtn'), fitBtn: $('#fitBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'),
+  langBtn: $('#langBtn'), cats: $('#cats'), metaLooks: $('#metaLooks'), importBtn: $('#importBtn'), importInput: $('#importInput'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
   q50Dims: $('#q50Dims'), q75Dims: $('#q75Dims'), q100Dims: $('#q100Dims'),
 };
@@ -293,6 +304,8 @@ const state = {
   fit: 'cover',
   dual: { enabled: false, b: 'hasselblad-natural', strengthB: 60 },
   activeSlot: 'A',
+  cat: 'all',
+  imported: [],
   quality: 100,
   lang: localStorage.getItem('lut.lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en'),
   interacting: false,
@@ -310,6 +323,15 @@ async function init(){
     fetch('/luts.bin').then(r => r.arrayBuffer()),
   ]);
   luts = new Uint8Array(buf);
+  try {
+    const stored = await loadLuts();
+    state.imported = stored.map(r => ({
+      id: r.id, name: r.name, en: r.name, cat: 'mine', catLabel: '我的 LUT',
+      imported: true, size: r.size, data: new Uint8Array(r.data),
+    }));
+  } catch (err) {
+    console.warn('[lut import] could not read IndexedDB', err);
+  }
   source = makeSource(img);
   renderer = new LookRenderer();
   renderer.setImage(source);
@@ -317,6 +339,7 @@ async function init(){
   sizeCanvases();
   drawBase();
   buildFilm();
+  buildCats();
   render({ instant: true });
   setLookText();
   updateActiveChip();
@@ -336,7 +359,13 @@ function makeSource(img){
   return c;
 }
 
+function allLooks(){
+  return LOOKS.concat(state.imported);
+}
+
 function lutData(id){
+  const mine = state.imported.find(l => l.id === id);
+  if (mine) return { size: mine.size, data: mine.data };
   const i = LOOKS.findIndex(l => l.id === id);
   const per = 17 ** 3 * 4;
   return { size: 17, data: luts.subarray(i * per, (i + 1) * per) };
@@ -420,38 +449,154 @@ function sampleAccent(){
 }
 
 function setLookText(){
-  const a = LOOKS.find(l => l.id === state.look) || LOOKS[0];
-  const b = LOOKS.find(l => l.id === state.dual.b) || LOOKS[0];
+  const all = allLooks();
+  const a = all.find(l => l.id === state.look) || all[0];
+  const b = all.find(l => l.id === state.dual.b) || all[0];
   const dual = state.dual.enabled;
-  el.lookNo.textContent = dual ? 'DUAL' : `${String(LOOKS.indexOf(a) + 1).padStart(2, '0')} / 24`;
+  el.lookNo.textContent = dual ? 'DUAL' : `${String(all.indexOf(a) + 1).padStart(2, '0')} / ${String(all.length).padStart(2, '0')}`;
   el.lookName.textContent = dual ? `${displayName(a, state.lang)} + ${displayName(b, state.lang)}` : displayName(a, state.lang);
-  el.lookCat.textContent = dual ? t(state.lang, 'dual') : displayMeta(a, state.lang);
-  el.lookEn.textContent = dual ? 'A + B' : (state.lang === 'en' ? '24 LOOKS' : a.en.toUpperCase());
+  el.lookCat.textContent = dual ? t(state.lang, 'dual') : (a.imported ? t(state.lang, 'myLuts') : displayMeta(a, state.lang));
+  el.lookEn.textContent = dual ? 'A + B' : (state.lang === 'en' ? `${all.length} LOOKS` : a.en.toUpperCase());
   el.lookName.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,0,0,1)' });
+}
+
+function catList(){
+  const out = [{ id: 'all', label: t(state.lang, 'all') }];
+  const seen = new Set();
+  for (const l of allLooks()) {
+    if (seen.has(l.cat)) continue;
+    seen.add(l.cat);
+    const label = l.cat === 'mine'
+      ? t(state.lang, 'myLuts')
+      : (state.lang === 'en' ? (CAT_EN[l.cat] || l.cat.toUpperCase()) : l.catLabel);
+    out.push({ id: l.cat, label });
+  }
+  return out;
+}
+
+function buildCats(){
+  el.cats.innerHTML = '';
+  for (const c of catList()) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.cat = c.id;
+    b.textContent = c.label;
+    b.className = state.cat === c.id ? 'on' : '';
+    b.addEventListener('click', () => setCat(c.id));
+    el.cats.appendChild(b);
+  }
+}
+
+function visibleLooks(){
+  const all = allLooks();
+  return state.cat === 'all' ? all : all.filter(l => l.cat === state.cat);
+}
+
+function setCat(cat){
+  state.cat = cat;
+  buildCats();
+  const visible = new Set(visibleLooks().map(l => l.id));
+  el.film.querySelectorAll('.chip').forEach(c => { c.hidden = !visible.has(c.dataset.id); });
+  el.film.scrollTo({ left: 0 });
+  if (!visible.has(state.look)) selectLook(visibleLooks()[0].id, 'A');
+  else centerChip(state.look);
+}
+
+function parseCube(text){
+  const lines = text.split(/\r?\n/);
+  let size = 0, title = '';
+  const vals = [];
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const up = line.toUpperCase();
+    if (up.startsWith('TITLE')) {
+      const m = /"([^"]+)"/.exec(line);
+      if (m) title = m[1];
+      continue;
+    }
+    if (up.startsWith('LUT_3D_SIZE')) { size = parseInt(line.split(/\s+/)[1], 10); continue; }
+    if (up.startsWith('LUT_1D_SIZE') || up.startsWith('DOMAIN_')) continue;
+    if (/^[-+]?[\d.]/.test(line)) {
+      const p = line.split(/\s+/);
+      if (p.length >= 3) vals.push(Number(p[0]), Number(p[1]), Number(p[2]));
+    }
+  }
+  if (!(size >= 2 && size <= 64)) throw new Error('unsupported LUT_3D_SIZE');
+  if (vals.length !== size ** 3 * 3) throw new Error('bad .cube length');
+  const data = new Uint8Array(size ** 3 * 4);
+  const clamp = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
+  for (let i = 0; i < size ** 3; i++) {
+    data[i * 4] = clamp(vals[i * 3]);
+    data[i * 4 + 1] = clamp(vals[i * 3 + 1]);
+    data[i * 4 + 2] = clamp(vals[i * 3 + 2]);
+    data[i * 4 + 3] = 255;
+  }
+  return { size, title, data };
+}
+
+async function handleImport(files){
+  let ok = 0, fail = 0;
+  for (const f of files) {
+    try {
+      const parsed = parseCube(await f.text());
+      const id = `mine-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+      const name = (parsed.title || f.name.replace(/\.cube$/i, '')).slice(0, 40);
+      await saveLut({ id, name, size: parsed.size, data: parsed.data.buffer });
+      state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: parsed.size, data: parsed.data });
+      ok++;
+    } catch (err) {
+      console.warn('[lut import]', f.name, err);
+      fail++;
+    }
+  }
+  if (ok) {
+    buildFilm();
+    buildCats();
+    setCat('mine');
+  }
+  toast(ok ? t(state.lang, 'importOk').replace('{n}', String(ok)) : t(state.lang, 'importFail'));
+}
+
+async function removeImported(id){
+  try { await deleteLut(id); } catch { /* ignore */ }
+  state.imported = state.imported.filter(l => l.id !== id);
+  if (state.look === id) state.look = LOOKS[0].id;
+  if (state.dual.b === id) state.dual.b = LOOKS[0].id;
+  if (!state.imported.length && state.cat === 'mine') state.cat = 'all';
+  buildFilm();
+  buildCats();
+  updateActiveChip();
+  render();
+  setLookText();
 }
 
 function buildFilm(){
   el.film.innerHTML = '';
   const frag = document.createDocumentFragment();
-  LOOKS.forEach((look, i) => {
+  const all = allLooks();
+  all.forEach((look, i) => {
     const b = document.createElement('button');
-    b.className = 'chip' + (look.id === state.look ? ' on' : '');
+    b.className = 'chip' + (look.id === state.look ? ' on' : '') + (look.imported ? ' mine' : '');
     b.dataset.id = look.id;
-    b.innerHTML = `<canvas width="156" height="104"></canvas><span class="n">${String(i+1).padStart(2,'0')}</span><span class="nm">${displayName(look, state.lang)}</span>`;
+    b.innerHTML = `<canvas width="156" height="104"></canvas><span class="n">${String(i+1).padStart(2,'0')}</span><span class="nm">${displayName(look, state.lang)}</span>` + (look.imported ? '<span class="del" title="删除">×</span>' : '');
     b.addEventListener('click', (e) => {
       if (state.dragged) { e.preventDefault(); return; }
+      if (e.target.closest('.del')) { removeImported(look.id); return; }
       selectLook(look.id, state.dual.enabled ? state.activeSlot : 'A');
     });
     frag.appendChild(b);
   });
   el.film.appendChild(frag);
+  el.metaLooks.textContent = `${all.length} LOOKS`;
   requestAnimationFrame(renderFilmThumbs);
 }
 
 async function renderFilmThumbs(){
   const chips = [...el.film.querySelectorAll('.chip')];
+  const all = allLooks();
   for (let i = 0; i < chips.length; i++) {
-    const look = LOOKS[i];
+    const look = all[i];
     renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], { exposure: 0, contrast: 0, temp: 0 }, 156, 104, 'cover');
     chips[i].querySelector('canvas').getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
     if (i % 6 === 5) await new Promise(r => requestAnimationFrame(r));
@@ -554,15 +699,17 @@ function applyLang(lang, { persist = true } = {}){
   el.fitBtn.textContent = t(lang, state.fit === 'contain' ? 'fill' : 'fit');
   el.exportBtn.textContent = `${t(lang, 'export')} ↗`;
   el.hint.textContent = t(lang, 'hint');
+  el.importBtn.textContent = t(lang, 'importLut');
   el.dualBtn.childNodes[0].nodeValue = `${t(lang, state.dual.enabled ? 'dualOn' : 'dual')} `;
   el.exportSheet.querySelector('header span').textContent = t(lang, 'exportTitle');
   el.exportSheet.querySelector('.export-sub').textContent = t(lang, 'exportSub');
   el.exportConfirm.textContent = t(lang, 'exportBtn');
   el.exportSheet.querySelector('.export-note').textContent = t(lang, 'exportNote');
+  buildCats();
   setLookText();
   updateSlotUI();
   el.film.querySelectorAll('.chip').forEach(c => {
-    const look = LOOKS.find(l => l.id === c.dataset.id);
+    const look = allLooks().find(l => l.id === c.dataset.id);
     if (look) c.querySelector('.nm').textContent = displayName(look, lang);
   });
   updateQualityDims();
@@ -577,8 +724,8 @@ function openExport(){
 function updateQualityDims(){
   if (!source) return;
   for (const q of [50, 75, 100]) {
-    const scale = Math.min(1, 4096 / Math.max(source.width, source.height)) * (q / 100);
-    const w = Math.round(source.width * scale), h = Math.round(source.height * scale);
+    const w = Math.max(2, Math.round(source.width * q / 100));
+    const h = Math.max(2, Math.round(source.height * q / 100));
     const b = q === 50 ? el.q50Dims : q === 75 ? el.q75Dims : el.q100Dims;
     if (b) b.textContent = `${w}×${h}`;
   }
@@ -592,13 +739,40 @@ function selectQuality(q){
 async function exportImage(quality){
   if (!source) return;
   toast(t(state.lang, 'exportDone') + '…');
-  const w0 = source.width, h0 = source.height;
-  const cap = Math.min(4096, renderer.maxTexture);
-  const scale = Math.min(1, cap / Math.max(w0, h0)) * (quality / 100);
-  const w = Math.max(2, Math.round(w0 * scale)), h = Math.max(2, Math.round(h0 * scale));
-  renderer.render(currentStack(), { exposure: 0, contrast: 0, temp: 0 }, w, h, 'cover');
+  const stack = currentStack();
+  const adj = { exposure: 0, contrast: 0, temp: 0 };
+  const scale = quality / 100;
+  const w = Math.max(2, Math.round(source.width * scale));
+  const h = Math.max(2, Math.round(source.height * scale));
   const out = document.createElement('canvas'); out.width = w; out.height = h;
-  out.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
+  const ctx = out.getContext('2d', { alpha: false });
+  const max = renderer.maxTexture;
+  if (Math.max(w, h) <= max) {
+    renderer.render(stack, adj, w, h, 'cover');
+    ctx.drawImage(renderer.canvas, 0, 0);
+  } else {
+    // Larger than the GPU texture limit: grade the photo tile by tile at native
+    // resolution and stitch the tiles into the output canvas. The LUT is applied
+    // per pixel, so tile edges are seamless.
+    const T = Math.min(4096, max);
+    for (let ty = 0; ty < h; ty += T) {
+      for (let tx = 0; tx < w; tx += T) {
+        const tw = Math.min(T, w - tx), th = Math.min(T, h - ty);
+        const crop = document.createElement('canvas');
+        crop.width = tw; crop.height = th;
+        crop.getContext('2d', { alpha: false }).drawImage(
+          source,
+          tx / scale, ty / scale, tw / scale, th / scale,
+          0, 0, tw, th
+        );
+        renderer.setImage(crop);
+        renderer.render(stack, adj, tw, th, 'cover');
+        ctx.drawImage(renderer.canvas, tx, ty);
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+    renderer.setImage(source);
+  }
   const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', quality >= 100 ? 0.98 : quality >= 75 ? 0.95 : 0.9));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -627,6 +801,12 @@ function bind(){
   el.photoBtn.addEventListener('click', () => el.fileInput.click());
   el.fileInput.addEventListener('change', () => { const f = el.fileInput.files?.[0]; if (f) loadFile(f); el.fileInput.value = ''; });
   el.exportBtn.addEventListener('click', openExport);
+  el.importBtn.addEventListener('click', () => el.importInput.click());
+  el.importInput.addEventListener('change', async () => {
+    const files = [...el.importInput.files];
+    el.importInput.value = '';
+    if (files.length) await handleImport(files);
+  });
   el.fitBtn.addEventListener('click', () => setFit(state.fit === 'cover' ? 'contain' : 'cover'));
   el.langBtn.addEventListener('click', () => applyLang(state.lang === 'zh' ? 'en' : 'zh'));
 
@@ -802,9 +982,10 @@ function snapFilm(){
 }
 
 function stepLook(dir){
-  const i = LOOKS.findIndex(l => l.id === state.look);
-  const next = (i + dir + LOOKS.length) % LOOKS.length;
-  selectLook(LOOKS[next].id, 'A');
+  const list = visibleLooks();
+  const i = list.findIndex(l => l.id === state.look);
+  const next = (i + dir + list.length) % list.length;
+  selectLook(list[next].id, 'A');
 }
 
 async function loadFile(file){

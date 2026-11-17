@@ -5,7 +5,7 @@ export const CAT_EN = {
 
 export const I18N = {
   zh: {
-    photo: '照片', fit: '适应', fill: '铺满', dual: '双 LUT', dualOn: '双 LUT 已开',
+    all: '全部', importLut: '导入 LUT', myLuts: '我的 LUT', importOk: '已导入 {n} 个 LUT', importFail: '这个 .cube 读不了', photo: '照片', fit: '适应', fill: '铺满', dual: '双 LUT', dualOn: '双 LUT 已开',
     export: '导出', language: 'EN',
     hint: '拖动分割线 · 长按右侧看原图',
     exportTitle: '导出', exportSub: '选择画质', exportBtn: '导出 JPEG',
@@ -15,7 +15,7 @@ export const I18N = {
     exportDone: '已导出',
   },
   en: {
-    photo: 'Photo', fit: 'Fit', fill: 'Fill', dual: 'Dual LUT', dualOn: 'Dual LUT on',
+    all: 'All', importLut: 'Import LUT', myLuts: 'My LUTs', importOk: 'Imported {n} LUT(s)', importFail: 'Could not read that .cube', photo: 'Photo', fit: 'Fit', fill: 'Fill', dual: 'Dual LUT', dualOn: 'Dual LUT on',
     export: 'Export', language: '中文',
     hint: 'Drag the line · long-press right to see original',
     exportTitle: 'Export', exportSub: 'Choose quality', exportBtn: 'Export JPEG',
