@@ -69,6 +69,21 @@ function loadLibRaw() {
 }
 
 /**
+ * Thrown when a RAW file is recognised but its compression codec is not in the
+ * bundled LibRaw build. Callers should fall back to the embedded JPEG preview.
+ */
+export class RawUnsupported extends Error {
+  constructor(reason) { super(reason); this.reason = reason; }
+}
+
+// Nikon NEF compression codes (ExifTool Nikon.pm NEFCompression table).
+// 13 = High Efficiency, 14 = High Efficiency* — the TicoRAW payload. LibRaw
+// 0.22.x reads the tag and the embedded JPEG but cannot unpack the sensor data,
+// and it does not report that as an error: imageData() hands back whatever is in
+// the decode buffer. Detect it up front instead of drawing garbage.
+const NIKON_HE = new Set([13, 14]);
+
+/**
  * Develop a RAW file into a full-resolution RGB canvas.
  *
  * Camera white balance is used (the shot as the photographer framed it), output
@@ -91,9 +106,10 @@ export async function developRaw(buffer) {
       outputBps: 8,
       userQual: 3, // AHD
     });
-    const meta = await raw.metadata();
+    const meta = await raw.metadata(true);
+    if (NIKON_HE.has(meta?.nikon?.NEFCompression)) throw new RawUnsupported('nikon-he');
     const img = await raw.imageData();
-    if (!img || !img.width || !img.height) throw new Error('RAW decode produced no image');
+    if (!img || !img.width || !img.height) throw new RawUnsupported('decode-empty');
 
     const pixels = img.data.constructor === Uint16Array ? to8Bit(img.data) : img.data;
     const canvas = document.createElement('canvas');

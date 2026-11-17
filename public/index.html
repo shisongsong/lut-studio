@@ -305,7 +305,7 @@ import { LOOKS } from '/js/looks.js';
 import { LookRenderer } from '/js/renderer.js';
 import { t, displayName, displayMeta, CAT_EN } from '/js/i18n.js';
 import { loadLuts, saveLut, deleteLut } from '/js/lut-store.js';
-import { developRaw, extractRawPreview } from '/js/raw.js';
+import { developRaw, extractRawPreview, RawUnsupported } from '/js/raw.js';
 
 const $ = (s) => document.querySelector(s);
 const el = {
@@ -1084,6 +1084,7 @@ async function loadFile(file){
 async function loadRaw(file){
   const buffer = await file.arrayBuffer();
   toast(t(state.lang, 'rawDecoding'), 12000);
+  let reason = null;
   try {
     const out = await developRaw(buffer);
     const bits = `${out.width} × ${out.height}`;
@@ -1091,13 +1092,15 @@ async function loadRaw(file){
     applyImage(out.canvas, file.name, `${t(state.lang, 'rawDeveloped')}${who} · ${bits} · ${(out.ms / 1000).toFixed(1)}s`);
     return;
   } catch (err) {
-    console.warn('RAW development failed, falling back to the embedded preview', err);
+    reason = err instanceof RawUnsupported ? err.reason : null;
+    if (!reason) console.warn('RAW development failed, falling back to the embedded preview', err);
   }
-  toast(t(state.lang, 'rawExtracting'), 12000);
+  toast(t(state.lang, reason === 'nikon-he' ? 'rawHeUnsupported' : 'rawExtracting'), 12000);
   try {
     const preview = await extractRawPreview(buffer);
     if (!preview) { toast(t(state.lang, 'rawUnsupported')); return; }
-    applyImage(preview.bitmap, file.name, `${t(state.lang, 'rawPreview')} · ${preview.width} × ${preview.height}`);
+    const note = t(state.lang, reason === 'nikon-he' ? 'rawPreviewHe' : 'rawPreview');
+    applyImage(preview.bitmap, file.name, `${note} · ${preview.width} × ${preview.height}`);
   } catch {
     toast(t(state.lang, 'rawUnsupported'));
   }
