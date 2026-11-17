@@ -1,8 +1,10 @@
 # LUT Archive
 
-A darkroom-style photo LUT editor that runs entirely in your browser. Full-bleed
-image, 44 generated looks, split-view compare, dual-LUT stacking, `.cube` import
-and full-resolution JPEG export — no accounts, no uploads, no server-side rendering.
+A darkroom-style photo editor that runs entirely in your browser: open a RAW,
+develop it with a Lightroom-style panel (white balance, tone, presence,
+histogram, before/after), then stack one of 44 generated looks on top. Full-bleed
+image, split-view compare, dual-LUT stacking, `.cube` import and full-resolution
+JPEG export — no accounts, no uploads, no server-side rendering.
 
 **Live demo:** <https://lut.openanthropic.com>
 
@@ -13,6 +15,10 @@ and full-resolution JPEG export — no accounts, no uploads, no server-side rend
 Dual-LUT stacking:
 
 ![Dual LUT](docs/screens/dual.jpg)
+
+Develop panel — a RAW opens neutral, no LUT in the way:
+
+![Develop](docs/screens/develop-desktop.jpg)
 
 ## Features
 
@@ -26,8 +32,9 @@ Dual-LUT stacking:
   rails. Useful for a base grade plus a subtle skin-tone or highlight tweak.
 - **Fit / fill**, drag-and-drop upload, EXIF orientation handled, full-resolution
   rendering.
-- **Export** — JPEG at 50 / 75 / 100% of the source long edge (capped at 4096),
-  quality 0.90 / 0.95 / 0.98.
+- **Export** — JPEG at 50 / 75 / 100% of the source long edge, full resolution
+  even past the GPU texture limit (rendered in tiles and stitched), quality
+  0.90 / 0.95 / 0.98.
 - **Categories and named thumbnails** — filter the strip by 电影 / 胶片 / 黑白 /
   冷暖 / 风格 / 复古 / 空气感 / 徕卡 / 哈苏, every thumbnail carries its look name.
 - **Import your own LUTs** — drop any `.cube` into the app: 3D LUTs
@@ -53,9 +60,18 @@ Dual-LUT stacking:
   automatic brightness correction (percentile based, brightness only — no colour,
   saturation or white balance), applied as a linear exposure so the preview and the
   export always match; the `AUTO` button in the toolbar turns it off.
-- **Light panel** — exposure, contrast, highlights, shadows, whites and blacks,
-  all applied in the shader (no re-decode) and shared by the preview and the
-  export. It moves brightness only; the LUT still owns the colour.
+- **Develop panel, Lightroom-style** — opening any photo lands in a Develop rail
+  (a bottom sheet on phones) with the camera's own render and **no LUT applied**,
+  so you are looking at your RAW, not at somebody's look. White balance
+  (temp / tint plus an eyedropper that samples a neutral from the frame), the full
+  Light panel (exposure, contrast, highlights, shadows, whites, blacks), and
+  Presence (vibrance, saturation). Every slider is applied in the shader — no
+  re-decode — and the preview, the filmstrip thumbnails and the export all go
+  through the same `adjFor()`, so what you judge is what you get. A live RGB
+  histogram sits above the sliders, `自动色调 / Auto tone` places the whole tone
+  group from the histogram, and the split line keeps working as before/after
+  against the untouched camera render. The 44 looks stay one click away on the
+  filmstrip and stack on top of the develop settings.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in
@@ -68,7 +84,12 @@ app itself.
 
 - `public/js/renderer.js` — `LookRenderer`: uploads the LUT binary as a 3D
   texture (17³ RGBA, trilinear filtering) and grades the photo in a fragment
-  shader. Supports 1–3 stacked LUTs, `cover`/`contain` fit and UV flipping.
+  shader. The pipeline is exposure and white balance in linear light (channel
+  gains, so highlights do not clip channel-by-channel) → contrast → tone masks
+  (shadows/highlights/whites/blacks each confined to its own range) → vibrance /
+  saturation around luma → optional LOG encode → 1–3 stacked LUTs. Also handles
+  `cover`/`contain` fit and UV flipping. One `adjFor()` object feeds the preview,
+  the thumbnails and the export.
 - `public/js/looks.js` — the manifest: id, display names, category, filmstrip
   ordering.
 - `public/luts.bin` — 44 × 17³ RGBA blocks, in manifest order (~850 KB).

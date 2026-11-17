@@ -4,7 +4,9 @@
  * normal 2D canvases (so crossfades stay simple and only one GL context is
  * created on phones).
  *
- * Pipeline: exposure (linear) → contrast → temperature → up to 3 stacked LUTs.
+ * Pipeline: exposure + white balance in linear light → contrast → tonal masks
+ * (highlights/shadows/whites/blacks) → vibrance/saturation → optional LOG encode
+ * → up to 3 stacked LUTs.
  */
 const VERT = `#version 300 es
 in vec2 aPos;
@@ -33,6 +35,9 @@ uniform float uFit;
 uniform float uExposure;
 uniform float uContrast;
 uniform float uTemp;
+uniform float uTint;
+uniform float uVibrance;
+uniform float uSaturation;
 uniform float uHighlights;
 uniform float uShadows;
 uniform float uWhites;
@@ -51,6 +56,11 @@ vec3 applyLut(sampler3D lut, vec3 c, float s) {
 
 vec3 srgbToLinear(vec3 c) {
   return mix(pow((c + 0.055) / 1.055, vec3(2.4)), c / 12.92, step(c, vec3(0.04045)));
+}
+
+vec3 linearToSrgb(vec3 c) {
+  c = max(c, 0.0);
+  return mix(1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, 12.92 * c, step(c, vec3(0.0031308)));
 }
 
 // Published transfer functions: Fujifilm F-Log / F-Log2, Panasonic V-Log.
@@ -103,15 +113,22 @@ void main() {
   }
 
   vec3 c = texture(uImage, uv).rgb;
-  // exposure in linear light so highlights roll off like a camera would
-  vec3 lin = pow(max(c, 0.0), vec3(2.2)) * exp2(uExposure);
-  c = pow(max(lin, 0.0), vec3(1.0 / 2.2));
+  // Exposure and white balance are multiplicative in linear light, which is the
+  // whole point of a RAW processor: channel gains must not clip independently in
+  // the encoded curve. +temp = warmer (more red, less blue), +tint = magenta.
+  vec3 lin = srgbToLinear(c) * exp2(uExposure);
+  float wt = uTemp * 0.01;
+  float tn = uTint * 0.01;
+  lin *= vec3(
+    exp2(wt * 0.60 + tn * 0.14),
+    exp2(-tn * 0.34),
+    exp2(-wt * 0.60 + tn * 0.14)
+  );
+  c = clamp(linearToSrgb(lin), 0.0, 1.0);
+
   // gentle contrast around mid grey
   float k = 1.0 + uContrast * 0.006;
   c = clamp((c - 0.5) * k + 0.5, 0.0, 1.0);
-  // white balance: + = warmer, - = cooler
-  c.r = clamp(c.r * (1.0 + uTemp * 0.0013), 0.0, 1.0);
-  c.b = clamp(c.b * (1.0 - uTemp * 0.0013), 0.0, 1.0);
 
   // Light panel. Each control is masked to the part of the range it should move,
   // so lifting shadows cannot wash out the whole frame and pulling highlights
@@ -124,6 +141,17 @@ void main() {
     c *= 1.0 + uWhites * 0.35 * smoothstep(vec3(0.55), vec3(1.0), c);
     c += uBlacks * 0.30 * (1.0 - smoothstep(vec3(0.0), vec3(0.45), c));
     c = clamp(c, 0.0, 1.0);
+  }
+
+  // Presence: saturation is a flat scale around luma; vibrance leans on the
+  // pixels that have room left, so skin does not go orange when the sky deepens.
+  if (uSaturation != 0.0 || uVibrance != 0.0) {
+    float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    float hi = max(c.r, max(c.g, c.b));
+    float lo = min(c.r, min(c.g, c.b));
+    float curSat = hi > 0.0 ? (hi - lo) / hi : 0.0;
+    float f = max(0.0, 1.0 + uSaturation + uVibrance * (1.0 - curSat) * 0.9);
+    c = clamp(mix(vec3(lum), c, f), 0.0, 1.0);
   }
 
   if (uLogMode > 0) c = clamp(encodeLog(srgbToLinear(c), uLogMode), 0.0, 1.0);
@@ -159,7 +187,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uContrast', 'uTemp', 'uLogMode', 'uHighlights', 'uShadows', 'uWhites', 'uBlacks']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uContrast', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLogMode', 'uHighlights', 'uShadows', 'uWhites', 'uBlacks']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -238,7 +266,9 @@ export class LookRenderer {
   /**
    * Render into the internal canvas.
    * @param {Array<{id:string, parsed:{size:number,data:Uint8Array}, strength:number}>} luts
-   * @param {{exposure:number, contrast:number, temp:number}} adjust
+   * @param {{exposure:number, contrast:number, temp:number, tint:number,
+   *          vibrance:number, saturation:number, highlights:number,
+   *          shadows:number, whites:number, blacks:number, logMode:number}} adjust
    */
   render(luts, adjust, w, h, fit = 'cover') {
     const gl = this.gl;
@@ -274,6 +304,9 @@ export class LookRenderer {
     gl.uniform1f(this.uniform.uExposure, adjust?.exposure || 0);
     gl.uniform1f(this.uniform.uContrast, adjust?.contrast || 0);
     gl.uniform1f(this.uniform.uTemp, adjust?.temp || 0);
+    gl.uniform1f(this.uniform.uTint, adjust?.tint || 0);
+    gl.uniform1f(this.uniform.uVibrance, adjust?.vibrance || 0);
+    gl.uniform1f(this.uniform.uSaturation, adjust?.saturation || 0);
     gl.uniform1i(this.uniform.uLogMode, adjust?.logMode || 0);
     gl.uniform1f(this.uniform.uHighlights, adjust?.highlights || 0);
     gl.uniform1f(this.uniform.uShadows, adjust?.shadows || 0);

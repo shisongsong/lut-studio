@@ -154,6 +154,11 @@ a.tbtn{text-decoration:none}
   .film{margin-right:-14px}
 }
 
+/* no look: the strength rail has nothing to drive, and the big title only
+   competes with the develop panel. */
+.app.nolook .strengths{display:none}
+.app.develop .look-line{display:none}
+
 /* long-press compare */
 .app.comparing .layer{opacity:0!important}
 .app.comparing .split-line,.app.comparing .split-handle{opacity:0}
@@ -179,15 +184,60 @@ a.tbtn{text-decoration:none}
 .import-links a{font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--muted);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.25)}
 .import-links a:hover{color:var(--ink);border-color:rgba(242,241,236,.6)}
 .import-help{margin:14px 0 0;font-size:9px;line-height:1.6;color:var(--faint)}
-.tonesheet{align-items:flex-end;padding:0;backdrop-filter:none;background:linear-gradient(to top,rgba(4,4,5,.55),rgba(4,4,5,.16) 45%,transparent)}
-.tonesheet .export-card{width:100%;max-width:560px;margin:0 auto;border-radius:14px 14px 0 0;border-bottom:0;padding-bottom:max(18px,env(safe-area-inset-bottom));max-height:60vh;overflow-y:auto}
-.tone-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
-.tone-list label{display:grid;grid-template-columns:52px 1fr 30px;align-items:center;gap:10px}
-.tone-list span{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--muted)}
-.tone-list b{font-family:var(--mono);font-size:9px;font-weight:400;color:var(--ink);text-align:right}
-.tone-list input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;background:rgba(255,255,255,.28);outline:none}
-.tone-list input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;border-radius:50%;background:var(--ink);border:0;cursor:pointer}
-.tone-list input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--ink);border:0;cursor:pointer}
+/* Develop panel. Desktop: a side rail that *insets* the photo (Lightroom-style),
+   phone: a bottom sheet with the photo still visible above it. The old light
+   sheet floated over the image, so you could not judge what you were changing. */
+.devpanel{z-index:9;background:rgba(9,9,10,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);display:flex;flex-direction:column;border-left:1px solid var(--line)}
+.devpanel[hidden]{display:none}
+.dev-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,.09);flex:none}
+.dev-title{margin:0;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.18em}
+.dev-sub{display:block;margin-top:5px;font-family:var(--mono);font-size:7.5px;letter-spacing:.08em;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+.dev-actions{display:flex;align-items:center;gap:6px;flex:none}
+.dev-btn{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--muted);border:1px solid rgba(255,255,255,.16);padding:6px 8px;transition:color .15s,border-color .15s,background .15s}
+.dev-btn:hover{color:#fff;border-color:rgba(255,255,255,.45)}
+.dev-btn.on{color:#141414;background:var(--accent);border-color:var(--accent)}
+.dev-hist{display:block;width:100%;height:66px;flex:none;background:rgba(255,255,255,.015);border-bottom:1px solid rgba(255,255,255,.07)}
+.dev-body{flex:1;min-height:0;overflow-y:auto;padding:2px 18px 20px;scrollbar-width:thin;overscroll-behavior:contain}
+.dev-group{padding:13px 0 5px;border-bottom:1px solid rgba(255,255,255,.07)}
+.dev-group:last-of-type{border-bottom:0}
+.dev-group-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.dev-group-head > span{font-family:var(--mono);font-size:8px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+.dev-pick{width:26px;height:22px;border:1px solid rgba(255,255,255,.16);display:grid;place-items:center;color:var(--muted);font-size:10px;line-height:1;transition:.15s}
+.dev-pick:hover{color:#fff;border-color:rgba(255,255,255,.5)}
+.dev-pick.on{color:#141414;background:var(--accent);border-color:var(--accent)}
+.dev-row{display:grid;grid-template-columns:56px 1fr 36px;align-items:center;gap:10px;padding:5px 0;cursor:pointer}
+.dev-row span{font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;color:rgba(242,241,236,.72)}
+.dev-row b{font-family:var(--mono);font-size:8.5px;font-weight:400;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.dev-row input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;outline:none;cursor:pointer;margin:0}
+.dev-row input[type=range]::-webkit-slider-runnable-track{height:1px;background:rgba(255,255,255,.3)}
+.dev-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;border-radius:50%;background:var(--ink);border:0;margin-top:-5px;box-shadow:0 0 0 3px rgba(9,9,10,.55)}
+.dev-row input[type=range]::-moz-range-track{height:1px;background:rgba(255,255,255,.3)}
+.dev-row input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--ink);border:0}
+.dev-row input[type=range]:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+.dev-hint{margin:12px 0 0;font-family:var(--mono);font-size:7.5px;line-height:1.7;letter-spacing:.03em;color:var(--faint)}
+.app.picking .field{cursor:crosshair}
+.app.picking .field canvas{cursor:crosshair}
+@media(min-width:821px){
+  .devpanel{position:absolute;top:0;right:0;bottom:0;width:336px}
+  .app.develop .field{right:336px}
+  .app.develop .topbar{right:336px}
+  .app.develop .bottom{right:336px}
+  .app.develop .split{right:336px}
+  .app.develop .split-hit{width:44px}
+  .app.develop .tag.after{right:calc(336px + 22px)}
+  .app.develop .strengths{right:calc(336px + 20px)}
+}
+@media(max-width:820px){
+  .devpanel{position:absolute;left:0;right:0;bottom:0;height:min(54vh,460px);border-left:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -18px 44px rgba(0,0,0,.55)}
+  .app.develop .field{bottom:min(54vh,460px)}
+  .app.develop .split{bottom:min(54vh,460px)}
+  .app.develop .bottom{display:none}
+  .dev-head{padding:11px 14px 8px}
+  .dev-sub{max-width:196px}
+  .dev-body{padding:0 14px max(16px,env(safe-area-inset-bottom))}
+  .dev-row{grid-template-columns:46px 1fr 30px;padding:4px 0}
+  .dev-title{font-size:10px}
+}
 .import-error{margin:12px 0 0;padding:9px 10px;border:1px solid rgba(255,120,110,.42);background:rgba(255,90,80,.1);font-family:var(--mono);font-size:9px;line-height:1.6;letter-spacing:.02em;color:#ffb9b2}
 .import-help a{color:var(--muted)}
 .quality-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
@@ -263,7 +313,7 @@ a.tbtn{text-decoration:none}
       <button id="dualBtn" class="dual">DUAL LUT</button>
       <button id="logBtn" title="输入色彩空间 / input profile">sRGB</button>
       <button id="autoBtn" class="auto" title="RAW 自动亮度 / RAW auto brightness" hidden>AUTO</button>
-      <button id="toneBtn">亮度</button>
+      <button id="toneBtn">冲洗</button>
       <button id="importBtn">导入 LUT</button>
       <button id="exportBtn" class="quick-export">导出 ↗</button>
     </div>
@@ -292,21 +342,45 @@ a.tbtn{text-decoration:none}
   </div>
 </div>
 
-<div class="exportsheet tonesheet" id="toneSheet" hidden>
-  <div class="export-card">
-    <header><span id="toneTitle">亮度</span><button class="icon-x" id="toneClose" aria-label="关闭">×</button></header>
-    <p class="export-sub" id="toneSub">只调明暗，不动颜色。RAW 的自动亮度是这一组的起点。</p>
-    <div class="tone-list" id="toneList">
-      <label><span data-tone-label="exposure">曝光</span><input type="range" data-tone="exposure" min="-3" max="3" value="0" step="0.1"><b>0.0</b></label>
-      <label><span data-tone-label="contrast">对比度</span><input type="range" data-tone="contrast" min="-100" max="100" value="0" step="1"><b>0</b></label>
-      <label><span data-tone-label="highlights">高光</span><input type="range" data-tone="highlights" min="-100" max="100" value="0" step="1"><b>0</b></label>
-      <label><span data-tone-label="shadows">阴影</span><input type="range" data-tone="shadows" min="-100" max="100" value="0" step="1"><b>0</b></label>
-      <label><span data-tone-label="whites">白色</span><input type="range" data-tone="whites" min="-100" max="100" value="0" step="1"><b>0</b></label>
-      <label><span data-tone-label="blacks">黑色</span><input type="range" data-tone="blacks" min="-100" max="100" value="0" step="1"><b>0</b></label>
+<aside class="devpanel" id="devPanel" hidden aria-label="冲洗 / Develop">
+  <div class="dev-head">
+    <div>
+      <h2 class="dev-title" id="devTitle">冲洗</h2>
+      <span class="dev-sub" id="devSub">RAW · AS SHOT</span>
     </div>
-    <button class="export-confirm" id="toneReset">全部归零</button>
+    <div class="dev-actions">
+      <button class="dev-btn" id="devAuto" title="自动色调 / Auto tone">自动色调</button>
+      <button class="dev-btn" id="devReset">重置</button>
+      <button class="icon-x" id="devClose" aria-label="关闭">×</button>
+    </div>
   </div>
-</div>
+  <canvas class="dev-hist" id="devHist" width="300" height="66" aria-hidden="true"></canvas>
+  <div class="dev-body" id="devBody">
+    <section class="dev-group">
+      <div class="dev-group-head">
+        <span data-dev-label="wb">白平衡</span>
+        <button class="dev-pick" id="devPick" title="吸管：点照片里的中性灰">◉</button>
+      </div>
+      <label class="dev-row"><span data-dev-label="temp">色温</span><input type="range" data-dev="temp" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label class="dev-row"><span data-dev-label="tint">色调</span><input type="range" data-dev="tint" min="-100" max="100" value="0" step="1"><b>0</b></label>
+    </section>
+    <section class="dev-group">
+      <div class="dev-group-head"><span data-dev-label="light">光线</span></div>
+      <label class="dev-row"><span data-dev-label="exposure">曝光</span><input type="range" data-dev="exposure" min="-3" max="3" value="0" step="0.1"><b>0.0</b></label>
+      <label class="dev-row"><span data-dev-label="contrast">对比度</span><input type="range" data-dev="contrast" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label class="dev-row"><span data-dev-label="highlights">高光</span><input type="range" data-dev="highlights" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label class="dev-row"><span data-dev-label="shadows">阴影</span><input type="range" data-dev="shadows" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label class="dev-row"><span data-dev-label="whites">白色</span><input type="range" data-dev="whites" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label class="dev-row"><span data-dev-label="blacks">黑色</span><input type="range" data-dev="blacks" min="-100" max="100" value="0" step="1"><b>0</b></label>
+    </section>
+    <section class="dev-group">
+      <div class="dev-group-head"><span data-dev-label="presence">偏好</span></div>
+      <label class="dev-row"><span data-dev-label="vibrance">自然饱和度</span><input type="range" data-dev="vibrance" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label class="dev-row"><span data-dev-label="saturation">饱和度</span><input type="range" data-dev="saturation" min="-100" max="100" value="0" step="1"><b>0</b></label>
+    </section>
+    <p class="dev-hint" id="devHint">拖动即时看效果。白平衡吸管点画面里的灰/白。照片只在本机处理。</p>
+  </div>
+</aside>
 
 <div class="exportsheet" id="importSheet" hidden>
   <div class="export-card">
@@ -348,7 +422,8 @@ const el = {
   photoBtn: $('#photoBtn'), fitBtn: $('#fitBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'), toneSheet: $('#toneSheet'), toneClose: $('#toneClose'), toneList: $('#toneList'), toneReset: $('#toneReset'), toneTitle: $('#toneTitle'), toneSub: $('#toneSub'),
+  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'),
+  devPanel: $('#devPanel'), devTitle: $('#devTitle'), devSub: $('#devSub'), devBody: $('#devBody'), devAuto: $('#devAuto'), devReset: $('#devReset'), devClose: $('#devClose'), devPick: $('#devPick'), devHint: $('#devHint'), devHist: $('#devHist'),
   importSheet: $('#importSheet'), importClose: $('#importClose'), importPick: $('#importPick'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
   q50Dims: $('#q50Dims'), q75Dims: $('#q75Dims'), q100Dims: $('#q100Dims'),
@@ -367,9 +442,16 @@ const state = {
   autoBright: localStorage.getItem('lut.autoBright') !== '0',
   rawExposure: 0,
   // exposure is stored in stops, and the AUTO value writes straight into it so the
-  // slider always shows the exposure that is actually being applied.
-  tone: { exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0 },
+  // slider always shows the exposure that is actually being applied. temp/tint are
+  // relative white-balance shifts (-100..100, 0 = as shot); vibrance/saturation
+  // are the Presence group. A freshly opened photo starts neutral (noLook) so the
+  // user sees their own RAW, not somebody else's LUT.
+  tone: { exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0, temp: 0, tint: 0, vibrance: 0, saturation: 0 },
   autoEV: 0,
+  noLook: false,
+  develop: false,
+  picking: false,
+  rawMeta: null,
   imported: [],
   quality: 100,
   lang: localStorage.getItem('lut.lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en'),
@@ -379,6 +461,7 @@ const state = {
 let renderer, source, luts, layers = [el.layerA, el.layerB], active = 0, accent = '#d9c7a3';
 let sourceName = 'Positano';
 let pressTimer = 0;
+let applySplitVarsRef = null;
 
 async function init(){
   const hadLang = !!localStorage.getItem('lut.lang');
@@ -439,6 +522,7 @@ function lutData(id){
 }
 
 function currentStack(){
+  if (state.noLook) return [];
   const stack = [{ id: state.look, parsed: lutData(state.look), strength: state.strength }];
   if (state.dual.enabled && state.dual.b) {
     stack.push({ id: state.dual.b, parsed: lutData(state.dual.b), strength: state.dual.strengthB });
@@ -447,7 +531,11 @@ function currentStack(){
 }
 
 function sizeCanvases(){
-  const w = innerWidth, h = innerHeight;
+  // The photo stage is the field itself: when the Develop rail is open the field
+  // is inset, so measuring the viewport would stretch the render outside it.
+  const box = el.field;
+  const w = Math.max(2, box.clientWidth || innerWidth);
+  const h = Math.max(2, box.clientHeight || innerHeight);
   const dpr = Math.min(devicePixelRatio || 1, 2);
   for (const l of layers) { l.width = Math.round(w * dpr); l.height = Math.round(h * dpr); }
   if (el.base) { el.base.width = Math.round(w * dpr); el.base.height = Math.round(h * dpr); }
@@ -469,7 +557,10 @@ function adjFor(){
   return {
     exposure: t.exposure,
     contrast: t.contrast,
-    temp: 0,
+    temp: t.temp,
+    tint: t.tint,
+    vibrance: t.vibrance / 100,
+    saturation: t.saturation / 100,
     logMode: state.logMode,
     highlights: t.highlights / 100,
     shadows: t.shadows / 100,
@@ -501,6 +592,7 @@ function render({ instant = false } = {}){
   }
   active ^= 1;
   sampleAccent();
+  drawHistogram();
 }
 
 function renderDirect(){
@@ -509,6 +601,56 @@ function renderDirect(){
   renderer.render(currentStack(), adjFor(), visible.width, visible.height, state.fit);
   visible.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   sampleAccent();
+  drawHistogram();
+}
+
+/** RGB histogram of what the preview is actually showing. */
+function drawHistogram(){
+  const c = el.devHist;
+  if (!c || el.devPanel.hidden || !c.width) return;
+  const vis = layers.find(l => !l.classList.contains('off')) || layers[0];
+  if (!vis || !vis.width) return;
+  const s = document.createElement('canvas');
+  s.width = 160; s.height = 100;
+  const sctx = s.getContext('2d', { willReadFrequently: true });
+  sctx.drawImage(vis, 0, 0, 160, 100);
+  const d = sctx.getImageData(0, 0, 160, 100).data;
+  const bins = [new Uint32Array(64), new Uint32Array(64), new Uint32Array(64)];
+  for (let i = 0; i < d.length; i += 4) {
+    bins[0][d[i] >> 2]++; bins[1][d[i + 1] >> 2]++; bins[2][d[i + 2] >> 2]++;
+  }
+  let peak = 1;
+  for (let ch = 0; ch < 3; ch++) for (let i = 0; i < 64; i++) peak = Math.max(peak, bins[ch][i]);
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = 'rgba(255,255,255,.08)';
+  ctx.lineWidth = 1;
+  for (const gx of [0.25, 0.5, 0.75]) {
+    ctx.beginPath(); ctx.moveTo(gx * c.width, 0.5); ctx.lineTo(gx * c.width, c.height); ctx.stroke();
+  }
+  const colors = ['rgba(255,86,80,.85)', 'rgba(96,226,128,.7)', 'rgba(88,146,255,.85)'];
+  const fills = ['rgba(255,86,80,.10)', 'rgba(96,226,128,.09)', 'rgba(88,146,255,.10)'];
+  ctx.globalCompositeOperation = 'lighter';
+  for (let ch = 0; ch < 3; ch++) {
+    const pts = [];
+    for (let i = 0; i < 64; i++) {
+      const a = bins[ch][Math.max(0, i - 1)], m = bins[ch][i], z = bins[ch][Math.min(63, i + 1)];
+      pts.push(Math.sqrt(Math.min(1, ((a + 2 * m + z) / 4) / peak)) * (c.height - 2));
+    }
+    ctx.beginPath();
+    ctx.moveTo(0, c.height);
+    pts.forEach((h, i) => ctx.lineTo((i / 63) * c.width, c.height - h));
+    ctx.lineTo(c.width, c.height);
+    ctx.closePath();
+    ctx.fillStyle = fills[ch];
+    ctx.fill();
+    ctx.beginPath();
+    pts.forEach((h, i) => (i ? ctx.lineTo((i / 63) * c.width, c.height - h) : ctx.moveTo(0, c.height - h)));
+    ctx.strokeStyle = colors[ch];
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 function sampleAccent(){
@@ -536,6 +678,15 @@ function sampleAccent(){
 
 function setLookText(){
   const all = allLooks();
+  el.app.classList.toggle('nolook', state.noLook);
+  if (state.noLook) {
+    el.lookNo.textContent = '—';
+    el.lookName.textContent = t(state.lang, 'original');
+    el.lookCat.textContent = t(state.lang, 'developing');
+    el.lookEn.textContent = t(state.lang, 'noLook');
+    el.lookName.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,0,0,1)' });
+    return;
+  }
   const a = all.find(l => l.id === state.look) || all[0];
   const b = all.find(l => l.id === state.dual.b) || all[0];
   const dual = state.dual.enabled;
@@ -729,6 +880,15 @@ function buildFilm(){
   el.film.innerHTML = '';
   const frag = document.createDocumentFragment();
   const all = allLooks();
+  // Original sits in front of the looks so "no LUT at all" is a first-class
+  // choice: opening a photo lands here, and getting back to it is one click.
+  const orig = document.createElement('button');
+  orig.type = 'button';
+  orig.className = 'chip original';
+  orig.dataset.id = '__none';
+  orig.innerHTML = `<canvas width="156" height="104"></canvas><span class="n">00</span><span class="nm">${t(state.lang, 'original')}</span>`;
+  orig.addEventListener('click', () => { if (state.dragged) return; selectOriginal(); });
+  frag.appendChild(orig);
   all.forEach((look, i) => {
     const b = document.createElement('button');
     b.className = 'chip' + (look.id === state.look ? ' on' : '') + (look.imported ? ' mine' : '');
@@ -751,20 +911,30 @@ async function renderFilmThumbs(){
   const chips = [...el.film.querySelectorAll('.chip')];
   const all = allLooks();
   for (let i = 0; i < chips.length; i++) {
-    const look = all[i];
-    renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], adjFor(), 156, 104, 'cover');
+    const look = i === 0 ? null : all[i - 1];
+    if (look) renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], adjFor(), 156, 104, 'cover');
+    else renderer.render([], adjFor(), 156, 104, 'cover');
     chips[i].querySelector('canvas').getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
     if (i % 6 === 5) await new Promise(r => requestAnimationFrame(r));
   }
 }
 
 function selectLook(id, slot = 'A'){
+  state.noLook = false;
   if (state.dual.enabled && slot === 'B') state.dual.b = id;
   else state.look = id;
   render();
   setLookText();
   updateActiveChip();
   centerChip(id);
+}
+
+function selectOriginal(){
+  state.noLook = true;
+  render();
+  setLookText();
+  updateActiveChip();
+  centerChip('__none');
 }
 
 // Scroll only the filmstrip. `scrollIntoView` also scrolls scrollable ancestors
@@ -781,9 +951,11 @@ function centerChip(id){
 
 function updateActiveChip(){
   el.film.querySelectorAll('.chip').forEach(c => {
-    const isA = c.dataset.id === state.look;
-    const isB = state.dual.enabled && c.dataset.id === state.dual.b;
-    c.classList.toggle('on', isA);
+    const id = c.dataset.id;
+    const isOrig = id === '__none';
+    const isA = !state.noLook && id === state.look;
+    const isB = !state.noLook && state.dual.enabled && id === state.dual.b;
+    c.classList.toggle('on', isOrig ? state.noLook : isA);
     c.classList.toggle('b-on', isB);
     c.querySelectorAll('.slot-badge').forEach(x => x.remove());
     if (isA) c.insertAdjacentHTML('beforeend', '<span class="slot-badge">A</span>');
@@ -845,6 +1017,175 @@ function updateLogUI(){
   el.logBtn.classList.toggle('on', state.logMode > 0);
 }
 
+/* ---------- Develop panel ---------- */
+
+const DEV_KEYS = ['temp', 'tint', 'exposure', 'contrast', 'highlights', 'shadows', 'whites', 'blacks', 'vibrance', 'saturation'];
+
+function devValueText(key, v) {
+  if (key === 'exposure') return (v > 0 ? '+' : '') + Number(v).toFixed(1);
+  return v > 0 ? `+${v}` : String(v);
+}
+
+function syncDevRow(input) {
+  const key = input.dataset.dev;
+  input.value = String(state.tone[key]);
+  const out = input.nextElementSibling;
+  if (out) out.textContent = devValueText(key, state.tone[key]);
+}
+
+function updateDevSub() {
+  const m = state.rawMeta;
+  if (m) {
+    const ev = state.rawExposure ? ` · ${state.rawExposure >= 0 ? '+' : ''}${state.rawExposure.toFixed(1)} EV` : '';
+    el.devSub.textContent = `${m.model || 'RAW'} · ${m.width} × ${m.height}${ev}`;
+  } else if (source) {
+    el.devSub.textContent = `${sourceName || ''} · ${source.width} × ${source.height}`.trim();
+  } else {
+    el.devSub.textContent = '';
+  }
+}
+
+function syncDevUI() {
+  el.devBody.querySelectorAll('input[data-dev]').forEach(syncDevRow);
+  updateDevSub();
+}
+
+function updateDevLang() {
+  el.toneBtn.textContent = t(state.lang, state.develop ? 'developClose' : 'develop');
+  el.toneBtn.classList.toggle('on', state.develop);
+  el.devTitle.textContent = t(state.lang, 'develop');
+  el.devAuto.textContent = t(state.lang, 'autoTone');
+  el.devReset.textContent = t(state.lang, 'reset');
+  el.devHint.textContent = t(state.lang, 'devHint');
+  el.devPick.title = t(state.lang, 'pickHint');
+  el.devAuto.title = t(state.lang, 'autoToneTitle');
+  el.devBody.querySelectorAll('[data-dev-label]').forEach((n) => {
+    n.textContent = t(state.lang, 'dev_' + n.dataset.devLabel);
+  });
+  updateDevSub();
+}
+
+function setDevelop(open) {
+  if (state.develop === open && el.devPanel.hidden === !open) return;
+  state.develop = open;
+  el.devPanel.hidden = !open;
+  el.app.classList.toggle('develop', open);
+  el.toneBtn.classList.toggle('on', open);
+  el.toneBtn.textContent = t(state.lang, open ? 'developClose' : 'develop');
+  if (open) syncDevUI();
+  else if (state.picking) togglePick(false);
+  // The photo stage just changed size. Resize the layers and re-render so the
+  // preview is never stretched while the panel settles.
+  requestAnimationFrame(() => {
+    sizeCanvases();
+    drawBase();
+    render({ instant: true });
+    if (applySplitVarsRef) applySplitVarsRef();
+  });
+}
+
+/** A newly opened photo starts from the camera's own render, not from a LUT. */
+function beginPhoto(autoEV = 0) {
+  state.noLook = true;
+  state.logMode = 0;
+  updateLogUI();
+  state.autoEV = autoEV;
+  state.rawExposure = autoEV;
+  for (const k of DEV_KEYS) state.tone[k] = 0;
+  state.tone.exposure = state.autoBright ? autoEV : 0;
+  syncAutoBtn();
+  syncDevUI();
+}
+
+function resetDevelop() {
+  for (const k of DEV_KEYS) state.tone[k] = 0;
+  state.tone.exposure = state.autoBright ? state.autoEV : 0;
+  syncDevUI();
+  render({ instant: true });
+  toast(t(state.lang, 'resetDone'));
+}
+
+/** Percentiles of the un-graded photo — the measuring stick AUTO tone works from. */
+function measureTone() {
+  if (!source) return null;
+  const c = document.createElement('canvas');
+  c.width = 240;
+  c.height = Math.max(2, Math.round(240 * source.height / source.width));
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(source, 0, 0, c.width, c.height);
+  const d = ctx.getImageData(0, 0, c.width, c.height).data;
+  const hist = new Uint32Array(256);
+  let n = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const l = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) | 0;
+    hist[l > 255 ? 255 : l]++;
+    n++;
+  }
+  const pct = (p) => {
+    let acc = 0;
+    for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= n * p) return v; }
+    return 255;
+  };
+  return { p1: pct(.01), p5: pct(.05), p25: pct(.25), p50: pct(.5), p75: pct(.75), p95: pct(.95), p995: pct(.995) };
+}
+
+function applyAutoTone() {
+  const m = measureTone();
+  if (!m) return;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const spread = (m.p75 - m.p25) / 255;
+  const tn = state.tone;
+  tn.exposure = state.autoBright ? (state.autoEV || 0) : 0;
+  tn.contrast = Math.round(clamp((0.30 - spread) * 140 + 6, -10, 45));
+  tn.highlights = m.p995 >= 248 ? -38 : m.p995 >= 232 ? -20 : 0;
+  tn.shadows = m.p5 <= 8 ? 32 : m.p5 <= 24 ? 15 : 0;
+  tn.whites = Math.round(clamp((244 - m.p995) * 0.8, -24, 24));
+  tn.blacks = m.p1 >= 20 ? -14 : m.p1 >= 9 ? -7 : 0;
+  syncDevUI();
+  drawBase();
+  render({ instant: true });
+  toast(t(state.lang, 'autoToneDone'));
+}
+
+function togglePick(force) {
+  state.picking = force === undefined ? !state.picking : force;
+  el.app.classList.toggle('picking', state.picking);
+  el.devPick.classList.toggle('on', state.picking);
+  if (state.picking) toast(t(state.lang, 'pickHint'), 3200);
+}
+
+/**
+ * Eyedropper: sample the neutral reference from the *base* render (camera
+ * exposure only, no LUT / tone / WB), then invert the shader's channel-gain
+ * matrix so that pixel lands on its own luminance.
+ */
+function pickWhite(e) {
+  if (!source || !el.base) return;
+  const box = el.field.getBoundingClientRect();
+  const fx = (e.clientX - box.left) / Math.max(1, box.width);
+  const fy = (e.clientY - box.top) / Math.max(1, box.height);
+  if (fx < 0 || fx > 1 || fy < 0 || fy > 1) return;
+  const c = el.base;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const px = Math.min(c.width - 1, Math.max(0, Math.round(fx * c.width)));
+  const py = Math.min(c.height - 1, Math.max(0, Math.round(fy * c.height)));
+  const d = ctx.getImageData(px, py, 1, 1).data;
+  const toLin = (s) => { s /= 255; return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+  const r = toLin(d[0]), g = toLin(d[1]), b = toLin(d[2]);
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  if (lum < 1e-4 || r < 1e-4 || g < 1e-4 || b < 1e-4) { toast(t(state.lang, 'pickTooDark')); return; }
+  const lr = Math.log2(lum / r), lg = Math.log2(lum / g), lb = Math.log2(lum / b);
+  const temp = Math.max(-100, Math.min(100, Math.round((lr - lb) / 1.20 * 100)));
+  const tint = Math.max(-100, Math.min(100, Math.round(-lg / 0.34 * 100)));
+  state.tone.temp = temp;
+  state.tone.tint = tint;
+  syncDevUI();
+  drawBase();
+  render({ instant: true });
+  togglePick(false);
+  toast(`${t(state.lang, 'picked')} · ${temp > 0 ? '+' : ''}${temp} / ${tint > 0 ? '+' : ''}${tint}`, 2600);
+}
+
 function setFit(fit){
   state.fit = fit;
   el.fitBtn.textContent = t(state.lang, fit === 'contain' ? 'fill' : 'fit');
@@ -858,13 +1199,7 @@ function applyLang(lang, { persist = true } = {}){
   document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
   el.langBtn.textContent = t(lang, 'language');
   if (el.autoBtn) syncAutoBtn();
-  if (el.toneBtn) {
-    el.toneBtn.textContent = t(lang, 'light');
-    el.toneTitle.textContent = t(lang, 'light');
-    el.toneSub.textContent = t(lang, 'lightSub');
-    el.toneReset.textContent = t(lang, 'lightReset');
-    el.toneList.querySelectorAll('[data-tone-label]').forEach((n) => { n.textContent = t(lang, 'tone_' + n.dataset.toneLabel); });
-  }
+  updateDevLang();
   el.photoBtn.textContent = t(lang, 'photo');
   el.fitBtn.textContent = t(lang, state.fit === 'contain' ? 'fill' : 'fit');
   el.exportBtn.textContent = `${t(lang, 'export')} ↗`;
@@ -880,8 +1215,10 @@ function applyLang(lang, { persist = true } = {}){
   setLookText();
   updateSlotUI();
   el.film.querySelectorAll('.chip').forEach(c => {
+    const nm = c.querySelector('.nm');
+    if (c.dataset.id === '__none') { nm.textContent = t(lang, 'original'); return; }
     const look = allLooks().find(l => l.id === c.dataset.id);
-    if (look) c.querySelector('.nm').textContent = displayName(look, lang);
+    if (look) nm.textContent = displayName(look, lang);
   });
   updateQualityDims();
 }
@@ -947,7 +1284,8 @@ async function exportImage(quality){
   const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', quality >= 100 ? 0.98 : quality >= 75 ? 0.95 : 0.9));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `lut-archive-${state.dual.enabled ? 'dual-' : ''}${state.look}-${quality}pct-${Date.now()}.jpg`;
+  const tag = state.noLook ? 'developed' : `${state.dual.enabled ? 'dual-' : ''}${state.look}`;
+  a.download = `lut-archive-${tag}-${quality}pct-${Date.now()}.jpg`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 3000);
   toast(`${t(state.lang, 'exportDone')} ${w}×${h} · ${(blob.size / 1024 / 1024).toFixed(1)} MB`);
@@ -968,7 +1306,7 @@ async function detectGeo(){
 }
 
 function bind(){
-  window.addEventListener('resize', () => { sizeCanvases(); drawBase(); render({ instant: true }); updateQualityDims(); });
+  window.addEventListener('resize', () => { sizeCanvases(); drawBase(); render({ instant: true }); updateQualityDims(); applySplitVarsRef?.(); });
   el.photoBtn.addEventListener('click', () => el.fileInput.click());
   el.fileInput.addEventListener('change', () => { const f = el.fileInput.files?.[0]; if (f) loadFile(f); el.fileInput.value = ''; });
   el.exportBtn.addEventListener('click', openExport);
@@ -988,32 +1326,26 @@ function bind(){
     el.importInput.value = '';
     if (files.length) await handleImport(files);
   });
-  el.toneBtn.addEventListener('click', () => { el.toneSheet.hidden = false; });
-  el.toneClose.addEventListener('click', () => { el.toneSheet.hidden = true; });
-  el.toneSheet.addEventListener('click', (e) => { if (e.target === el.toneSheet) el.toneSheet.hidden = true; });
-  el.toneList.addEventListener('input', (e) => {
-    const input = e.target.closest('input[data-tone]');
+  el.toneBtn.addEventListener('click', () => setDevelop(!state.develop));
+  el.devClose.addEventListener('click', () => setDevelop(false));
+  el.devBody.addEventListener('input', (e) => {
+    const input = e.target.closest('input[data-dev]');
     if (!input) return;
-    const key = input.dataset.tone;
+    const key = input.dataset.dev;
     state.tone[key] = Number(input.value);
-    input.nextElementSibling.textContent = key === 'exposure'
-      ? (state.tone[key] > 0 ? '+' : '') + state.tone[key].toFixed(1)
-      : (state.tone[key] > 0 ? `+${state.tone[key]}` : String(state.tone[key]));
+    syncDevRow(input);
     render({ instant: true });
   });
-  el.toneReset.addEventListener('click', () => {
-    for (const k of Object.keys(state.tone)) state.tone[k] = 0;
-    el.toneList.querySelectorAll('input[data-tone]').forEach((i) => { i.value = '0'; });
-    syncExposure();
-    el.toneList.querySelectorAll('input[data-tone]:not([data-tone="exposure"])').forEach((i) => { i.nextElementSibling.textContent = '0'; });
-    render({ instant: true });
-  });
+  el.devReset.addEventListener('click', resetDevelop);
+  el.devAuto.addEventListener('click', applyAutoTone);
+  el.devPick.addEventListener('click', () => togglePick());
+  el.field.addEventListener('pointerdown', (e) => { if (state.picking) pickWhite(e); });
   el.autoBtn.addEventListener('click', () => {
     state.autoBright = !state.autoBright;
     localStorage.setItem('lut.autoBright', state.autoBright ? '1' : '0');
     state.tone.exposure = state.autoBright ? state.autoEV : 0;
     syncAutoBtn();
-    syncExposure();
+    syncDevUI();
     drawBase();
     render();
   });
@@ -1034,17 +1366,29 @@ function bind(){
     await exportImage(q);
   });
 
-  // split: only handle / hit strip
+  // split: only handle / hit strip. The split lives on the photo stage, which
+  // shrinks when the Develop rail opens, so all positions are measured against
+  // the stage instead of the viewport.
+  const splitStage = () => el.split.getBoundingClientRect();
+  const applySplitVars = () => {
+    const s = el.split.getBoundingClientRect();
+    const f = el.field.getBoundingClientRect();
+    // Keep the layer clip inside the same stage even though .field overhangs by 2%
+    // and shrinks when the Develop rail opens.
+    const fSplit = f.width > 0 ? (s.left + state.split * s.width - f.left) / f.width : state.split;
+    el.split.style.setProperty('--split', state.split);
+    el.field.style.setProperty('--split', String(Math.max(0, Math.min(1, fSplit))));
+  };
   const setSplit = (v) => {
     state.split = Math.max(.02, Math.min(.98, v));
-    el.split.style.setProperty('--split', state.split);
-    el.field.style.setProperty('--split', state.split);
+    applySplitVars();
   };
+  applySplitVarsRef = applySplitVars;
   const startSplit = (e) => {
     state.interacting = true;
     el.splitHit.setPointerCapture?.(e.pointerId);
     e.preventDefault();
-    const move = (ev) => setSplit(ev.clientX / innerWidth);
+    const move = (ev) => { const s = splitStage(); setSplit((ev.clientX - s.left) / Math.max(1, s.width)); };
     const up = () => { state.interacting = false; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
@@ -1056,8 +1400,9 @@ function bind(){
   // long-press right side to see original
   el.app.addEventListener('pointerdown', (e) => {
     if (state.interacting) return;
-    if (e.target.closest('button, .strengths, .film, .quick, .topbar, .split-hit, .exportsheet')) return;
-    const splitX = state.split * innerWidth;
+    if (e.target.closest('button, .strengths, .film, .quick, .topbar, .split-hit, .exportsheet, .develop')) return;
+    const s = splitStage();
+    const splitX = s.left + state.split * s.width;
     if (e.clientX <= splitX) return;
     clearTimeout(pressTimer);
     pressTimer = setTimeout(() => { state.comparing = true; el.app.classList.add('comparing'); }, 220);
@@ -1211,6 +1556,9 @@ function applyImage(img, name, note){
   sizeCanvases();
   drawBase();
   render({ instant: true });
+  setLookText();
+  updateActiveChip();
+  updateDevSub();
   updateQualityDims();
   toast(note || t(state.lang, 'photoLoaded'));
 }
@@ -1221,10 +1569,10 @@ async function loadFile(file){
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null);
     const img = bitmap || await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
-    state.rawExposure = 0; state.autoEV = 0;
-    state.tone.exposure = 0;
-    syncAutoBtn(); syncExposure();
+    state.rawMeta = null;
+    beginPhoto(0);
     applyImage(img, file.name);
+    setDevelop(true);
   } catch { toast(t(state.lang, 'formatError')); }
 }
 
@@ -1232,14 +1580,6 @@ async function loadFile(file){
 // camera white balance, camera colour matrix). If that fails — Nikon HE/HE*
 // files use a proprietary codec LibRaw cannot unpack — fall back to the camera
 // JPEG embedded in the file.
-/** Push state.tone.exposure into the slider + its readout. */
-function syncExposure(){
-  const input = el.toneList.querySelector('input[data-tone="exposure"]');
-  if (!input) return;
-  const v = state.tone.exposure;
-  input.value = v.toFixed(1);
-  input.nextElementSibling.textContent = (v > 0 ? '+' : '') + v.toFixed(1);
-}
 
 function syncAutoBtn(){
   const ev = state.rawExposure || 0;
@@ -1258,15 +1598,15 @@ async function loadRaw(file){
     const out = await developRaw(buffer);
     const bits = `${out.width} × ${out.height}`;
     const who = out.model ? ` · ${out.model}` : '';
-    state.rawExposure = out.exposureEV || 0;
-    state.autoEV = out.exposureEV || 0;
-    state.tone.exposure = state.autoBright ? state.autoEV : 0;
-    syncAutoBtn();
-    syncExposure();
+    state.rawMeta = { model: out.model || '', width: out.width, height: out.height };
+    beginPhoto(out.exposureEV || 0);
     const ev = state.autoBright && state.rawExposure
       ? ` · ${t(state.lang, 'autoBright')} ${state.rawExposure >= 0 ? '+' : ''}${state.rawExposure.toFixed(1)} EV`
       : '';
     applyImage(out.bitmap, file.name, `${t(state.lang, 'rawDeveloped')}${who} · ${bits}${ev} · ${(out.ms / 1000).toFixed(1)}s`);
+    // A RAW is something you develop, not a wallpaper: land in the develop panel
+    // with the camera's own render and no LUT in the way.
+    setDevelop(true);
     return;
   } catch (err) {
     reason = err instanceof RawUnsupported ? err.reason : null;
@@ -1276,8 +1616,10 @@ async function loadRaw(file){
   try {
     const preview = await extractRawPreview(buffer);
     if (!preview) { toast(t(state.lang, 'rawUnsupported')); return; }
-    state.rawExposure = 0; syncAutoBtn();
+    state.rawMeta = { model: '', width: preview.width, height: preview.height };
+    beginPhoto(0);
     applyImage(preview.bitmap, file.name, `${t(state.lang, 'rawPreview')} · ${preview.width} × ${preview.height}`);
+    setDevelop(true);
   } catch {
     toast(t(state.lang, 'rawUnsupported'));
   }

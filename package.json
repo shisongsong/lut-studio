@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "MIT",
-  "description": "A darkroom-style photo LUT editor that runs entirely in the browser. 44 generated looks, dual-LUT stacking, .cube import, full-resolution JPEG export — no accounts, no server-side processing.",
+  "description": "A darkroom-style photo editor that runs entirely in the browser: develop RAW files with a Lightroom-style panel (white balance, tone, presence, histogram, auto tone), then stack 44 generated LUT looks or import your own .cube. Full-resolution JPEG export — no accounts, no server-side processing.",
   "homepage": "https://lut.openanthropic.com",
   "repository": {
     "type": "git",
