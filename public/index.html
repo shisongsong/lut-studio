@@ -179,6 +179,8 @@ a.tbtn{text-decoration:none}
 .import-links a{font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--muted);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.25)}
 .import-links a:hover{color:var(--ink);border-color:rgba(242,241,236,.6)}
 .import-help{margin:14px 0 0;font-size:9px;line-height:1.6;color:var(--faint)}
+.tonesheet{align-items:flex-end;padding:0;backdrop-filter:none;background:linear-gradient(to top,rgba(4,4,5,.55),rgba(4,4,5,.16) 45%,transparent)}
+.tonesheet .export-card{width:100%;max-width:560px;margin:0 auto;border-radius:14px 14px 0 0;border-bottom:0;padding-bottom:max(18px,env(safe-area-inset-bottom));max-height:60vh;overflow-y:auto}
 .tone-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
 .tone-list label{display:grid;grid-template-columns:52px 1fr 30px;align-items:center;gap:10px}
 .tone-list span{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--muted)}
@@ -290,12 +292,12 @@ a.tbtn{text-decoration:none}
   </div>
 </div>
 
-<div class="exportsheet" id="toneSheet" hidden>
+<div class="exportsheet tonesheet" id="toneSheet" hidden>
   <div class="export-card">
     <header><span id="toneTitle">亮度</span><button class="icon-x" id="toneClose" aria-label="关闭">×</button></header>
     <p class="export-sub" id="toneSub">只调明暗，不动颜色。RAW 的自动亮度是这一组的起点。</p>
     <div class="tone-list" id="toneList">
-      <label><span data-tone-label="exposure">曝光</span><input type="range" data-tone="exposure" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label><span data-tone-label="exposure">曝光</span><input type="range" data-tone="exposure" min="-3" max="3" value="0" step="0.1"><b>0.0</b></label>
       <label><span data-tone-label="contrast">对比度</span><input type="range" data-tone="contrast" min="-100" max="100" value="0" step="1"><b>0</b></label>
       <label><span data-tone-label="highlights">高光</span><input type="range" data-tone="highlights" min="-100" max="100" value="0" step="1"><b>0</b></label>
       <label><span data-tone-label="shadows">阴影</span><input type="range" data-tone="shadows" min="-100" max="100" value="0" step="1"><b>0</b></label>
@@ -364,7 +366,10 @@ const state = {
   // linear exposure in the shader so the toggle is instant and export matches.
   autoBright: localStorage.getItem('lut.autoBright') !== '0',
   rawExposure: 0,
+  // exposure is stored in stops, and the AUTO value writes straight into it so the
+  // slider always shows the exposure that is actually being applied.
   tone: { exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0 },
+  autoEV: 0,
   imported: [],
   quality: 100,
   lang: localStorage.getItem('lut.lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en'),
@@ -462,8 +467,7 @@ function drawBase(){
 function adjFor(){
   const t = state.tone;
   return {
-    // auto-brightness is the RAW baseline; the exposure slider is on top of it
-    exposure: (state.autoBright ? state.rawExposure || 0 : 0) + t.exposure * 0.02,
+    exposure: t.exposure,
     contrast: t.contrast,
     temp: 0,
     logMode: state.logMode,
@@ -477,7 +481,7 @@ function adjFor(){
 /** The BEFORE side: the photo as loaded, with the RAW baseline only. */
 function adjBase(){
   return {
-    exposure: state.autoBright ? state.rawExposure || 0 : 0,
+    exposure: state.tone.exposure,
     contrast: 0, temp: 0, logMode: 0,
   };
 }
@@ -992,18 +996,24 @@ function bind(){
     if (!input) return;
     const key = input.dataset.tone;
     state.tone[key] = Number(input.value);
-    input.nextElementSibling.textContent = input.value > 0 ? `+${input.value}` : input.value;
+    input.nextElementSibling.textContent = key === 'exposure'
+      ? (state.tone[key] > 0 ? '+' : '') + state.tone[key].toFixed(1)
+      : (state.tone[key] > 0 ? `+${state.tone[key]}` : String(state.tone[key]));
     render({ instant: true });
   });
   el.toneReset.addEventListener('click', () => {
     for (const k of Object.keys(state.tone)) state.tone[k] = 0;
-    el.toneList.querySelectorAll('input[data-tone]').forEach((i) => { i.value = '0'; i.nextElementSibling.textContent = '0'; });
+    el.toneList.querySelectorAll('input[data-tone]').forEach((i) => { i.value = '0'; });
+    syncExposure();
+    el.toneList.querySelectorAll('input[data-tone]:not([data-tone="exposure"])').forEach((i) => { i.nextElementSibling.textContent = '0'; });
     render({ instant: true });
   });
   el.autoBtn.addEventListener('click', () => {
     state.autoBright = !state.autoBright;
     localStorage.setItem('lut.autoBright', state.autoBright ? '1' : '0');
+    state.tone.exposure = state.autoBright ? state.autoEV : 0;
     syncAutoBtn();
+    syncExposure();
     drawBase();
     render();
   });
@@ -1196,7 +1206,8 @@ function applyImage(img, name, note){
   sourceName = name.replace(/\.[^.]+$/, '').slice(0, 28) || 'Untitled';
   el.metaName.textContent = sourceName.toUpperCase();
   el.metaDims.textContent = `${source.width} × ${source.height}`;
-  el.fitBtn.textContent = t(state.lang, state.fit === 'contain' ? 'fill' : 'fit');
+  state.fit = 'cover';
+  el.fitBtn.textContent = t(state.lang, 'fit');
   sizeCanvases();
   drawBase();
   render({ instant: true });
@@ -1210,7 +1221,9 @@ async function loadFile(file){
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null);
     const img = bitmap || await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
-    state.rawExposure = 0; syncAutoBtn();
+    state.rawExposure = 0; state.autoEV = 0;
+    state.tone.exposure = 0;
+    syncAutoBtn(); syncExposure();
     applyImage(img, file.name);
   } catch { toast(t(state.lang, 'formatError')); }
 }
@@ -1219,6 +1232,15 @@ async function loadFile(file){
 // camera white balance, camera colour matrix). If that fails — Nikon HE/HE*
 // files use a proprietary codec LibRaw cannot unpack — fall back to the camera
 // JPEG embedded in the file.
+/** Push state.tone.exposure into the slider + its readout. */
+function syncExposure(){
+  const input = el.toneList.querySelector('input[data-tone="exposure"]');
+  if (!input) return;
+  const v = state.tone.exposure;
+  input.value = v.toFixed(1);
+  input.nextElementSibling.textContent = (v > 0 ? '+' : '') + v.toFixed(1);
+}
+
 function syncAutoBtn(){
   const ev = state.rawExposure || 0;
   el.autoBtn.hidden = !ev;
@@ -1237,7 +1259,10 @@ async function loadRaw(file){
     const bits = `${out.width} × ${out.height}`;
     const who = out.model ? ` · ${out.model}` : '';
     state.rawExposure = out.exposureEV || 0;
+    state.autoEV = out.exposureEV || 0;
+    state.tone.exposure = state.autoBright ? state.autoEV : 0;
     syncAutoBtn();
+    syncExposure();
     const ev = state.autoBright && state.rawExposure
       ? ` · ${t(state.lang, 'autoBright')} ${state.rawExposure >= 0 ? '+' : ''}${state.rawExposure.toFixed(1)} EV`
       : '';
