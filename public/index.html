@@ -562,10 +562,11 @@ function adjFor(){
     vibrance: t.vibrance / 100,
     saturation: t.saturation / 100,
     logMode: state.logMode,
-    highlights: t.highlights / 100,
-    shadows: t.shadows / 100,
-    whites: t.whites / 100,
-    blacks: t.blacks / 100,
+    // The tone curve is built in -100..100 slider units inside the renderer.
+    highlights: t.highlights,
+    shadows: t.shadows,
+    whites: t.whites,
+    blacks: t.blacks,
   };
 }
 
@@ -1105,14 +1106,20 @@ function resetDevelop() {
   toast(t(state.lang, 'resetDone'));
 }
 
-/** Percentiles of the un-graded photo — the measuring stick AUTO tone works from. */
+/**
+ * Percentiles of the *displayed* camera render (auto exposure applied, no LUT,
+ * no tone) — the measuring stick AUTO tone works from. Sampling the raw decode
+ * would ignore the exposure the shader is actually applying.
+ */
 function measureTone() {
   if (!source) return null;
+  const stage = el.base && el.base.width > 8 ? el.base : null;
   const c = document.createElement('canvas');
   c.width = 240;
   c.height = Math.max(2, Math.round(240 * source.height / source.width));
   const ctx = c.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(source, 0, 0, c.width, c.height);
+  if (stage) ctx.drawImage(stage, 0, 0, c.width, c.height);
+  else ctx.drawImage(source, 0, 0, c.width, c.height);
   const d = ctx.getImageData(0, 0, c.width, c.height).data;
   const hist = new Uint32Array(256);
   let n = 0;
@@ -1136,11 +1143,13 @@ function applyAutoTone() {
   const spread = (m.p75 - m.p25) / 255;
   const tn = state.tone;
   tn.exposure = state.autoBright ? (state.autoEV || 0) : 0;
-  tn.contrast = Math.round(clamp((0.30 - spread) * 140 + 6, -10, 45));
-  tn.highlights = m.p995 >= 248 ? -38 : m.p995 >= 232 ? -20 : 0;
-  tn.shadows = m.p5 <= 8 ? 32 : m.p5 <= 24 ? 15 : 0;
-  tn.whites = Math.round(clamp((244 - m.p995) * 0.8, -24, 24));
-  tn.blacks = m.p1 >= 20 ? -14 : m.p1 >= 9 ? -7 : 0;
+  // Small, Lightroom-like moves: the curve does the shaping, AUTO only picks
+  // where the frame sits inside it.
+  tn.contrast = Math.round(clamp((0.26 - spread) * 160 + 4, -8, 30));
+  tn.highlights = m.p995 >= 250 ? -42 : m.p995 >= 238 ? -22 : m.p995 >= 226 ? -10 : 0;
+  tn.shadows = m.p5 <= 6 ? 35 : m.p5 <= 14 ? 26 : m.p5 <= 30 ? 14 : 0;
+  tn.whites = Math.round(clamp((246 - m.p995) * 0.9, -22, 22));
+  tn.blacks = m.p1 >= 24 ? -16 : m.p1 >= 12 ? -9 : m.p1 >= 4 ? -3 : 0;
   syncDevUI();
   drawBase();
   render({ instant: true });

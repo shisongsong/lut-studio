@@ -4,10 +4,105 @@
  * normal 2D canvases (so crossfades stay simple and only one GL context is
  * created on phones).
  *
- * Pipeline: exposure + white balance in linear light → contrast → tonal masks
- * (highlights/shadows/whites/blacks) → vibrance/saturation → optional LOG encode
- * → up to 3 stacked LUTs.
+ * Pipeline: exposure + white balance in linear light → monotone tone curve
+ * sampled in log2 luminance (contrast / shadows / highlights / whites / blacks)
+ * → vibrance/saturation → optional LOG encode → up to 3 stacked LUTs.
+ *
+ * The tone curve is built on the CPU into a 1024-entry log-luminance LUT and
+ * applied as a luminance *ratio* in linear light, so a tone move cannot shift
+ * hue the way per-channel gamma-space offsets do. The model follows the log
+ * exposure domain of darktable's filmic RGB (black/white points, latitude,
+ * toe/shoulder) and the zone-masked exposure corrections of darktable's tone
+ * equalizer; RawTherapee's Shadows/Highlights is the reference for keeping
+ * chroma stable when shadows are lifted. No GPL code was copied — the sources
+ * were only read for the maths.
  */
+const TONE_EV_MIN = -12.0;
+const TONE_EV_MAX = 6.0;
+const TONE_LUT_SIZE = 1024;
+const GREY = 0.18;
+
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+const smoothstep = (a, b, x) => {
+  const t = clamp01((x - a) / (b - a));
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * Build the tone curve as a mapping of log2 luminance (EV around 18% grey).
+ *
+ * - `contrast` is a slope around mid grey in the log/exposure domain, which is
+ *   where a filmic curve keeps its linear "latitude".
+ * - `shadows` / `highlights` are exposure-style corrections confined to their
+ *   own range by smooth masks: lifting shadows multiplies the dark end (keeps
+ *   detail and hue) instead of adding grey to it.
+ * - `whites` moves the top of the range only, so it behaves like a white point.
+ * - `blacks` has both a toe exposure component and a real linear floor/crush:
+ *   multiplying zero by any gain can never lift a black, an additive term can.
+ *
+ * The result is monotone for every combination (a tone inversion is what makes
+ * banded "solarised" shadows), so the LUT is repaired in place if an extreme
+ * setting would fold it.
+ *
+ * @param {{contrast?:number, shadows?:number, highlights?:number, whites?:number, blacks?:number}} tone -100..100
+ * @returns {Float32Array} TONE_LUT_SIZE log2 luminance values (EV around grey)
+ */
+export function buildToneCurve(tone = {}) {
+  const pick = (v) => Math.max(-100, Math.min(100, Number(v) || 0)) / 100;
+  const contrast = pick(tone.contrast);
+  const shadows = pick(tone.shadows);
+  const highlights = pick(tone.highlights);
+  const whites = pick(tone.whites);
+  const blacks = pick(tone.blacks);
+
+  const slope = 1 + 0.35 * contrast;   // ±35% slope around mid grey
+  const shAmp = 2.4 * shadows;         // stops, deepest shadows
+  const hiAmp = 2.0 * highlights;      // stops, upper range
+  const whAmp = 2.8 * whites;          // stops, top end only
+  const blAmp = 1.0 * blacks;          // stops, toe shaping
+  const out = new Float32Array(TONE_LUT_SIZE);
+
+  for (let i = 0; i < TONE_LUT_SIZE; i++) {
+    const ev = TONE_EV_MIN + (TONE_EV_MAX - TONE_EV_MIN) * (i / (TONE_LUT_SIZE - 1));
+    let x = ev * slope;
+    x += shAmp * (1 - smoothstep(-4.2, -0.2, x));
+    x += hiAmp * smoothstep(0.3, 3.2, x);
+    x += whAmp * smoothstep(1.2, 4.5, x);
+    x += blAmp * (1 - smoothstep(-9.0, -5.5, x));
+    let y = GREY * Math.pow(2, x);
+    if (blacks > 0) y += 0.0065 * blacks * (1 - smoothstep(0.004, 0.05, y));
+    else if (blacks < 0) y -= 0.0080 * -blacks * (1 - smoothstep(0.002, 0.03, y));
+    y = Math.max(y, 1e-8);
+    out[i] = Math.log2(y / GREY);
+  }
+  // Strictly non-decreasing: no tone inversion at any setting combination.
+  for (let i = 1; i < TONE_LUT_SIZE; i++) {
+    if (out[i] < out[i - 1]) out[i] = out[i - 1];
+  }
+  return out;
+}
+
+/** IEEE-754 float32 → float16 bits, for the R16F tone texture. */
+const _f32 = new Float32Array(1);
+const _i32 = new Int32Array(_f32.buffer);
+function floatToHalf(value) {
+  _f32[0] = value;
+  const x = _i32[0];
+  let bits = (x >> 16) & 0x8000;
+  let m = (x >> 12) & 0x07ff;
+  const e = (x >> 23) & 0xff;
+  if (e < 103) return bits;                       // too small → signed zero
+  if (e > 142) { bits |= 0x7c00; return bits; }   // overflow → ±inf
+  if (e < 113) {                                  // subnormal half
+    m |= 0x0800;
+    bits |= (m >> (114 - e)) + ((m >> (113 - e)) & 1);
+    return bits;
+  }
+  bits |= ((e - 112) << 10) | (m >> 1);
+  bits += m & 1;
+  return bits;
+}
+
 const VERT = `#version 300 es
 in vec2 aPos;
 out vec2 vUv;
@@ -33,15 +128,14 @@ uniform vec2 uRes;
 uniform float uImgAspect;
 uniform float uFit;
 uniform float uExposure;
-uniform float uContrast;
 uniform float uTemp;
 uniform float uTint;
 uniform float uVibrance;
 uniform float uSaturation;
-uniform float uHighlights;
-uniform float uShadows;
-uniform float uWhites;
-uniform float uBlacks;
+// 1D tone LUT in log2 luminance (R16F, TONE_LUT_SIZE samples).
+uniform sampler2D uTone;
+const float TONE_EV_MIN = -12.0;
+const float TONE_EV_MAX = 6.0;
 // 0 = sRGB input, 1 = F-Log, 2 = F-Log2, 3 = V-Log.
 // LOG modes encode the photo into the log curve the LUT expects, so vendor
 // LUTs designed for log footage behave as intended instead of blowing out.
@@ -124,24 +218,20 @@ void main() {
     exp2(-tn * 0.34),
     exp2(-wt * 0.60 + tn * 0.14)
   );
-  c = clamp(linearToSrgb(lin), 0.0, 1.0);
 
-  // gentle contrast around mid grey
-  float k = 1.0 + uContrast * 0.006;
-  c = clamp((c - 0.5) * k + 0.5, 0.0, 1.0);
-
-  // Light panel. Each control is masked to the part of the range it should move,
-  // so lifting shadows cannot wash out the whole frame and pulling highlights
-  // cannot darken the midtones.
-  if (uShadows != 0.0 || uHighlights != 0.0 || uWhites != 0.0 || uBlacks != 0.0) {
-    vec3 loMask = 1.0 - smoothstep(vec3(0.0), vec3(0.5), c);
-    vec3 hiMask = smoothstep(vec3(0.5), vec3(1.0), c);
-    c += uShadows * 0.40 * loMask * (1.0 - c);
-    c -= uHighlights * 0.40 * hiMask * c;
-    c *= 1.0 + uWhites * 0.35 * smoothstep(vec3(0.55), vec3(1.0), c);
-    c += uBlacks * 0.30 * (1.0 - smoothstep(vec3(0.0), vec3(0.45), c));
-    c = clamp(c, 0.0, 1.0);
-  }
+  // Tone: a single monotone curve in log2 luminance, applied as a luminance
+  // ratio so hue and saturation survive. The LUT is built so no combination of
+  // blacks/whites/highlights/shadows can fold the curve.
+  float Y = max(dot(lin, vec3(0.2126, 0.7152, 0.0722)), 1e-7);
+  float ev = clamp(log2(Y / 0.18), TONE_EV_MIN, TONE_EV_MAX);
+  float tu = (ev - TONE_EV_MIN) / (TONE_EV_MAX - TONE_EV_MIN);
+  float Yt = 0.18 * exp2(texture(uTone, vec2(tu, 0.5)).r);
+  vec3 graded = lin * (Yt / Y);
+  // Desaturate only what is about to clip, so pushed whites roll to white
+  // instead of turning a sunset magenta.
+  float mx = max(graded.r, max(graded.g, graded.b));
+  if (mx > 1.0) graded = mix(graded, vec3(1.0), clamp((mx - 1.0) / mx, 0.0, 1.0) * 0.65);
+  c = clamp(linearToSrgb(graded), 0.0, 1.0);
 
   // Presence: saturation is a flat scale around luma; vibrance leans on the
   // pixels that have room left, so skin does not go orange when the sky deepens.
@@ -187,7 +277,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uContrast', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLogMode', 'uHighlights', 'uShadows', 'uWhites', 'uBlacks']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLogMode', 'uTone']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -196,12 +286,24 @@ export class LookRenderer {
     this.imgH = 0;
     this.lutTex = new Map();
     this.dummyLut = createDummyLut(gl);
+    // Tone LUT: one row of half-float log2-luminance values, rebuilt only when
+    // a tone slider moves (see render()).
+    this.toneTex = gl.createTexture();
+    this.toneSig = null;
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, this.toneTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, TONE_LUT_SIZE, 1, 0, gl.RED, gl.HALF_FLOAT, new Uint16Array(TONE_LUT_SIZE));
 
     gl.useProgram(this.program);
     gl.uniform1i(this.uniform.uImage, 0);
     gl.uniform1i(this.uniform.uLut0, 1);
     gl.uniform1i(this.uniform.uLut1, 2);
     gl.uniform1i(this.uniform.uLut2, 3);
+    gl.uniform1i(this.uniform.uTone, 4);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_3D, this.dummyLut);
     gl.activeTexture(gl.TEXTURE2);
@@ -263,6 +365,22 @@ export class LookRenderer {
     return tex;
   }
 
+  /** Rebuild + upload the tone LUT only when one of the five tone controls moved. */
+  _syncToneCurve(adjust) {
+    const tone = adjust || {};
+    const sig = `${tone.contrast | 0}|${tone.highlights | 0}|${tone.shadows | 0}|${tone.whites | 0}|${tone.blacks | 0}`;
+    if (sig === this.toneSig) return;
+    this.toneSig = sig;
+    const gl = this.gl;
+    const curve = buildToneCurve(tone);
+    const bits = new Uint16Array(TONE_LUT_SIZE);
+    for (let i = 0; i < TONE_LUT_SIZE; i++) bits[i] = floatToHalf(curve[i]);
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, this.toneTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, TONE_LUT_SIZE, 1, 0, gl.RED, gl.HALF_FLOAT, bits);
+    gl.activeTexture(gl.TEXTURE0);
+  }
+
   /**
    * Render into the internal canvas.
    * @param {Array<{id:string, parsed:{size:number,data:Uint8Array}, strength:number}>} luts
@@ -302,16 +420,12 @@ export class LookRenderer {
     gl.uniform1f(this.uniform.uImgAspect, this.imgW / this.imgH);
     gl.uniform1f(this.uniform.uFit, fit === 'contain' ? 1 : 0);
     gl.uniform1f(this.uniform.uExposure, adjust?.exposure || 0);
-    gl.uniform1f(this.uniform.uContrast, adjust?.contrast || 0);
     gl.uniform1f(this.uniform.uTemp, adjust?.temp || 0);
     gl.uniform1f(this.uniform.uTint, adjust?.tint || 0);
     gl.uniform1f(this.uniform.uVibrance, adjust?.vibrance || 0);
     gl.uniform1f(this.uniform.uSaturation, adjust?.saturation || 0);
     gl.uniform1i(this.uniform.uLogMode, adjust?.logMode || 0);
-    gl.uniform1f(this.uniform.uHighlights, adjust?.highlights || 0);
-    gl.uniform1f(this.uniform.uShadows, adjust?.shadows || 0);
-    gl.uniform1f(this.uniform.uWhites, adjust?.whites || 0);
-    gl.uniform1f(this.uniform.uBlacks, adjust?.blacks || 0);
+    this._syncToneCurve(adjust);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     return this.canvas;
@@ -320,6 +434,7 @@ export class LookRenderer {
   dispose() {
     const gl = this.gl;
     if (this.imageTex) gl.deleteTexture(this.imageTex);
+    if (this.toneTex) gl.deleteTexture(this.toneTex);
     for (const tex of this.lutTex.values()) gl.deleteTexture(tex);
     this.lutTex.clear();
   }

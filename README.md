@@ -72,6 +72,14 @@ Develop panel — a RAW opens neutral, no LUT in the way:
   group from the histogram, and the split line keeps working as before/after
   against the untouched camera render. The 44 looks stay one click away on the
   filmstrip and stack on top of the develop settings.
+- **Tone controls that behave like a darkroom tool** — the five tone sliders are
+  one monotone curve sampled in log2 luminance, not gamma-space offsets:
+  `shadows` / `highlights` are exposure corrections confined to their own band
+  (lifting shadows cannot grey out the midtones), `whites` moves only the top of
+  the range so it acts as a white point, and `blacks` moves a real additive black
+  point (a gain can never lift a true black). The curve is applied as a luminance
+  ratio in linear light, which keeps hue; `npm run test:tone` proves it is
+  monotone for 3,125 setting combinations and checks the band separation.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in
@@ -85,11 +93,21 @@ app itself.
 - `public/js/renderer.js` — `LookRenderer`: uploads the LUT binary as a 3D
   texture (17³ RGBA, trilinear filtering) and grades the photo in a fragment
   shader. The pipeline is exposure and white balance in linear light (channel
-  gains, so highlights do not clip channel-by-channel) → contrast → tone masks
-  (shadows/highlights/whites/blacks each confined to its own range) → vibrance /
-  saturation around luma → optional LOG encode → 1–3 stacked LUTs. Also handles
-  `cover`/`contain` fit and UV flipping. One `adjFor()` object feeds the preview,
-  the thumbnails and the export.
+  gains, so highlights do not clip channel-by-channel) → a tone curve sampled in
+  log2 luminance from a 1024-entry R16F LUT (built on the CPU by
+  `buildToneCurve()`, see the references below) → vibrance / saturation around
+  luma → optional LOG encode → 1–3 stacked LUTs. Also handles `cover`/`contain`
+  fit and UV flipping. One `adjFor()` object feeds the preview, the thumbnails
+  and the export.
+- **Tone model references** — the log-exposure domain with explicit black/white
+  points, latitude and toe/shoulder follows [darktable's filmic
+  RGB](https://github.com/darktable-org/darktable/blob/master/src/iop/filmicrgb.c);
+  the per-zone masked exposure corrections follow [darktable's tone
+  equalizer](https://github.com/darktable-org/darktable/blob/master/src/iop/toneequal.c);
+  [RawTherapee's Shadows/Highlights](https://github.com/RawTherapee/RawTherapee/blob/dev/rtengine/ipshadowshighlights.cc)
+  is the reference for keeping chroma stable when shadows are lifted. Both are
+  GPL, so only the maths was studied — no source code is copied, and this
+  implementation is an independent WebGL/JS one (MIT).
 - `public/js/looks.js` — the manifest: id, display names, category, filmstrip
   ordering.
 - `public/luts.bin` — 44 × 17³ RGBA blocks, in manifest order (~850 KB).
@@ -104,6 +122,7 @@ app itself.
 ```bash
 npm install
 npm run dev        # wrangler dev → http://localhost:8787
+npm run test:tone  # tone-curve invariants (identity, monotone, band separation)
 ```
 
 Any static file server works too (`python3 -m http.server -d public`), except
