@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0b">
 <title>LUT ARCHIVE — darkroom</title>
+<!-- The hero photo and the LUT pack are the two things the first paint waits
+     for; start both before the module graph is even requested. -->
+<link rel="preload" as="image" href="/photos/demo.webp" fetchpriority="high">
+<script>window.__lutsEarly=fetch('/luts.bin').then(function(r){return r.ok?r.arrayBuffer():null}).catch(function(){return null})</script>
 <style>
 :root{
   --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.56); --faint:rgba(242,241,236,.32);
@@ -475,9 +479,13 @@ let filmThumbTimer = 0;
 async function init(){
   const hadLang = !!localStorage.getItem('lut.lang');
   applyLang(state.lang, { persist: false });
+  const lutsPromise = (async () => {
+    const early = window.__lutsEarly ? await window.__lutsEarly : null;
+    return early || fetch('/luts.bin').then(r => r.arrayBuffer());
+  })();
   const [img, buf] = await Promise.all([
     new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = '/photos/demo.webp'; }),
-    fetch('/luts.bin').then(r => r.arrayBuffer()),
+    lutsPromise,
   ]);
   luts = new Uint8Array(buf);
   try {
@@ -506,6 +514,22 @@ async function init(){
   bind();
   playIntro();
   if (!hadLang) detectGeo();
+  prewarmRawDecoder();
+}
+
+/**
+ * First RAW open used to also mean downloading the 3.4 MB decoder (892 KB after
+ * brotli). Warm it in the browser cache once the page is idle, unless the user
+ * is on a metered/slow connection.
+ */
+function prewarmRawDecoder(){
+  try {
+    const conn = navigator.connection;
+    if (conn && (conn.saveData || /(^|-)2g$/.test(conn.effectiveType || ''))) return;
+    const warm = () => fetch('/vendor/flashraw/flashraw_simd.wasm', { priority: 'low' }).catch(() => {});
+    if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 5000 });
+    else setTimeout(warm, 3000);
+  } catch { /* optional */ }
 }
 
 /**
@@ -1006,25 +1030,75 @@ function buildFilm(){
   el.film.appendChild(frag);
   el.metaLooks.textContent = `${all.length} LOOKS`;
   el.introSub.textContent = `${LOOKS.length} LOOKS / OPEN SOURCE`;
-  requestAnimationFrame(renderFilmThumbs);
+  // Go through the same debounce as every other refresh: the initial render()
+  // right after this would otherwise trigger a second full thumbnail pass.
+  refreshFilmThumbsSoon();
+}
+
+/**
+ * The filmstrip has ~45 thumbnails, but only a handful are on screen. Drawing
+ * all of them up front was the biggest main-thread block on first load and on
+ * every photo change; now the visible chips are drawn immediately and the rest
+ * are filled in while the browser is idle (or as the strip is scrolled).
+ */
+let thumbRendered = new Set();
+let thumbIdleHandle = 0;
+
+function filmVisibleSplit(chips){
+  const left = el.film.scrollLeft - el.film.clientWidth * 0.5;
+  const right = el.film.scrollLeft + el.film.clientWidth * 1.5;
+  const visible = [], rest = [];
+  chips.forEach((chip, i) => {
+    if (chip.offsetLeft + chip.offsetWidth > left && chip.offsetLeft < right) visible.push(i);
+    else rest.push(i);
+  });
+  return { visible, rest };
+}
+
+function drawFilmThumb(i, chips, all){
+  const chip = chips[i];
+  if (!chip || thumbRendered.has(i)) return;
+  const look = i === 0 ? null : all[i - 1];
+  if (look) renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], adjFor(), 156, 104, 'cover');
+  else renderer.render([], adjFor(), 156, 104, 'cover');
+  chip.querySelector('canvas').getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
+  thumbRendered.add(i);
 }
 
 /** Refresh the look thumbnails after the photo or the develop settings change. */
 function refreshFilmThumbsSoon(){
   clearTimeout(filmThumbTimer);
-  filmThumbTimer = setTimeout(() => requestAnimationFrame(renderFilmThumbs), 220);
+  filmThumbTimer = setTimeout(() => renderFilmThumbs(), 220);
 }
 
-async function renderFilmThumbs(){
+function renderFilmThumbs(){
+  if (!renderer) return;
+  thumbRendered.clear();
+  if (thumbIdleHandle && 'cancelIdleCallback' in window) cancelIdleCallback(thumbIdleHandle);
+  thumbIdleHandle = 0;
   const chips = [...el.film.querySelectorAll('.chip')];
   const all = allLooks();
-  for (let i = 0; i < chips.length; i++) {
-    const look = i === 0 ? null : all[i - 1];
-    if (look) renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], adjFor(), 156, 104, 'cover');
-    else renderer.render([], adjFor(), 156, 104, 'cover');
-    chips[i].querySelector('canvas').getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
-    if (i % 6 === 5) await new Promise(r => requestAnimationFrame(r));
-  }
+  const { visible, rest } = filmVisibleSplit(chips);
+  for (const i of visible) drawFilmThumb(i, chips, all);
+  if (!rest.length) return;
+  let cursor = 0;
+  const fill = (deadline) => {
+    thumbIdleHandle = 0;
+    // small batches so scrolling and slider drags stay smooth
+    let drawn = 0;
+    while (cursor < rest.length && drawn < 8 && (!deadline || deadline.timeRemaining() > 5)) {
+      drawFilmThumb(rest[cursor++], chips, all);
+      drawn++;
+    }
+    if (cursor < rest.length) {
+      thumbIdleHandle = 'requestIdleCallback' in window
+        ? requestIdleCallback(fill, { timeout: 400 })
+        : setTimeout(() => fill(null), 60);
+    }
+  };
+  thumbIdleHandle = 'requestIdleCallback' in window
+    ? requestIdleCallback(fill, { timeout: 400 })
+    : setTimeout(() => fill(null), 120);
 }
 
 function selectLook(id, slot = 'A'){
@@ -1634,6 +1708,18 @@ function bind(){
   el.film.addEventListener('wheel', (e) => {
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); el.film.scrollLeft += e.deltaY; }
   }, { passive: false });
+
+  // draw thumbnails for chips that scroll into view (the rest were left to idle)
+  let filmScrollTimer = 0;
+  el.film.addEventListener('scroll', () => {
+    clearTimeout(filmScrollTimer);
+    filmScrollTimer = setTimeout(() => {
+      const chips = [...el.film.querySelectorAll('.chip')];
+      const all = allLooks();
+      const { visible } = filmVisibleSplit(chips);
+      for (const i of visible) drawFilmThumb(i, chips, all);
+    }, 100);
+  }, { passive: true });
 
   // dual
   el.dualBtn.addEventListener('click', () => toggleDual());
