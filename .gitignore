@@ -1,0 +1,8 @@
+node_modules/
+.wrangler/
+.dev.vars
+.DS_Store
+
+# Local design research and working prototypes (not part of the published app)
+design/
+docs/reference/

@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lut-studio",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-05-01",
+  // Custom domain: requires openanthropic.com on this Cloudflare account.
+  // `custom_domain` lets wrangler create the DNS record + certificate.
+  // Remove this block to deploy to *.workers.dev instead.
+  "routes": [{ "pattern": "lut.openanthropic.com", "custom_domain": true }],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  }
+}

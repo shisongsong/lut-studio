@@ -1,0 +1,21 @@
+{
+  "name": "lut-studio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "A darkroom-style photo LUT editor that runs entirely in the browser. 24 hand-made looks, dual-LUT stacking, full-resolution JPEG export — no accounts, no server-side processing.",
+  "homepage": "https://lut.openanthropic.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shisongsong/lut-studio.git"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build:luts": "node scripts/build-luts.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.85.0"
+  }
+}
