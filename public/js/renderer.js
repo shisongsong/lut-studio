@@ -17,9 +17,9 @@
  * chroma stable when shadows are lifted. No GPL code was copied — the sources
  * were only read for the maths.
  */
-const TONE_EV_MIN = -12.0;
-const TONE_EV_MAX = 6.0;
-const TONE_LUT_SIZE = 1024;
+export const TONE_EV_MIN = -12.0;
+export const TONE_EV_MAX = 10.0;
+export const TONE_LUT_SIZE = 1024;
 const GREY = 0.18;
 
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
@@ -135,7 +135,11 @@ uniform float uSaturation;
 // 1D tone LUT in log2 luminance (R16F, TONE_LUT_SIZE samples).
 uniform sampler2D uTone;
 const float TONE_EV_MIN = -12.0;
-const float TONE_EV_MAX = 6.0;
+const float TONE_EV_MAX = 10.0;
+// Noise reduction (auto strength comes from a measured noise floor).
+uniform float uNr;
+uniform float uNrColor;
+uniform vec2 uTexel;
 // 0 = sRGB input, 1 = F-Log, 2 = F-Log2, 3 = V-Log.
 // LOG modes encode the photo into the log curve the LUT expects, so vendor
 // LUTs designed for log footage behave as intended instead of blowing out.
@@ -177,6 +181,53 @@ vec3 encodeLog(vec3 lin, int mode) {
   return lin;
 }
 
+float lumaOf(vec3 c) {
+  return dot(c, vec3(0.2126, 0.7152, 0.0722));
+}
+
+/**
+ * Edge-aware denoise on the decoded frame, before any tone work amplifies it.
+ *
+ * Luma: 3x3 bilateral, so flat noise is averaged but edges (where the luma
+ * difference is large) are kept. Chroma: a wider ring average of the colour
+ * residual, which is where high-ISO noise turns into coloured blotches. This is
+ * the same class of filter darktable/RawTherapee use for their denoise modules;
+ * cheap enough to run in the display shader, so the export gets it too.
+ */
+vec3 denoise(vec3 c, vec2 uv) {
+  float Y0 = lumaOf(c);
+  float sig = mix(0.010, 0.055, uNr);
+  vec3 acc = c;
+  float wsum = 1.0;
+  for (int i = -1; i <= 1; i++) {
+    for (int j = -1; j <= 1; j++) {
+      if (i == 0 && j == 0) continue;
+      vec3 s = texture(uImage, uv + vec2(float(i), float(j)) * uTexel).rgb;
+      float d = lumaOf(s) - Y0;
+      float w = exp(-(d * d) / (2.0 * sig * sig));
+      acc += s * w;
+      wsum += w;
+    }
+  }
+  vec3 avg = acc / wsum;
+
+  vec3 chroma = c - vec3(Y0);
+  vec3 chromaSum = vec3(0.0);
+  float cw = 0.0;
+  for (int k = 0; k < 8; k++) {
+    float ang = float(k) * 0.7853982;
+    vec2 off = vec2(cos(ang), sin(ang)) * uTexel * 2.5;
+    vec3 s = texture(uImage, uv + off).rgb;
+    float d = lumaOf(s) - Y0;
+    float w = exp(-(d * d) / (2.0 * 0.10 * 0.10));
+    chromaSum += (s - vec3(lumaOf(s))) * w;
+    cw += w;
+  }
+  vec3 chromaOut = mix(chroma, chromaSum / max(cw, 1e-4), uNrColor);
+  float Ys = mix(Y0, lumaOf(avg), uNr);
+  return vec3(Ys) + chromaOut;
+}
+
 void main() {
   // image-space uv: (0,0) = top-left of the source, independent of the
   // browser's flipY handling for Image vs ImageBitmap uploads.
@@ -207,6 +258,7 @@ void main() {
   }
 
   vec3 c = texture(uImage, uv).rgb;
+  if (uNr > 0.0 || uNrColor > 0.0) c = denoise(c, uv);
   // Exposure and white balance are multiplicative in linear light, which is the
   // whole point of a RAW processor: channel gains must not clip independently in
   // the encoded curve. +temp = warmer (more red, less blue), +tint = magenta.
@@ -277,7 +329,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLogMode', 'uTone']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLogMode', 'uTone', 'uNr', 'uNrColor', 'uTexel']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -345,6 +397,8 @@ export class LookRenderer {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, upload);
     gl.bindTexture(gl.TEXTURE_2D, null);
+    this.texW = upload.width;
+    this.texH = upload.height;
   }
 
   _lutTexture(id, parsed) {
@@ -425,6 +479,10 @@ export class LookRenderer {
     gl.uniform1f(this.uniform.uVibrance, adjust?.vibrance || 0);
     gl.uniform1f(this.uniform.uSaturation, adjust?.saturation || 0);
     gl.uniform1i(this.uniform.uLogMode, adjust?.logMode || 0);
+    const nr = Math.max(0, Math.min(1, adjust?.nr || 0));
+    gl.uniform1f(this.uniform.uNr, nr);
+    gl.uniform1f(this.uniform.uNrColor, Math.max(0, Math.min(1, adjust?.nrColor || 0)));
+    gl.uniform2f(this.uniform.uTexel, 1 / Math.max(1, this.texW), 1 / Math.max(1, this.texH));
     this._syncToneCurve(adjust);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);

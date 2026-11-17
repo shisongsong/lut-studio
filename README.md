@@ -56,9 +56,12 @@ Develop panel — a RAW opens neutral, no LUT in the way:
   Z50 II NEF becomes a full-resolution 5568×3712 frame in ~1 s, and 100% export is
   100% of that. This includes Nikon's **HE/HE\*** (TicoRAW) compression, which most
   open-source RAW tools still cannot read. If a file cannot be unpacked at all, the
-  app falls back to the camera JPEG embedded in it. RAW files also get an
-  automatic brightness correction (percentile based, brightness only — no colour,
-  saturation or white balance), applied as a linear exposure so the preview and the
+  app falls back to the camera JPEG embedded in it — including 45 MP-class frames
+  that the current decoder returns truncated, which are detected and swapped for
+  the full-resolution JPEG inside the RAW instead of showing a half-black photo.
+  RAW files also get an automatic exposure (the 95th percentile is placed near
+  white, so a dim interior comes out lit instead of moody: +3–4 EV where the old
+  target stopped at +2), applied as a linear exposure so the preview and the
   export always match; the `AUTO` button in the toolbar turns it off.
 - **Develop panel, Lightroom-style** — opening any photo lands in a Develop rail
   (a bottom sheet on phones) with the camera's own render and **no LUT applied**,
@@ -72,6 +75,13 @@ Develop panel — a RAW opens neutral, no LUT in the way:
   group from the histogram, and the split line keeps working as before/after
   against the untouched camera render. The 44 looks stay one click away on the
   filmstrip and stack on top of the develop settings.
+- **Auto noise reduction, only where it is needed** — the frame's noise floor is
+  measured (robust high-pass on native-resolution patches, evaluated at the
+  displayed exposure), and an edge-aware bilateral / chroma filter is applied
+  through the shader in proportion to that measurement. A clean daylight frame
+  stays untouched (NR 0), a high-ISO interior gets smoothed. The `细节 / Detail`
+  group shows the auto value and lets you override it; both the preview and the
+  export share it.
 - **Tone controls that behave like a darkroom tool** — the five tone sliders are
   one monotone curve sampled in log2 luminance, not gamma-space offsets:
   `shadows` / `highlights` are exposure corrections confined to their own band
@@ -96,9 +106,10 @@ app itself.
   gains, so highlights do not clip channel-by-channel) → a tone curve sampled in
   log2 luminance from a 1024-entry R16F LUT (built on the CPU by
   `buildToneCurve()`, see the references below) → vibrance / saturation around
-  luma → optional LOG encode → 1–3 stacked LUTs. Also handles `cover`/`contain`
-  fit and UV flipping. One `adjFor()` object feeds the preview, the thumbnails
-  and the export.
+  luma → optional LOG encode → 1–3 stacked LUTs. Noise reduction runs first (a
+  3×3 bilateral on luma plus a wider chroma ring, both edge-aware), driven by
+  the measured noise floor. Also handles `cover`/`contain` fit and UV flipping.
+  One `adjFor()` object feeds the preview, the thumbnails and the export.
 - **Tone model references** — the log-exposure domain with explicit black/white
   points, latitude and toe/shoulder follows [darktable's filmic
   RGB](https://github.com/darktable-org/darktable/blob/master/src/iop/filmicrgb.c);

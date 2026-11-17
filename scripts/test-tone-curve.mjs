@@ -7,9 +7,9 @@
  * browser: identity at neutral, monotone for every combination, and the
  * band separation that makes each slider feel like its Lightroom counterpart.
  */
-import { buildToneCurve } from '../public/js/renderer.js';
+import { buildToneCurve, TONE_EV_MIN, TONE_EV_MAX, TONE_LUT_SIZE } from '../public/js/renderer.js';
 
-const N = 1024, EV_MIN = -12, EV_MAX = 6, GREY = 0.18;
+const N = TONE_LUT_SIZE, EV_MIN = TONE_EV_MIN, EV_MAX = TONE_EV_MAX, GREY = 0.18;
 const evAt = (i) => EV_MIN + (EV_MAX - EV_MIN) * (i / (N - 1));
 const idx = (ev) => Math.round(((ev - EV_MIN) / (EV_MAX - EV_MIN)) * (N - 1));
 const at = (curve, ev) => curve[idx(ev)];

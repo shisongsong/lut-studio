@@ -87,7 +87,8 @@ function getWorker() {
       job.reject(new RawUnsupported(
         kind === 'UnsupportedCompression' || kind === 'CameraUnsupported' ? 'compression'
           : kind === 'CorruptFile' ? 'corrupt'
-            : 'decode',
+            : kind === 'IncompleteDecode' ? 'incomplete'
+              : 'decode',
         new Error(data.message),
       ));
     }

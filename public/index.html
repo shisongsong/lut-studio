@@ -202,6 +202,8 @@ a.tbtn{text-decoration:none}
 .dev-group:last-of-type{border-bottom:0}
 .dev-group-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .dev-group-head > span{font-family:var(--mono);font-size:8px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+.dev-auto{font-family:var(--mono);font-size:7px;font-style:normal;letter-spacing:.08em;color:var(--accent);border:1px solid rgba(217,199,163,.45);padding:2px 5px;line-height:1}
+.dev-auto.manual{color:var(--muted);border-color:rgba(255,255,255,.2)}
 .dev-pick{width:26px;height:22px;border:1px solid rgba(255,255,255,.16);display:grid;place-items:center;color:var(--muted);font-size:10px;line-height:1;transition:.15s}
 .dev-pick:hover{color:#fff;border-color:rgba(255,255,255,.5)}
 .dev-pick.on{color:#141414;background:var(--accent);border-color:var(--accent)}
@@ -366,7 +368,7 @@ a.tbtn{text-decoration:none}
     </section>
     <section class="dev-group">
       <div class="dev-group-head"><span data-dev-label="light">光线</span></div>
-      <label class="dev-row"><span data-dev-label="exposure">曝光</span><input type="range" data-dev="exposure" min="-3" max="3" value="0" step="0.1"><b>0.0</b></label>
+      <label class="dev-row"><span data-dev-label="exposure">曝光</span><input type="range" data-dev="exposure" min="-5" max="5" value="0" step="0.1"><b>0.0</b></label>
       <label class="dev-row"><span data-dev-label="contrast">对比度</span><input type="range" data-dev="contrast" min="-100" max="100" value="0" step="1"><b>0</b></label>
       <label class="dev-row"><span data-dev-label="highlights">高光</span><input type="range" data-dev="highlights" min="-100" max="100" value="0" step="1"><b>0</b></label>
       <label class="dev-row"><span data-dev-label="shadows">阴影</span><input type="range" data-dev="shadows" min="-100" max="100" value="0" step="1"><b>0</b></label>
@@ -377,6 +379,10 @@ a.tbtn{text-decoration:none}
       <div class="dev-group-head"><span data-dev-label="presence">偏好</span></div>
       <label class="dev-row"><span data-dev-label="vibrance">自然饱和度</span><input type="range" data-dev="vibrance" min="-100" max="100" value="0" step="1"><b>0</b></label>
       <label class="dev-row"><span data-dev-label="saturation">饱和度</span><input type="range" data-dev="saturation" min="-100" max="100" value="0" step="1"><b>0</b></label>
+    </section>
+    <section class="dev-group">
+      <div class="dev-group-head"><span data-dev-label="detail">细节</span><em class="dev-auto" id="nrBadge">自动</em></div>
+      <label class="dev-row"><span data-dev-label="nr">降噪</span><input type="range" data-dev="nr" min="0" max="100" value="0" step="1"><b>0</b></label>
     </section>
     <p class="dev-hint" id="devHint">拖动即时看效果。白平衡吸管点画面里的灰/白。照片只在本机处理。</p>
   </div>
@@ -452,6 +458,8 @@ const state = {
   develop: false,
   picking: false,
   rawMeta: null,
+  // Auto noise reduction: strength is measured from the frame, not a fixed formula.
+  detail: { nr: 0, nrAuto: 0, manual: false },
   imported: [],
   quality: 100,
   lang: localStorage.getItem('lut.lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en'),
@@ -497,6 +505,94 @@ async function init(){
   bind();
   playIntro();
   if (!hadLang) detectGeo();
+}
+
+/**
+ * Estimate the visible noise floor at the current exposure, in 8-bit encoded luma
+ * units. Patches are read at native resolution, brought to the displayed
+ * exposure (linear gain → sRGB encode), then a robust high-pass median turns
+ * texture into a noise sigma. The flattest third of the patches is used, because
+ * edges and detail can only add energy — a busy frame must not look noisy.
+ */
+function estimateNoise(img, ev = 0) {
+  if (!img || !img.width || !img.height) return 0;
+  const W = img.width, H = img.height, P = 160;
+  const gain = Math.pow(2, ev);
+  const toLin = new Float32Array(256);
+  for (let i = 0; i < 256; i++) {
+    const s = i / 255;
+    toLin[i] = s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  }
+  const encode = (v) => {
+    v = Math.max(0, v);
+    return (v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055) * 255;
+  };
+  const c = document.createElement('canvas');
+  c.width = P; c.height = P;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const scores = [];
+  for (let gy = 0; gy < 3; gy++) {
+    for (let gx = 0; gx < 3; gx++) {
+      const sx = Math.max(0, Math.min(W - P, Math.round(W * (0.1 + 0.8 * gx / 2) - P / 2)));
+      const sy = Math.max(0, Math.min(H - P, Math.round(H * (0.1 + 0.8 * gy / 2) - P / 2)));
+      ctx.drawImage(img, sx, sy, P, P, 0, 0, P, P);
+      const d = ctx.getImageData(0, 0, P, P).data;
+      const luma = new Float32Array(P * P);
+      for (let i = 0; i < luma.length; i++) {
+        const lin = (0.2126 * toLin[d[i * 4]] + 0.7152 * toLin[d[i * 4 + 1]] + 0.0722 * toLin[d[i * 4 + 2]]) * gain;
+        luma[i] = encode(lin);
+      }
+      const res = [];
+      for (let y = 1; y < P - 1; y++) {
+        for (let x = 1; x < P - 1; x++) {
+          const i = y * P + x;
+          res.push(Math.abs(luma[i] - (luma[i - 1] + luma[i + 1] + luma[i - P] + luma[i + P]) / 4));
+        }
+      }
+      res.sort((a, b) => a - b);
+      scores.push(res[res.length >> 1] || 0);
+    }
+  }
+  scores.sort((a, b) => a - b);
+  const q = scores[Math.floor(scores.length / 3)] || 0;
+  return q / 0.754;
+}
+
+/** Map the measured noise sigma to an auto NR strength (0 = nothing visible). */
+function autoNrFromSigma(sigma) {
+  if (!(sigma > 0)) return 0;
+  // ~0.6 is a clean frame; ~1.3 wants a light touch; 2+ is a high-ISO frame.
+  return Math.round(Math.max(0, Math.min(100, (sigma - 0.6) * 55)));
+}
+
+let nrRecalcTimer = 0;
+function recalcNr(force = false) {
+  if (!source) return state.detail.nrAuto;
+  const sigma = estimateNoise(source, state.tone.exposure || 0);
+  state.detail.sigma = sigma;
+  state.detail.nrAuto = autoNrFromSigma(sigma);
+  if (force) state.detail.manual = false;
+  if (!state.detail.manual) state.detail.nr = state.detail.nrAuto;
+  updateNrBadge();
+  syncDevUI();
+  return sigma;
+}
+
+/** Re-measure after the exposure settles: more exposure magnifies sensor noise. */
+function scheduleNrRecalc() {
+  clearTimeout(nrRecalcTimer);
+  nrRecalcTimer = setTimeout(() => {
+    const before = state.detail.nr;
+    recalcNr();
+    if (state.detail.nr !== before) render({ instant: true });
+  }, 260);
+}
+
+function updateNrBadge() {
+  const badge = $('#nrBadge');
+  if (!badge) return;
+  badge.textContent = state.detail.manual ? t(state.lang, 'nrManual') : t(state.lang, 'nrAuto');
+  badge.classList.toggle('manual', state.detail.manual);
 }
 
 function makeSource(img){
@@ -567,6 +663,8 @@ function adjFor(){
     shadows: t.shadows,
     whites: t.whites,
     blacks: t.blacks,
+    nr: (state.detail.nr || 0) / 100,
+    nrColor: Math.min(1, (state.detail.nr || 0) / 100 * 1.25),
   };
 }
 
@@ -1027,11 +1125,16 @@ function devValueText(key, v) {
   return v > 0 ? `+${v}` : String(v);
 }
 
+function devValue(key) {
+  return key === 'nr' ? state.detail.nr : state.tone[key];
+}
+
 function syncDevRow(input) {
   const key = input.dataset.dev;
-  input.value = String(state.tone[key]);
+  const value = devValue(key);
+  input.value = String(value);
   const out = input.nextElementSibling;
-  if (out) out.textContent = devValueText(key, state.tone[key]);
+  if (out) out.textContent = key === 'nr' ? String(value) : devValueText(key, value);
 }
 
 function updateDevSub() {
@@ -1049,6 +1152,7 @@ function updateDevSub() {
 function syncDevUI() {
   el.devBody.querySelectorAll('input[data-dev]').forEach(syncDevRow);
   updateDevSub();
+  updateNrBadge();
 }
 
 function updateDevLang() {
@@ -1063,6 +1167,7 @@ function updateDevLang() {
   el.devBody.querySelectorAll('[data-dev-label]').forEach((n) => {
     n.textContent = t(state.lang, 'dev_' + n.dataset.devLabel);
   });
+  updateNrBadge();
   updateDevSub();
 }
 
@@ -1101,6 +1206,8 @@ function beginPhoto(autoEV = 0) {
 function resetDevelop() {
   for (const k of DEV_KEYS) state.tone[k] = 0;
   state.tone.exposure = state.autoBright ? state.autoEV : 0;
+  state.detail.manual = false;
+  recalcNr(true);
   syncDevUI();
   render({ instant: true });
   toast(t(state.lang, 'resetDone'));
@@ -1150,6 +1257,7 @@ function applyAutoTone() {
   tn.shadows = m.p5 <= 6 ? 35 : m.p5 <= 14 ? 26 : m.p5 <= 30 ? 14 : 0;
   tn.whites = Math.round(clamp((246 - m.p995) * 0.9, -22, 22));
   tn.blacks = m.p1 >= 24 ? -16 : m.p1 >= 12 ? -9 : m.p1 >= 4 ? -3 : 0;
+  recalcNr();
   syncDevUI();
   drawBase();
   render({ instant: true });
@@ -1341,9 +1449,18 @@ function bind(){
     const input = e.target.closest('input[data-dev]');
     if (!input) return;
     const key = input.dataset.dev;
+    if (key === 'nr') {
+      state.detail.nr = Number(input.value);
+      state.detail.manual = true;
+      syncDevRow(input);
+      updateNrBadge();
+      render({ instant: true });
+      return;
+    }
     state.tone[key] = Number(input.value);
     syncDevRow(input);
     render({ instant: true });
+    if (key === 'exposure' && !state.detail.manual) scheduleNrRecalc();
   });
   el.devReset.addEventListener('click', resetDevelop);
   el.devAuto.addEventListener('click', applyAutoTone);
@@ -1356,6 +1473,7 @@ function bind(){
     syncAutoBtn();
     syncDevUI();
     drawBase();
+    recalcNr();
     render();
   });
   el.fitBtn.addEventListener('click', () => setFit(state.fit === 'cover' ? 'contain' : 'cover'));
@@ -1569,6 +1687,8 @@ function applyImage(img, name, note){
   updateActiveChip();
   updateDevSub();
   updateQualityDims();
+  recalcNr(true);
+  render({ instant: true });
   toast(note || t(state.lang, 'photoLoaded'));
 }
 
