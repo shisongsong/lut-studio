@@ -143,9 +143,35 @@ export function applyColor(rgb, color) {
   return [r, g, b];
 }
 
-/** The full recipe: per-channel curve, then the hue-selective character. */
+/* ------------------------------------------------------------------------- *
+ * Finishing stage
+ *
+ * Measured against a real film emulation on the same test colours, the recipes
+ * above came out systematically wrong in three ways: blacks lifted to 0.04-0.06
+ * (milky), no highlight shoulder at all (1.0 in stayed 0.97-1.0 out, flat
+ * whites), and saturation below 1 (grey). The Fuji F-Log→ETERNA cube, measured
+ * through the same harness, does the opposite: black 0.007, 1.0 lands at 0.835,
+ * and saturated colours come out 33% more saturated than they went in.
+ *
+ * This stage puts every look on that footing, so the per-look recipes only have
+ * to describe their character, not fight a milky base.
+ * ------------------------------------------------------------------------- */
+const FINISH = { black: 0.035, knee: 0.62, rolloff: 0.88, sat: 1.50 };
+
+function finishChannel(v, k) {
+  const x = clamp01((v - k.black) / (1 - k.black));
+  if (x <= k.knee) return x;
+  const t = (x - k.knee) / (1 - k.knee);
+  const amount = (1 - k.rolloff) / (1 - k.knee);
+  return clamp01(k.knee + (1 - k.knee) * (t - amount * t * t));
+}
+
+/** The full recipe: per-channel curve, hue-selective character, then the filmic finish. */
 export function gradeLook(look, rgb) {
-  return applyColor(look.fn(rgb), look.color);
+  const out = applyColor(look.fn(rgb), look.color);
+  const k = look.finish ? { ...FINISH, ...look.finish } : FINISH;
+  const c = out.map((v) => finishChannel(v, k));
+  return sat(c[0], c[1], c[2], k.sat);
 }
 
 /* Named colour characters. Each one is a deliberate answer to "what should this
