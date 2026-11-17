@@ -30,9 +30,11 @@ Dual-LUT stacking:
   quality 0.90 / 0.95 / 0.98.
 - **Categories and named thumbnails** — filter the strip by 电影 / 胶片 / 黑白 /
   冷暖 / 风格 / 复古 / 空气感 / 徕卡 / 哈苏, every thumbnail carries its look name.
-- **Import your own LUTs** — drop any `.cube` (LUT_3D_SIZE 2–64) into the app;
-  it is parsed locally, stored in IndexedDB and appears under “我的 LUT / My LUTs”.
-  Nothing is uploaded.
+- **Import your own LUTs** — drop any `.cube` into the app: 3D LUTs
+  (`LUT_3D_SIZE` 2–128) and 1D LUTs both work, UTF-8 BOMs are tolerated, and a 1D
+  curve is baked onto a 3D grid so the renderer only deals with one texture type.
+  Files are parsed locally, stored in IndexedDB and appear under “我的 LUT / My
+  LUTs”. Nothing is uploaded, and a file that cannot be parsed says why.
 - **Input profile switch** — `sRGB / F-Log / F-Log2 / V-Log`. Vendor LUTs are built
   for log input; applying them to a normal photo blows out the sky and crushes the
   shadows. The app detects `F-Log`/`V-Log` from the imported LUT name, switches the

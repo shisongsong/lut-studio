@@ -107,7 +107,7 @@ a.tbtn{text-decoration:none}
 @keyframes load{0%{transform:translateX(-110%)}100%{transform:translateX(300%)}}
 .intro-sub{font-family:var(--mono);font-size:7px;letter-spacing:.2em;color:var(--faint)}
 
-.toast{position:fixed;left:50%;bottom:70px;transform:translate(-50%,8px);background:rgba(18,18,20,.94);border:1px solid rgba(255,255,255,.14);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.04em;padding:9px 12px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:30}
+.toast{position:fixed;left:50%;bottom:70px;transform:translate(-50%,8px);background:rgba(18,18,20,.94);border:1px solid rgba(255,255,255,.14);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.04em;padding:9px 12px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:60}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .drop{position:fixed;inset:10px;border:1px dashed rgba(255,255,255,.5);background:rgba(8,8,9,.86);display:none;place-items:center;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#fff;z-index:25}
 .drop.on{display:grid}
@@ -178,6 +178,7 @@ a.tbtn{text-decoration:none}
 .import-links a{font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--muted);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.25)}
 .import-links a:hover{color:var(--ink);border-color:rgba(242,241,236,.6)}
 .import-help{margin:14px 0 0;font-size:9px;line-height:1.6;color:var(--faint)}
+.import-error{margin:12px 0 0;padding:9px 10px;border:1px solid rgba(255,120,110,.42);background:rgba(255,90,80,.1);font-family:var(--mono);font-size:9px;line-height:1.6;letter-spacing:.02em;color:#ffb9b2}
 .import-help a{color:var(--muted)}
 .quality-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 .quality-list button{display:grid;grid-template-columns:46px 1fr auto;align-items:center;gap:10px;padding:11px 10px;border:1px solid rgba(255,255,255,.12);color:var(--muted);text-align:left}
@@ -282,8 +283,9 @@ a.tbtn{text-decoration:none}
 <div class="exportsheet" id="importSheet" hidden>
   <div class="export-card">
     <header><span>导入 LUT</span><button class="icon-x" id="importClose" aria-label="关闭">×</button></header>
-    <p class="export-sub">支持 .cube（LUT_3D_SIZE 2–64），只在本地解析，不上传。</p>
+    <p class="export-sub">支持 .cube：3D LUT（LUT_3D_SIZE 2–128）和 1D LUT 都行，只在本地解析，不上传。</p>
     <button class="export-confirm" id="importPick">选择 .cube 文件</button>
+    <p class="import-error" id="importError" hidden></p>
     <p class="import-help">官方 LUT 多用于 LOG 素材（V-Log / F-Log），普通照片建议强度 30–60%。</p>
     <div class="import-links">
       <span>官方下载</span>
@@ -296,7 +298,7 @@ a.tbtn{text-decoration:none}
 </div>
 
 <input type="file" id="fileInput" accept="image/*,.jpg,.jpeg,.png,.webp,.avif,.heic,.heif,.tif,.tiff,.nef,.nrw,.cr2,.cr3,.arw,.srf,.sr2,.dng,.raf,.orf,.rw2,.pef,.srw,.3fr,.erf,.kdc,.mos,.iiq,.x3f" hidden>
-<input type="file" id="importInput" accept=".cube,text/plain" multiple hidden>
+<input type="file" id="importInput" multiple hidden>
 <div class="toast" id="toast"></div>
 <div class="drop" id="drop">DROP A PHOTO</div>
 
@@ -318,7 +320,7 @@ const el = {
   photoBtn: $('#photoBtn'), fitBtn: $('#fitBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'),
+  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'), importError: $('#importError'),
   importSheet: $('#importSheet'), importClose: $('#importClose'), importPick: $('#importPick'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
   q50Dims: $('#q50Dims'), q75Dims: $('#q75Dims'), q100Dims: $('#q100Dims'),
@@ -538,9 +540,15 @@ function setCat(cat){
   if (visible.has(focus)) centerChip(focus);
 }
 
+class CubeError extends Error {
+  constructor(code, params = {}) { super(code); this.code = code; this.params = params; }
+}
+
 function parseCube(text){
-  const lines = text.split(/\r?\n/);
-  let size = 0, title = '';
+  // A UTF-8 BOM is common in files written by Windows tools; it would otherwise
+  // swallow the first directive (usually LUT_3D_SIZE) and make the file unreadable.
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
+  let size3 = 0, size1 = 0, title = '';
   const vals = [];
   for (const raw of lines) {
     const line = raw.trim();
@@ -551,28 +559,64 @@ function parseCube(text){
       if (m) title = m[1];
       continue;
     }
-    if (up.startsWith('LUT_3D_SIZE')) { size = parseInt(line.split(/\s+/)[1], 10); continue; }
-    if (up.startsWith('LUT_1D_SIZE') || up.startsWith('DOMAIN_')) continue;
+    if (up.startsWith('LUT_3D_SIZE')) { size3 = parseInt(line.split(/\s+/)[1], 10); continue; }
+    if (up.startsWith('LUT_1D_SIZE')) { size1 = parseInt(line.split(/\s+/)[1], 10); continue; }
+    if (up.startsWith('LUT_1D_INPUT_RANGE') || up.startsWith('LUT_3D_INPUT_RANGE') || up.startsWith('DOMAIN_')) continue;
     if (/^[-+]?[\d.]/.test(line)) {
       const p = line.split(/\s+/);
       if (p.length >= 3) vals.push(Number(p[0]), Number(p[1]), Number(p[2]));
     }
   }
-  if (!(size >= 2 && size <= 64)) throw new Error('unsupported LUT_3D_SIZE');
-  if (vals.length !== size ** 3 * 3) throw new Error('bad .cube length');
-  const data = new Uint8Array(size ** 3 * 4);
-  const clamp = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
-  for (let i = 0; i < size ** 3; i++) {
-    data[i * 4] = clamp(vals[i * 3]);
-    data[i * 4 + 1] = clamp(vals[i * 3 + 1]);
-    data[i * 4 + 2] = clamp(vals[i * 3 + 2]);
-    data[i * 4 + 3] = 255;
+  const clamp = (v) => Math.max(0, Math.min(255, Math.round((Number.isFinite(v) ? v : 0) * 255)));
+
+  if (size3) {
+    if (!(size3 >= 2 && size3 <= 128)) throw new CubeError('cubeSize3Range', { n: size3 });
+    const need = size3 ** 3;
+    if (vals.length !== need * 3) throw new CubeError('cubeSize3Rows', { n: size3, need, got: vals.length / 3 });
+    const data = new Uint8Array(need * 4);
+    for (let i = 0; i < need; i++) {
+      data[i * 4] = clamp(vals[i * 3]);
+      data[i * 4 + 1] = clamp(vals[i * 3 + 1]);
+      data[i * 4 + 2] = clamp(vals[i * 3 + 2]);
+      data[i * 4 + 3] = 255;
+    }
+    return { size: size3, title, data };
   }
-  return { size, title, data };
+
+  if (size1) {
+    if (!(size1 >= 2 && size1 <= 65536)) throw new CubeError('cubeSize1Range', { n: size1 });
+    if (vals.length !== size1 * 3) throw new CubeError('cubeSize1Rows', { n: size1, need: size1, got: vals.length / 3 });
+    // A 1D LUT is a per-channel curve. Bake it onto a 3D grid so the renderer only
+    // ever deals with one kind of texture; index order must stay r-fastest, then g,
+    // then b, which is what texImage3D expects.
+    const S = 33;
+    const data = new Uint8Array(S ** 3 * 4);
+    const sample = (chan, t) => {
+      const x = t * (size1 - 1);
+      const i0 = Math.floor(x), i1 = Math.min(size1 - 1, i0 + 1), f = x - i0;
+      return vals[i0 * 3 + chan] * (1 - f) + vals[i1 * 3 + chan] * f;
+    };
+    for (let b = 0; b < S; b++) {
+      for (let g = 0; g < S; g++) {
+        for (let r = 0; r < S; r++) {
+          const idx = ((b * S + g) * S + r) * 4;
+          data[idx] = clamp(sample(0, r / (S - 1)));
+          data[idx + 1] = clamp(sample(1, g / (S - 1)));
+          data[idx + 2] = clamp(sample(2, b / (S - 1)));
+          data[idx + 3] = 255;
+        }
+      }
+    }
+    return { size: S, title, data };
+  }
+
+  if (vals.length) throw new CubeError('cubeNoSize');
+  throw new CubeError('cubeEmpty');
 }
 
 async function handleImport(files){
-  let ok = 0, fail = 0;
+  let ok = 0;
+  const problems = [];
   for (const f of files) {
     try {
       const parsed = parseCube(await f.text());
@@ -590,7 +634,10 @@ async function handleImport(files){
       ok++;
     } catch (err) {
       console.warn('[lut import]', f.name, err);
-      fail++;
+      const msg = err instanceof CubeError
+        ? t(state.lang, err.code).replace(/\{(\w+)\}/g, (_, k) => String(err.params[k] ?? ''))
+        : err.message;
+      problems.push(files.length > 1 ? `${f.name}：${msg}` : msg);
     }
   }
   if (ok) {
@@ -599,7 +646,16 @@ async function handleImport(files){
     buildCats();
     setCat('mine');
   }
-  toast(ok ? t(state.lang, 'importOk').replace('{n}', String(ok)) : t(state.lang, 'importFail'));
+  // The sheet sits above the toast, so a failure has to be reported inside it —
+  // otherwise the click looks like it did nothing at all.
+  if (problems.length) {
+    el.importError.hidden = false;
+    el.importError.textContent = problems.join('　·　');
+  } else {
+    el.importError.hidden = true;
+    el.importError.textContent = '';
+  }
+  toast(ok ? t(state.lang, 'importOk').replace('{n}', String(ok)) : t(state.lang, 'importFail'), problems.length ? 6000 : 2400);
 }
 
 async function removeImported(id){
@@ -861,7 +917,7 @@ function bind(){
     requestAnimationFrame(renderFilmThumbs);
     toast(t(state.lang, 'logHint'));
   });
-  el.importBtn.addEventListener('click', () => { el.importSheet.hidden = false; });
+  el.importBtn.addEventListener('click', () => { el.importError.hidden = true; el.importSheet.hidden = false; });
   el.importClose.addEventListener('click', () => { el.importSheet.hidden = true; });
   el.importPick.addEventListener('click', () => el.importInput.click());
   el.importSheet.addEventListener('click', (e) => { if (e.target === el.importSheet) el.importSheet.hidden = true; });
@@ -1069,6 +1125,7 @@ function applyImage(img, name, note){
 }
 
 async function loadFile(file){
+  if (/\.cube$/i.test(file.name)) { await handleImport([file]); return; }
   if (RAW_EXT.test(file.name)) { await loadRaw(file); return; }
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null);
