@@ -252,7 +252,7 @@ a.tbtn{text-decoration:none}
       <button id="importBtn">导入 LUT</button>
       <button id="exportBtn" class="quick-export">导出 ↗</button>
     </div>
-    <div class="meta"><span id="metaName">LAGO DI BRAIES</span><b id="metaDims">1600 × 1067</b><span>OPEN SOURCE</span><span id="metaLooks">44 LOOKS</span></div>
+    <div class="meta"><span id="metaName">POSITANO</span><b id="metaDims">2600 × 1734</b><span>OPEN SOURCE</span><span id="metaLooks">44 LOOKS</span></div>
   </div>
 </div>
 
@@ -335,14 +335,14 @@ const state = {
   dragged: false,
 };
 let renderer, source, luts, layers = [el.layerA, el.layerB], active = 0, accent = '#d9c7a3';
-let sourceName = 'Lago di Braies';
+let sourceName = 'Positano';
 let pressTimer = 0;
 
 async function init(){
   const hadLang = !!localStorage.getItem('lut.lang');
   applyLang(state.lang, { persist: false });
   const [img, buf] = await Promise.all([
-    new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = '/photos/landscape.webp'; }),
+    new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = '/photos/demo.webp'; }),
     fetch('/luts.bin').then(r => r.arrayBuffer()),
   ]);
   luts = new Uint8Array(buf);

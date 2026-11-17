@@ -116,7 +116,7 @@ public/            # the whole app (no build step)
   js/lut-store.js  # IndexedDB store for imported .cube LUTs
   luts.bin         # baked LUT texture (44 looks)
   get-luts.html    # how to get vendor LUTs + download the bundled ones
-  photos/          # sample photos
+  photos/demo.webp # default demo photo
   fonts/           # IBM Plex Mono, Instrument Sans/Serif (woff2)
 luts-src/          # 44 × 33³ .cube files (downloadable)
 scripts/           # build-luts.mjs
@@ -134,7 +134,7 @@ Imported LUTs are kept in IndexedDB on your device — they are never uploaded.
 
 - **Fonts** — IBM Plex Mono, Instrument Sans and Instrument Serif, distributed
   under the SIL Open Font License 1.1.
-- **Sample photos** — Unsplash License.
+- **Sample photo** — original photograph by the author (Nikon Z50 II, Positano).
 - **LUT looks, renderer, UI** — original work, MIT.
 
 ## License
