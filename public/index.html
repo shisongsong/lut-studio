@@ -305,7 +305,7 @@ import { LOOKS } from '/js/looks.js';
 import { LookRenderer } from '/js/renderer.js';
 import { t, displayName, displayMeta, CAT_EN } from '/js/i18n.js';
 import { loadLuts, saveLut, deleteLut } from '/js/lut-store.js';
-import { extractRawPreview } from '/js/raw.js';
+import { developRaw, extractRawPreview } from '/js/raw.js';
 
 const $ = (s) => document.querySelector(s);
 const el = {
@@ -379,6 +379,8 @@ async function init(){
 }
 
 function makeSource(img){
+  // a canvas is already a usable source (RAW development hands one over)
+  if (img instanceof HTMLCanvasElement) return img;
   const c = document.createElement('canvas');
   c.width = img.naturalWidth || img.width;
   c.height = img.naturalHeight || img.height;
@@ -1067,24 +1069,38 @@ function applyImage(img, name, note){
 }
 
 async function loadFile(file){
-  // RAW: browsers cannot demosaic it, but nearly every camera embeds a JPEG
-  // preview (often full resolution). Pull that out instead of refusing the file.
-  if (RAW_EXT.test(file.name)) {
-    toast(t(state.lang, 'rawExtracting'));
-    try {
-      const preview = await extractRawPreview(await file.arrayBuffer());
-      if (!preview) { toast(t(state.lang, 'rawUnsupported')); return; }
-      applyImage(preview.bitmap, file.name, `${t(state.lang, 'rawPreview')} · ${preview.width} × ${preview.height}`);
-    } catch {
-      toast(t(state.lang, 'rawUnsupported'));
-    }
-    return;
-  }
+  if (RAW_EXT.test(file.name)) { await loadRaw(file); return; }
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null);
     const img = bitmap || await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
     applyImage(img, file.name);
   } catch { toast(t(state.lang, 'formatError')); }
+}
+
+// RAW goes through a real development pipeline first (LibRaw in WASM: demosaic,
+// camera white balance, camera colour matrix). If that fails — Nikon HE/HE*
+// files use a proprietary codec LibRaw cannot unpack — fall back to the camera
+// JPEG embedded in the file.
+async function loadRaw(file){
+  const buffer = await file.arrayBuffer();
+  toast(t(state.lang, 'rawDecoding'), 12000);
+  try {
+    const out = await developRaw(buffer);
+    const bits = `${out.width} × ${out.height}`;
+    const who = out.model ? ` · ${out.model}` : '';
+    applyImage(out.canvas, file.name, `${t(state.lang, 'rawDeveloped')}${who} · ${bits} · ${(out.ms / 1000).toFixed(1)}s`);
+    return;
+  } catch (err) {
+    console.warn('RAW development failed, falling back to the embedded preview', err);
+  }
+  toast(t(state.lang, 'rawExtracting'), 12000);
+  try {
+    const preview = await extractRawPreview(buffer);
+    if (!preview) { toast(t(state.lang, 'rawUnsupported')); return; }
+    applyImage(preview.bitmap, file.name, `${t(state.lang, 'rawPreview')} · ${preview.width} × ${preview.height}`);
+  } catch {
+    toast(t(state.lang, 'rawUnsupported'));
+  }
 }
 
 function playIntro(){
@@ -1103,11 +1119,11 @@ function playIntro(){
   el.film.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 700, delay: 450, easing: 'cubic-bezier(.2,0,0,1)', fill: 'both' });
 }
 
-function toast(msg){
+function toast(msg, ms = 2400){
   el.toast.textContent = msg;
   el.toast.classList.add('show');
   clearTimeout(toast.t);
-  toast.t = setTimeout(() => el.toast.classList.remove('show'), 2400);
+  toast.t = setTimeout(() => el.toast.classList.remove('show'), ms);
 }
 
 init().catch(err => { console.error(err); document.body.innerHTML = `<pre style="padding:24px;color:#fff">${err.message}</pre>`; });

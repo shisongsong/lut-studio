@@ -86,9 +86,11 @@ footer a:hover{color:var(--ink)}
     底部那一排的 <code>sRGB / F-Log / F-Log2 / V-Log</code> 按钮可以手动切换。
   </div>
   <div class="note" style="margin-top:12px">
-    RAW（NEF / CR2 / ARW / DNG 等）可以直接上传：浏览器没法做去马赛克，但相机会在 RAW 里存一张
-    JPEG 预览，应用会自动把最大的那张抠出来用（尼康 Z50 II 的 NEF 里是完整的 5568×3712）。
-    这是相机自己的出片，不是 RAW 冲洗——没有高光恢复和重新白平衡。
+    RAW（NEF / CR2 / CR3 / ARW / DNG / RAF 等）可以直接上传，而且是真冲洗：应用内置了
+    LibRaw 的 WebAssembly 版本（约 1.4 MB，第一次上传 RAW 时才下载），在本机完成去马赛克、
+    相机白平衡和相机色彩矩阵。26MP 的尼康 NEF 约 1.5 秒出全分辨率 5600×3728，导出也是
+    100% 原始尺寸。尼康 Z8/Z9 这类机型的 HE/HE*（TicoRAW）压缩不在 LibRaw 里，这些文件会
+    自动退回文件内嵌的相机 JPEG——照样能套 LUT，只是没有高光恢复。
   </div>
 
   <h2>官方来源</h2>

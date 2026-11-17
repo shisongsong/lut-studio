@@ -39,12 +39,14 @@ Dual-LUT stacking:
   profile automatically, and re-encodes the photo with the published transfer
   function before the LUT runs. Gamut is still treated as sRGB, so vendor LUTs are
   close but not byte-exact.
-- **RAW uploads work via the embedded preview** — browsers cannot demosaic NEF/CR3/
-  ARW/DNG, but almost every camera stores a ready-made JPEG preview inside the file
-  (a Nikon Z50 II NEF carries a full 5568×3712 frame). The app extracts the largest
-  embedded JPEG in ~1 s, locally. That is the camera's development, not a RAW
-  development: highlight recovery and white-balance re-processing are not possible
-  from those bytes.
+- **RAW uploads are really developed** — NEF/CR2/CR3/ARW/DNG/RAF… go through
+  LibRaw compiled to WebAssembly (vendored under `public/vendor/libraw`, ~1.4 MB,
+  fetched only when a RAW is actually opened). Demosaicing, camera white balance
+  and the camera colour matrix run in a Web Worker on your machine: a 26 MP Nikon
+  Z50 II NEF becomes a full-resolution 5600×3728 frame in ~1.5 s, and 100% export
+  is 100% of that. Nikon's HE/HE\* (TicoRAW) compression is proprietary and not in
+  LibRaw, so those files fall back to the camera JPEG embedded in the file — they
+  still open and grade, just without highlight recovery.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in

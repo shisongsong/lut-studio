@@ -1,15 +1,18 @@
 /**
- * Pull the camera's embedded JPEG preview out of a RAW file.
+ * RAW support.
  *
- * Browsers cannot decode RAW (NEF, CR2, ARW, DNG, RAF…): those files hold a
- * colour-filter-array mosaic plus camera metadata, and turning that into an
- * image needs demosaicing, white balance and a camera colour matrix — a whole
- * RAW pipeline. Almost every camera, however, stores a ready-made JPEG preview
- * inside the file (Nikon Z50 II: a full 5568×3712 frame), and that is what we
- * extract here, in the browser, with no upload and no extra dependencies.
+ * Two paths, tried in this order:
  *
- * The result is the camera JPEG, not a RAW development: highlight recovery and
- * white-balance re-processing are not possible from these bytes.
+ * 1. `developRaw()` — real RAW development. A WebAssembly build of LibRaw
+ *    (libraw-wasm, loaded lazily, ~1.4 MB) demosaics the sensor data in a Web
+ *    Worker with the camera's white balance and colour matrix, and hands back a
+ *    full-resolution RGB frame. This is the same class of pipeline the camera
+ *    maker's own software runs, and it is what a LUT should be applied to.
+ *
+ * 2. `extractRawPreview()` — fallback. Some NEFs use Nikon's HE/HE* (TicoRAW)
+ *    compression, which LibRaw cannot unpack; those files still carry a
+ *    ready-made camera JPEG, so we pull that out instead. The result is a camera
+ *    JPEG, not a RAW development.
  */
 
 function findJpegSpans(bytes) {
@@ -33,7 +36,7 @@ function findEoi(bytes, from) {
 
 /**
  * @param {ArrayBuffer} buffer raw file bytes
- * @returns {Promise<{blob: Blob, width: number, height: number} | null>}
+ * @returns {Promise<{blob: Blob, width: number, height: number, bitmap: ImageBitmap} | null>}
  */
 export async function extractRawPreview(buffer) {
   const bytes = new Uint8Array(buffer);
@@ -53,4 +56,74 @@ export async function extractRawPreview(buffer) {
     }
   }
   return null;
+}
+
+// The decoder is a ~1.4 MB WASM payload. Most visitors never open a RAW file,
+// so it is only fetched the first time one is dropped in.
+let librawModule = null;
+function loadLibRaw() {
+  librawModule ||= import('/vendor/libraw/index.js')
+    .then((m) => m.default)
+    .catch((err) => { librawModule = null; throw err; });
+  return librawModule;
+}
+
+/**
+ * Develop a RAW file into a full-resolution RGB canvas.
+ *
+ * Camera white balance is used (the shot as the photographer framed it), output
+ * is sRGB at 8 bits — the LUT pipeline downstream is 8-bit anyway — and AHD
+ * demosaicing, which is the quality/speed sweet spot.
+ *
+ * @param {ArrayBuffer} buffer raw file bytes
+ * @returns {Promise<{canvas: HTMLCanvasElement, width: number, height: number, model: string, ms: number}>}
+ */
+export async function developRaw(buffer) {
+  const started = performance.now();
+  const LibRaw = await loadLibRaw();
+  const raw = new LibRaw();
+  try {
+    // postMessage transfers the buffer to the worker, which detaches it here —
+    // hand over a copy so the caller can still fall back to the embedded JPEG.
+    await raw.open(new Uint8Array(buffer.slice(0)), {
+      useCameraWb: true,
+      outputColor: 1, // sRGB
+      outputBps: 8,
+      userQual: 3, // AHD
+    });
+    const meta = await raw.metadata();
+    const img = await raw.imageData();
+    if (!img || !img.width || !img.height) throw new Error('RAW decode produced no image');
+
+    const pixels = img.data.constructor === Uint16Array ? to8Bit(img.data) : img.data;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const frame = ctx.createImageData(img.width, img.height);
+    for (let i = 0, j = 0, n = img.width * img.height; i < n; i++, j += 3) {
+      const k = i * 4;
+      frame.data[k] = pixels[j];
+      frame.data[k + 1] = pixels[j + 1];
+      frame.data[k + 2] = pixels[j + 2];
+      frame.data[k + 3] = 255;
+    }
+    ctx.putImageData(frame, 0, 0);
+
+    return {
+      canvas,
+      width: img.width,
+      height: img.height,
+      model: [meta?.camera_make, meta?.camera_model].filter(Boolean).join(' ').trim(),
+      ms: Math.round(performance.now() - started),
+    };
+  } finally {
+    raw.dispose();
+  }
+}
+
+function to8Bit(src) {
+  const out = new Uint8ClampedArray(src.length);
+  for (let i = 0; i < src.length; i++) out[i] = src[i] / 257;
+  return out;
 }
