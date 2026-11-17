@@ -1,0 +1,34 @@
+# Self-hosted deployment outside Cloudflare — use it when the audience is in
+# mainland China: Cloudflare's anycast IPs are often throttled to a few KB/s
+# there, while a Hong Kong / Singapore box with a decent mainland route is
+# usually 1-10 MB/s. The whole site is static; there is no server-side work
+# except the optional /api/geo language hint (the page falls back to
+# navigator.language when it is missing, so it is fine to omit).
+#
+# Copy this to /etc/caddy/Caddyfile, then: systemctl reload caddy
+# Replace lut.example.com and /srv/lut-studio with your own values.
+
+lut.example.com {
+	root * /srv/lut-studio
+	encode zstd gzip
+
+	# Big binaries change rarely: cache them at the browser and edge.
+	@static path /vendor/* /fonts/*
+	header @static Cache-Control "public, max-age=2592000"
+
+	# These change when the site is redeployed; keep them short-lived.
+	@assets path /luts.bin /luts.bin.gz /photos/*
+	header @assets Cache-Control "public, max-age=3600"
+
+	@html path / /index.html /get-luts.html
+	header @html Cache-Control "no-cache"
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	# Serve files, fall back to index.html for unknown paths.
+	try_files {path} /index.html
+	file_server
+}

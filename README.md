@@ -141,6 +141,38 @@ that `/api/geo` will 404 and the UI falls back to `navigator.language`.
 
 ## Deploy
 
+### Cloudflare (default)
+
+`npm run deploy` publishes the Worker + `public/` to Cloudflare. This is the
+default and works well outside mainland China.
+
+### Self-hosted mirror (mainland China)
+
+Cloudflare's anycast IPs are commonly throttled to a few KB/s from mainland
+China, which makes a cold first visit take minutes. The whole editor is static
+files, so hosting it elsewhere is trivial:
+
+1. Any Hong Kong / Singapore VPS with a decent mainland route works
+   (a lightweight cloud box is enough; no GPU, no database).
+2. Copy `deploy/Caddyfile` to `/etc/caddy/Caddyfile`, set the domain and root,
+   then `systemctl reload caddy`.
+3. `HOST=user@your-vps ./scripts/deploy-vps.sh` syncs `public/`.
+4. Point DNS at the box (or add a separate mirror domain such as
+   `lut-hk.openanthropic.com` and keep Cloudflare as the fallback).
+
+No server-side code is required — the page inflates `luts.bin.gz` itself and
+falls back to `navigator.language` when `/api/geo` is not available. A plain
+static server is enough to smoke-test:
+
+```bash
+python3 -m http.server -d public
+```
+
+If the domain is ICP-registered, a mainland object store + CDN (Aliyun OSS,
+Tencent COS) is even faster; the same `public/` folder is the entire payload.
+
+## Deploy (Cloudflare details)
+
 ```bash
 npm run deploy
 ```
