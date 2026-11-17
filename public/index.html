@@ -8,7 +8,7 @@
 <!-- The hero photo and the LUT pack are the two things the first paint waits
      for; start both before the module graph is even requested. -->
 <link rel="preload" as="image" href="/photos/demo.webp" fetchpriority="high">
-<script>window.__lutsEarly=fetch('/luts.bin').then(function(r){return r.ok?r.arrayBuffer():null}).catch(function(){return null})</script>
+<script>window.__lutsEarly=fetch('/luts.bin.gz').then(function(r){return r.ok?r.arrayBuffer():null}).catch(function(){return null})</script>
 <style>
 :root{
   --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.56); --faint:rgba(242,241,236,.32);
@@ -476,13 +476,44 @@ let pressTimer = 0;
 let applySplitVarsRef = null;
 let filmThumbTimer = 0;
 
+/**
+ * Load the LUT pack.
+ *
+ * It ships as `luts.bin.gz` (~474 KB vs 844 KB). The page inflates it itself
+ * instead of relying on an origin `content-encoding` header: Cloudflare
+ * compresses Worker responses as well, so a header-compressed body arrives
+ * compressed twice and the browser only undoes one layer — which showed up as
+ * rainbow garbage in the renderer. A length check catches any truncated or
+ * still-compressed payload before it reaches the shader, and the plain file is
+ * the last-resort fallback.
+ */
+async function loadLutPack(){
+  const expected = LOOKS.length * 17 * 17 * 17 * 4;
+  const inflate = async (packed) => {
+    if (!packed) return null;
+    if (packed.byteLength === expected) return packed;
+    if (typeof DecompressionStream !== 'function') return null;
+    try {
+      const stream = new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'));
+      const raw = await new Response(stream).arrayBuffer();
+      return raw.byteLength === expected ? raw : null;
+    } catch {
+      return null;
+    }
+  };
+  const early = window.__lutsEarly ? await window.__lutsEarly.catch(() => null) : null;
+  const gz = early || await fetch('/luts.bin.gz').then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+  const fromGz = await inflate(gz);
+  if (fromGz) return fromGz;
+  const plain = await fetch('/luts.bin').then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+  if (plain && plain.byteLength === expected) return plain;
+  throw new Error('LUT pack is incomplete — refresh to try again');
+}
+
 async function init(){
   const hadLang = !!localStorage.getItem('lut.lang');
   applyLang(state.lang, { persist: false });
-  const lutsPromise = (async () => {
-    const early = window.__lutsEarly ? await window.__lutsEarly : null;
-    return early || fetch('/luts.bin').then(r => r.arrayBuffer());
-  })();
+  const lutsPromise = loadLutPack();
   const [img, buf] = await Promise.all([
     new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = '/photos/demo.webp'; }),
     lutsPromise,
