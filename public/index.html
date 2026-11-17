@@ -122,6 +122,7 @@ a.tbtn{text-decoration:none}
 .quick button:hover{color:#fff;border-color:rgba(255,255,255,.5)}
 .quick .dual{color:var(--ink);display:inline-flex;align-items:center;gap:6px}
 .quick .quick-export{margin-left:auto;color:var(--ink);border-bottom:1px solid rgba(255,255,255,.5);font-weight:500}
+.quick button.on{color:var(--accent);border-color:var(--accent)}
 
 @media(max-width:820px){
   .split-hit{width:52px}
@@ -249,6 +250,7 @@ a.tbtn{text-decoration:none}
       <button id="photoBtn">PHOTO</button>
       <button id="fitBtn">FILL</button>
       <button id="dualBtn" class="dual">DUAL LUT</button>
+      <button id="logBtn" title="输入色彩空间 / input profile">sRGB</button>
       <button id="importBtn">导入 LUT</button>
       <button id="exportBtn" class="quick-export">导出 ↗</button>
     </div>
@@ -315,7 +317,7 @@ const el = {
   photoBtn: $('#photoBtn'), fitBtn: $('#fitBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'), cats: $('#cats'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'),
+  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'),
   importSheet: $('#importSheet'), importClose: $('#importClose'), importPick: $('#importPick'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
   q50Dims: $('#q50Dims'), q75Dims: $('#q75Dims'), q100Dims: $('#q100Dims'),
@@ -328,6 +330,7 @@ const state = {
   dual: { enabled: false, b: 'hasselblad-natural', strengthB: 60 },
   activeSlot: 'A',
   cat: 'all',
+  logMode: 0,
   imported: [],
   quality: 100,
   lang: localStorage.getItem('lut.lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en'),
@@ -427,7 +430,7 @@ function render({ instant = false } = {}){
   if (!renderer) return;
   const target = layers[active ^ 1], prev = layers[active];
   if (!target.width) sizeCanvases();
-  renderer.render(currentStack(), { exposure: 0, contrast: 0, temp: 0 }, target.width, target.height, state.fit);
+  renderer.render(currentStack(), { exposure: 0, contrast: 0, temp: 0, logMode: state.logMode }, target.width, target.height, state.fit);
   target.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   if (instant) {
     target.style.transition = 'none'; prev.style.transition = 'none';
@@ -443,7 +446,7 @@ function render({ instant = false } = {}){
 function renderDirect(){
   if (!renderer) return;
   const visible = layers.find(l => !l.classList.contains('off')) || layers[0];
-  renderer.render(currentStack(), { exposure: 0, contrast: 0, temp: 0 }, visible.width, visible.height, state.fit);
+  renderer.render(currentStack(), { exposure: 0, contrast: 0, temp: 0, logMode: state.logMode }, visible.width, visible.height, state.fit);
   visible.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   sampleAccent();
 }
@@ -572,6 +575,13 @@ async function handleImport(files){
       const parsed = parseCube(await f.text());
       const id = `mine-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
       const name = (parsed.title || f.name.replace(/\.cube$/i, '')).slice(0, 40);
+      // Vendor LOG LUTs (F-Log, V-Log…) only look right when the input is in
+      // that log curve, so switch the input profile automatically.
+      const probe = `${name} ${f.name}`.toLowerCase();
+      const detected = probe.includes('f-log2') || probe.includes('flog2') ? 2
+        : probe.includes('f-log') || probe.includes('flog') ? 1
+        : probe.includes('v-log') || probe.includes('vlog') ? 3 : 0;
+      if (detected) { state.logMode = detected; updateLogUI(); }
       await saveLut({ id, name, size: parsed.size, data: parsed.data.buffer });
       state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: parsed.size, data: parsed.data });
       ok++;
@@ -629,7 +639,7 @@ async function renderFilmThumbs(){
   const all = allLooks();
   for (let i = 0; i < chips.length; i++) {
     const look = all[i];
-    renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], { exposure: 0, contrast: 0, temp: 0 }, 156, 104, 'cover');
+    renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], { exposure: 0, contrast: 0, temp: 0, logMode: state.logMode }, 156, 104, 'cover');
     chips[i].querySelector('canvas').getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
     if (i % 6 === 5) await new Promise(r => requestAnimationFrame(r));
   }
@@ -715,6 +725,13 @@ function toggleDual(force){
   updateActiveChip();
 }
 
+const LOG_LABELS = ['sRGB', 'F-Log', 'F-Log2', 'V-Log'];
+
+function updateLogUI(){
+  el.logBtn.textContent = LOG_LABELS[state.logMode];
+  el.logBtn.classList.toggle('on', state.logMode > 0);
+}
+
 function setFit(fit){
   state.fit = fit;
   el.fitBtn.textContent = t(state.lang, fit === 'contain' ? 'fill' : 'fit');
@@ -732,6 +749,7 @@ function applyLang(lang, { persist = true } = {}){
   el.exportBtn.textContent = `${t(lang, 'export')} ↗`;
   el.hint.textContent = t(lang, 'hint');
   el.importBtn.textContent = t(lang, 'importLut');
+  updateLogUI();
   el.dualBtn.childNodes[0].nodeValue = `${t(lang, state.dual.enabled ? 'dualOn' : 'dual')} `;
   el.exportSheet.querySelector('header span').textContent = t(lang, 'exportTitle');
   el.exportSheet.querySelector('.export-sub').textContent = t(lang, 'exportSub');
@@ -772,7 +790,7 @@ async function exportImage(quality){
   if (!source) return;
   toast(t(state.lang, 'exportDone') + '…');
   const stack = currentStack();
-  const adj = { exposure: 0, contrast: 0, temp: 0 };
+  const adj = { exposure: 0, contrast: 0, temp: 0, logMode: state.logMode };
   const scale = quality / 100;
   const w = Math.max(2, Math.round(source.width * scale));
   const h = Math.max(2, Math.round(source.height * scale));
@@ -833,6 +851,13 @@ function bind(){
   el.photoBtn.addEventListener('click', () => el.fileInput.click());
   el.fileInput.addEventListener('change', () => { const f = el.fileInput.files?.[0]; if (f) loadFile(f); el.fileInput.value = ''; });
   el.exportBtn.addEventListener('click', openExport);
+  el.logBtn.addEventListener('click', () => {
+    state.logMode = (state.logMode + 1) % 4;
+    updateLogUI();
+    render({ instant: true });
+    requestAnimationFrame(renderFilmThumbs);
+    toast(t(state.lang, 'logHint'));
+  });
   el.importBtn.addEventListener('click', () => { el.importSheet.hidden = false; });
   el.importClose.addEventListener('click', () => { el.importSheet.hidden = true; });
   el.importPick.addEventListener('click', () => el.importInput.click());
@@ -1023,7 +1048,13 @@ function stepLook(dir){
   selectLook(list[next].id, 'A');
 }
 
+const RAW_EXT = /\.(nef|nrw|cr2|cr3|arw|srf|sr2|dng|raf|orf|rw2|pef|srw|3fr|erf|kdc|mos|iiq|x3f)$/i;
+
 async function loadFile(file){
+  if (RAW_EXT.test(file.name)) {
+    toast(t(state.lang, 'rawUnsupported'));
+    return;
+  }
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null);
     const img = bitmap || await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });

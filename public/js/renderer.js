@@ -33,12 +33,40 @@ uniform float uFit;
 uniform float uExposure;
 uniform float uContrast;
 uniform float uTemp;
+// 0 = sRGB input, 1 = F-Log, 2 = F-Log2, 3 = V-Log.
+// LOG modes encode the photo into the log curve the LUT expects, so vendor
+// LUTs designed for log footage behave as intended instead of blowing out.
+uniform int uLogMode;
 in vec2 vUv;
 out vec4 outColor;
 
 vec3 applyLut(sampler3D lut, vec3 c, float s) {
   vec3 g = texture(lut, clamp(c, 0.0, 1.0)).rgb;
   return mix(c, g, s);
+}
+
+vec3 srgbToLinear(vec3 c) {
+  return mix(pow((c + 0.055) / 1.055, vec3(2.4)), c / 12.92, step(c, vec3(0.04045)));
+}
+
+// Published transfer functions: Fujifilm F-Log / F-Log2, Panasonic V-Log.
+vec3 encodeLog(vec3 lin, int mode) {
+  if (mode == 1) {
+    vec3 hi = 0.344676 * (log2(0.555556 * lin + 0.009468) / log2(10.0)) + 0.790453;
+    vec3 lo = 8.735631 * lin + 0.092864;
+    return mix(lo, hi, step(vec3(0.00089), lin));
+  }
+  if (mode == 2) {
+    vec3 hi = 0.245281 * (log2(5.555556 * lin + 0.064829) / log2(10.0)) + 0.384316;
+    vec3 lo = 8.799461 * lin + 0.092864;
+    return mix(lo, hi, step(vec3(0.000889), lin));
+  }
+  if (mode == 3) {
+    vec3 hi = 0.241514 * (log2(lin + 0.00873) / log2(10.0)) + 0.598206;
+    vec3 lo = 5.6 * lin + 0.125;
+    return mix(lo, hi, step(vec3(0.01), lin));
+  }
+  return lin;
 }
 
 void main() {
@@ -81,6 +109,8 @@ void main() {
   c.r = clamp(c.r * (1.0 + uTemp * 0.0013), 0.0, 1.0);
   c.b = clamp(c.b * (1.0 - uTemp * 0.0013), 0.0, 1.0);
 
+  if (uLogMode > 0) c = clamp(encodeLog(srgbToLinear(c), uLogMode), 0.0, 1.0);
+
   if (uHas0 == 1) c = applyLut(uLut0, c, uStr0);
   if (uHas1 == 1) c = applyLut(uLut1, c, uStr1);
   if (uHas2 == 1) c = applyLut(uLut2, c, uStr2);
@@ -112,7 +142,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uContrast', 'uTemp']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uContrast', 'uTemp', 'uLogMode']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -227,6 +257,7 @@ export class LookRenderer {
     gl.uniform1f(this.uniform.uExposure, adjust?.exposure || 0);
     gl.uniform1f(this.uniform.uContrast, adjust?.contrast || 0);
     gl.uniform1f(this.uniform.uTemp, adjust?.temp || 0);
+    gl.uniform1i(this.uniform.uLogMode, adjust?.logMode || 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     return this.canvas;

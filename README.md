@@ -33,6 +33,15 @@ Dual-LUT stacking:
 - **Import your own LUTs** — drop any `.cube` (LUT_3D_SIZE 2–64) into the app;
   it is parsed locally, stored in IndexedDB and appears under “我的 LUT / My LUTs”.
   Nothing is uploaded.
+- **Input profile switch** — `sRGB / F-Log / F-Log2 / V-Log`. Vendor LUTs are built
+  for log input; applying them to a normal photo blows out the sky and crushes the
+  shadows. The app detects `F-Log`/`V-Log` from the imported LUT name, switches the
+  profile automatically, and re-encodes the photo with the published transfer
+  function before the LUT runs. Gamut is still treated as sRGB, so vendor LUTs are
+  close but not byte-exact.
+- **RAW uploads are rejected with a message** — browsers cannot decode NEF/CR3/ARW/
+  DNG etc. Export a JPG first (or a TIFF → JPG); the app says so instead of failing
+  silently.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in

@@ -79,8 +79,14 @@ footer a:hover{color:var(--ink)}
     <li>选择文件即可。LUT 会存进浏览器 IndexedDB，出现在「我的 LUT」分类里，刷新不丢。</li>
   </ol>
   <div class="note">
-    官方 LUT 大多是为 LOG 素材（V-Log / F-Log）做的转换，用在普通 sRGB 照片上会偏灰或偏亮。
-    建议把强度调到 30–60% 再微调；「我的 LUT」里的条目可以点缩略图右上角的 × 删除。
+    官方 LUT 大多是为 LOG 素材（V-Log / F-Log）做的转换，直接套普通 sRGB 照片会过曝、偏色。
+    导入后应用会自动把「输入色彩空间」切到对应的 LOG（F-Log / F-Log2 / V-Log），
+    先把照片按该 log 曲线重编码再套 LUT——这样官方 LUT 才会按设计的样子出图。
+    色域仍按 sRGB 处理，所以色相会有轻微偏差，不是逐字节一致。
+    底部那一排的 <code>sRGB / F-Log / F-Log2 / V-Log</code> 按钮可以手动切换。
+  </div>
+  <div class="note" style="margin-top:12px">
+    浏览器解不了 RAW（NEF / CR3 / ARW / DNG 等），上传 RAW 会直接提示。先用相机软件导出 JPG 再用。
   </div>
 
   <h2>官方来源</h2>
