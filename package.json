@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "MIT",
-  "description": "A darkroom-style photo LUT editor that runs entirely in the browser. 24 hand-made looks, dual-LUT stacking, full-resolution JPEG export — no accounts, no server-side processing.",
+  "description": "A darkroom-style photo LUT editor that runs entirely in the browser. 44 generated looks, dual-LUT stacking, .cube import, full-resolution JPEG export — no accounts, no server-side processing.",
   "homepage": "https://lut.openanthropic.com",
   "repository": {
     "type": "git",
@@ -13,7 +13,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "build:luts": "node scripts/build-luts.mjs"
+    "build:luts": "node scripts/build-luts.mjs",
+    "export:cubes": "node scripts/export-cubes.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.85.0"

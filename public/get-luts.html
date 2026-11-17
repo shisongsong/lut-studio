@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>获取 LUT — LUT Archive</title>
+<meta name="description" content="How to get official Panasonic, FUJIFILM, Canon, Nikon and Sony LUTs and import them into LUT Archive. The app bundles 44 generated looks and imports any .cube locally.">
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.56); --faint:rgba(242,241,236,.32);
+  --line:rgba(242,241,236,.16); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.32)}
+a:hover{border-color:var(--ink)}
+.wrap{max-width:860px;margin:0 auto;padding:28px 24px 80px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.brand{font-family:var(--mono);font-size:10px;letter-spacing:.16em}
+.nav{display:flex;gap:16px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--faint)}
+.nav a{color:var(--faint);border:0}
+.nav a:hover{color:var(--ink)}
+.kicker{margin:56px 0 10px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+h1{margin:0 0 18px;font-size:clamp(34px,5vw,56px);font-weight:300;letter-spacing:-.025em;line-height:1.02}
+.lede{margin:0 0 14px;font-size:16px;line-height:1.75;color:var(--muted);max-width:62ch}
+.meta{margin:22px 0 0;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--faint)}
+h2{margin:56px 0 16px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;font-weight:400}
+h3{margin:28px 0 8px;font-size:15px;font-weight:400}
+p{margin:0 0 14px;font-size:15px;line-height:1.75;color:rgba(242,241,236,.78)}
+ol,ul{margin:0 0 14px;padding-left:20px}
+li{margin:0 0 10px;font-size:15px;line-height:1.7;color:rgba(242,241,236,.78)}
+.rule{border-top:1px solid var(--line);margin:44px 0}
+.sources{display:grid;gap:0}
+.source{display:grid;grid-template-columns:180px 1fr;gap:20px;padding:18px 0;border-bottom:1px solid var(--line)}
+.source:first-child{border-top:1px solid var(--line)}
+.source dt{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted)}
+.source dd{margin:0;font-size:14px;line-height:1.7;color:rgba(242,241,236,.78)}
+.source dd a{display:inline-block;margin-top:4px;font-size:13px}
+.note{padding:16px 18px;border:1px solid var(--line);background:rgba(242,241,236,.03);font-size:14px;line-height:1.7;color:var(--muted)}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer a{color:var(--faint);border:0}
+footer a:hover{color:var(--ink)}
+@media(max-width:640px){
+  .wrap{padding:20px 18px 60px}
+  .source{grid-template-columns:1fr;gap:6px}
+  .nav{gap:10px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <a class="brand" href="/">LUT ARCHIVE</a>
+    <nav class="nav">
+      <a href="/">编辑器</a>
+      <a href="https://github.com/shisongsong/lut-studio" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <p class="kicker">LUT Sources</p>
+  <h1>获取 LUT</h1>
+  <p class="lede">
+    LUT Archive 自带 44 个自研 look，全部由 <code>scripts/looks.mjs</code> 的调色配方生成，
+    MIT 授权，可以直接下载成 <code>.cube</code> 用在 Resolve / Premiere / Photoshop 里。
+  </p>
+  <p class="lede">
+    厂商官方 LUT（松下、富士、佳能、尼康、索尼）是免费下载的，但条款只允许本机个人使用，
+    不能再分发。所以它们不在仓库里，而是由你自己下载后导入——整个过程只在本机完成。
+  </p>
+  <p class="meta">最后更新：2026-11-17 · 导入功能 v1</p>
+
+  <h2>三步导入</h2>
+  <ol>
+    <li>从下面的官方页面下载 <code>.cube</code> 文件（有些是 zip，解压后使用）。</li>
+    <li>打开 <a href="/">LUT Archive</a>，点底部「导入 LUT」。</li>
+    <li>选择文件即可。LUT 会存进浏览器 IndexedDB，出现在「我的 LUT」分类里，刷新不丢。</li>
+  </ol>
+  <div class="note">
+    官方 LUT 大多是为 LOG 素材（V-Log / F-Log）做的转换，用在普通 sRGB 照片上会偏灰或偏亮。
+    建议把强度调到 30–60% 再微调；「我的 LUT」里的条目可以点缩略图右上角的 × 删除。
+  </div>
+
+  <h2>官方来源</h2>
+  <dl class="sources">
+    <div class="source">
+      <dt>Panasonic VariCam</dt>
+      <dd>
+        35 款 VariCam / AU-EVA1 艺术 look（V-Log 输入，E-E 版本）。
+        <br><a href="https://pro-av.panasonic.net/en/cinema_camera_varicam_eva/support/lut/" target="_blank" rel="noopener">官方 LUT Library →</a>
+      </dd>
+    </div>
+    <div class="source">
+      <dt>Panasonic LUMIX</dt>
+      <dd>
+        V-Log → V709 转换、S1H RAW Gamut 等技术 LUT。
+        <br><a href="https://av.jpn.support.panasonic.com/support/global/cs/dsc/download/lut/index.html" target="_blank" rel="noopener">LUMIX LUT 下载页 →</a>
+      </dd>
+    </div>
+    <div class="source">
+      <dt>FUJIFILM</dt>
+      <dd>
+        X-T5 / X100VI 等机型的 F-Log / F-Log2 3D-LUT（ETERNA、ETERNA Bleach Bypass、WDR 等）。
+        <br><a href="https://www.fujifilm-x.com/global/support/download/lut/" target="_blank" rel="noopener">Film Simulation 3D-LUT →</a>
+      </dd>
+    </div>
+    <div class="source">
+      <dt>Canon</dt>
+      <dd>
+        官方 Look File 仅授权在 Canon 指定软件/机身内使用，条款禁止再分发与反向工程，
+        <strong>不建议</strong>在第三方编辑器里使用。
+        <br><a href="https://color.ssw.imaging-saas.canon/color/en/pc/" target="_blank" rel="noopener">Canon Look File（请先读条款）→</a>
+      </dd>
+    </div>
+    <div class="source">
+      <dt>Nikon</dt>
+      <dd>
+        N-Log LUT 以安装器形式分发（.exe / .dmg），条款禁止复制与再分发。
+        <br><a href="https://www.nikonimgsupport.com/eu/BV_article?articleNo=000066446" target="_blank" rel="noopener">N-Log LUT 说明 →</a>
+      </dd>
+    </div>
+    <div class="source">
+      <dt>Sony</dt>
+      <dd>
+        Sony LUT Library 部分需要 My Sony 账号登录，且条款限制再分发。
+        <br><a href="https://www.sony.net/di/lut/" target="_blank" rel="noopener">Sony LUT 页面 →</a>
+      </dd>
+    </div>
+    <div class="source">
+      <dt>Blackmagic</dt>
+      <dd>
+        BMD 的 LUT 随 DaVinci Resolve 安装包分发，不单独提供下载。装了 Resolve 的话，
+        可以在 <code>DaVinci Resolve/LUT/Blackmagic Design/</code> 里找到并导入。
+      </dd>
+    </div>
+  </dl>
+
+  <h2>为什么仓库里不放这些 LUT</h2>
+  <p>
+    松下、富士等厂商的 LUT 下载页只写了「免费下载」，没有开源或再分发许可；按站点条款，
+    它们仅限本机个人使用。把这些文件放进公开仓库属于再分发，会让仓库面临下架风险。
+  </p>
+  <p>
+    所以 LUT Archive 的做法是：<strong>内置的 44 个 look 全部自研、MIT 可分发；第三方 LUT 由用户自己下载后本地导入。</strong>
+    功能上两者完全一样——都能当 A/B 轨用，都能调强度。
+  </p>
+
+  <h2>下载内置的 44 个 LUT</h2>
+  <p>
+    仓库里的 <code>luts-src/</code> 就是全部 44 个 33³ <code>.cube</code> 文件，文件名即 look id。
+    也可以本地重新生成：
+  </p>
+  <ol>
+    <li><code>npm run export:cubes</code> — 从调色配方生成 <code>.cube</code></li>
+    <li><code>npm run build:luts</code> — 烘焙成网站用的 <code>public/luts.bin</code></li>
+  </ol>
+  <p>
+    <a href="https://github.com/shisongsong/lut-studio/tree/main/luts-src" target="_blank" rel="noopener">在 GitHub 上浏览 luts-src/ →</a>
+  </p>
+
+  <footer>
+    <span>© 2026 LUT Archive · MIT</span> ·
+    <a href="/">返回编辑器</a> ·
+    <a href="https://github.com/shisongsong/lut-studio" target="_blank" rel="noopener">GitHub</a>
+  </footer>
+</div>
+</body>
+</html>

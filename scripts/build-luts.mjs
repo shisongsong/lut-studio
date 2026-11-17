@@ -2,33 +2,28 @@
 /**
  * Build the web LUT bundle.
  *
- * Source of truth: ./luts-src (the 24 self-made 33³ .cube files).
- * Vendor LUTs from Panasonic/Fuji are intentionally NOT included: their terms
- * only allow local personal use, not public redistribution.
+ * Source of truth: ./luts-src — one 33³ .cube per look, generated from the
+ * recipes in scripts/looks.mjs by `npm run export:cubes`. Those same .cube files
+ * are committed to the repo so people can download them for Resolve, Premiere,
+ * Photoshop, etc.
  *
- * Output: public/luts.bin — 24 × 17³ × RGBA, in the exact order of LOOKS in
- * public/js/looks.js. 17³ keeps the whole library under ~500 KB while trilinear
- * filtering keeps the grades smooth.
+ * Vendor LUTs (Panasonic/FUJIFILM/Canon/Nikon/Sony) are intentionally NOT
+ * included: their terms only allow local personal use, not public
+ * redistribution. The app imports user-supplied .cube files instead.
+ *
+ * Output: public/luts.bin — one 17³ RGBA block per look, in the exact order of
+ * LOOKS in public/js/looks.js. 17³ keeps the whole pack under ~1 MB while
+ * trilinear filtering keeps the grades smooth.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LOOKS } from '../public/js/looks.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
 const SRC = join(ROOT, 'luts-src');
 const SIZE = 17;
-
-// Same order as LOOKS in public/js/looks.js.
-const ORDER = [
-  'cinema-teal', 'film-classic', 'soft-veil', 'mono-classic', 'mono-contrast',
-  'warm-sun', 'cool-shade', 'punch', 'faded-matte', 'vintage-70',
-  'airy-day', 'haze-dream',
-  'leica-classic', 'leica-modern', 'leica-vivid', 'leica-ccd', 'leica-mono', 'leica-mono-contrast',
-  'hasselblad-natural', 'hasselblad-portrait', 'hasselblad-landscape', 'hasselblad-cream',
-  'hasselblad-cool', 'hasselblad-mono',
-];
-
 
 function parseCube(text) {
   const lines = text.split(/\r?\n/);
@@ -74,10 +69,10 @@ function sample(values, srcSize, x, y, z) {
 }
 
 const perLut = SIZE ** 3 * 4;
-const out = Buffer.alloc(ORDER.length * perLut);
-ORDER.forEach((id, index) => {
-  const file = join(SRC, `${id}.cube`);
-  const { size, values } = parseCube(readFileSync(file, 'utf8'));
+const out = Buffer.alloc(LOOKS.length * perLut);
+
+LOOKS.forEach((look, index) => {
+  const { size, values } = parseCube(readFileSync(join(SRC, `${look.id}.cube`), 'utf8'));
   const base = index * perLut;
   for (let b = 0; b < SIZE; b++) {
     for (let g = 0; g < SIZE; g++) {
@@ -91,10 +86,10 @@ ORDER.forEach((id, index) => {
       }
     }
   }
-  console.log('baked', id);
+  console.log('baked', look.id);
 });
 
 mkdirSync(join(ROOT, 'public'), { recursive: true });
 const target = join(ROOT, 'public', 'luts.bin');
 writeFileSync(target, out);
-console.log(`\nwrote ${target} · ${ORDER.length} looks · ${SIZE}³ · ${(out.length / 1024).toFixed(0)} KB`);
+console.log(`\nwrote ${target} · ${LOOKS.length} looks · ${SIZE}³ · ${(out.length / 1024).toFixed(0)} KB`);

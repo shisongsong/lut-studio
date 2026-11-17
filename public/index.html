@@ -172,6 +172,12 @@ a.tbtn{text-decoration:none}
 .export-sub{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--muted);margin-bottom:12px}
 .export-confirm{width:100%;height:42px;background:var(--ink);color:#141414;font-family:var(--mono);font-size:10px;letter-spacing:.1em}
 .export-note{margin:14px 0 0;font-size:9px;line-height:1.6;color:var(--faint)}
+.import-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}
+.import-links span{font-family:var(--mono);font-size:8px;letter-spacing:.08em;color:var(--faint)}
+.import-links a{font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--muted);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.25)}
+.import-links a:hover{color:var(--ink);border-color:rgba(242,241,236,.6)}
+.import-help{margin:14px 0 0;font-size:9px;line-height:1.6;color:var(--faint)}
+.import-help a{color:var(--muted)}
 .quality-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 .quality-list button{display:grid;grid-template-columns:46px 1fr auto;align-items:center;gap:10px;padding:11px 10px;border:1px solid rgba(255,255,255,.12);color:var(--muted);text-align:left}
 .quality-list button span{font-family:var(--mono);font-size:13px;color:var(--ink)}
@@ -246,7 +252,7 @@ a.tbtn{text-decoration:none}
       <button id="importBtn">导入 LUT</button>
       <button id="exportBtn" class="quick-export">导出 ↗</button>
     </div>
-    <div class="meta"><span id="metaName">LAGO DI BRAIES</span><b id="metaDims">1600 × 1067</b><span>OPEN SOURCE</span><span id="metaLooks">24 LOOKS</span></div>
+    <div class="meta"><span id="metaName">LAGO DI BRAIES</span><b id="metaDims">1600 × 1067</b><span>OPEN SOURCE</span><span id="metaLooks">44 LOOKS</span></div>
   </div>
 </div>
 
@@ -254,7 +260,7 @@ a.tbtn{text-decoration:none}
   <div class="intro-inner">
     <span class="intro-word">LUT ARCHIVE</span>
     <span class="intro-line"><i></i></span>
-    <span class="intro-sub">24 LOOKS / OPEN SOURCE</span>
+    <span class="intro-sub" id="introSub">44 LOOKS / OPEN SOURCE</span>
   </div>
 </div>
 <div class="exportsheet" id="exportSheet" hidden>
@@ -268,6 +274,22 @@ a.tbtn{text-decoration:none}
     </div>
     <button class="export-confirm" id="exportConfirm">导出 JPEG</button>
     <p class="export-note">照片只在本机渲染，导出不经过服务器。</p>
+  </div>
+</div>
+
+<div class="exportsheet" id="importSheet" hidden>
+  <div class="export-card">
+    <header><span>导入 LUT</span><button class="icon-x" id="importClose" aria-label="关闭">×</button></header>
+    <p class="export-sub">支持 .cube（LUT_3D_SIZE 2–64），只在本地解析，不上传。</p>
+    <button class="export-confirm" id="importPick">选择 .cube 文件</button>
+    <p class="import-help">官方 LUT 多用于 LOG 素材（V-Log / F-Log），普通照片建议强度 30–60%。</p>
+    <div class="import-links">
+      <span>官方下载</span>
+      <a href="https://pro-av.panasonic.net/en/cinema_camera_varicam_eva/support/lut/" target="_blank" rel="noopener">Panasonic VariCam</a>
+      <a href="https://av.jpn.support.panasonic.com/support/global/cs/dsc/download/lut/index.html" target="_blank" rel="noopener">LUMIX</a>
+      <a href="https://www.fujifilm-x.com/global/support/download/lut/" target="_blank" rel="noopener">FUJIFILM</a>
+      <a href="/get-luts" target="_blank" rel="noopener">更多来源 →</a>
+    </div>
   </div>
 </div>
 
@@ -293,7 +315,8 @@ const el = {
   photoBtn: $('#photoBtn'), fitBtn: $('#fitBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'), cats: $('#cats'), metaLooks: $('#metaLooks'), importBtn: $('#importBtn'), importInput: $('#importInput'),
+  langBtn: $('#langBtn'), cats: $('#cats'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'),
+  importSheet: $('#importSheet'), importClose: $('#importClose'), importPick: $('#importPick'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
   q50Dims: $('#q50Dims'), q75Dims: $('#q75Dims'), q100Dims: $('#q100Dims'),
 };
@@ -558,6 +581,7 @@ async function handleImport(files){
     }
   }
   if (ok) {
+    el.importSheet.hidden = true;
     buildFilm();
     buildCats();
     setCat('mine');
@@ -596,6 +620,7 @@ function buildFilm(){
   });
   el.film.appendChild(frag);
   el.metaLooks.textContent = `${all.length} LOOKS`;
+  el.introSub.textContent = `${LOOKS.length} LOOKS / OPEN SOURCE`;
   requestAnimationFrame(renderFilmThumbs);
 }
 
@@ -808,7 +833,10 @@ function bind(){
   el.photoBtn.addEventListener('click', () => el.fileInput.click());
   el.fileInput.addEventListener('change', () => { const f = el.fileInput.files?.[0]; if (f) loadFile(f); el.fileInput.value = ''; });
   el.exportBtn.addEventListener('click', openExport);
-  el.importBtn.addEventListener('click', () => el.importInput.click());
+  el.importBtn.addEventListener('click', () => { el.importSheet.hidden = false; });
+  el.importClose.addEventListener('click', () => { el.importSheet.hidden = true; });
+  el.importPick.addEventListener('click', () => el.importInput.click());
+  el.importSheet.addEventListener('click', (e) => { if (e.target === el.importSheet) el.importSheet.hidden = true; });
   el.importInput.addEventListener('change', async () => {
     const files = [...el.importInput.files];
     el.importInput.value = '';
