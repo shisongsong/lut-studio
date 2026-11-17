@@ -87,10 +87,10 @@ footer a:hover{color:var(--ink)}
   </div>
   <div class="note" style="margin-top:12px">
     RAW（NEF / CR2 / CR3 / ARW / DNG / RAF 等）可以直接上传，而且是真冲洗：应用内置了
-    LibRaw 的 WebAssembly 版本（约 1.4 MB，第一次上传 RAW 时才下载），在本机完成去马赛克、
-    相机白平衡和相机色彩矩阵。26MP 的尼康 NEF 约 1.5 秒出全分辨率 5600×3728，导出也是
-    100% 原始尺寸。尼康 Z8/Z9 这类机型的 HE/HE*（TicoRAW）压缩不在 LibRaw 里，这些文件会
-    自动退回文件内嵌的相机 JPEG——照样能套 LUT，只是没有高光恢复。
+    flashraw 的 WebAssembly 版本（约 3.4 MB，第一次上传 RAW 时才下载），在本机完成解包、
+    AHD 去马赛克、相机白平衡、相机色彩矩阵和 sRGB 编码。26MP 的尼康 NEF 约 1 秒出全分辨率
+    5568×3712，导出也是 100% 原始尺寸。尼康的 HE/HE*（TicoRAW）压缩也支持——这是很多开源
+    RAW 软件还读不了的格式。文件完全解不开时才会退回内嵌的相机 JPEG。
   </div>
 
   <h2>官方来源</h2>

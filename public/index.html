@@ -1089,18 +1089,17 @@ async function loadRaw(file){
     const out = await developRaw(buffer);
     const bits = `${out.width} × ${out.height}`;
     const who = out.model ? ` · ${out.model}` : '';
-    applyImage(out.canvas, file.name, `${t(state.lang, 'rawDeveloped')}${who} · ${bits} · ${(out.ms / 1000).toFixed(1)}s`);
+    applyImage(out.bitmap, file.name, `${t(state.lang, 'rawDeveloped')}${who} · ${bits} · ${(out.ms / 1000).toFixed(1)}s`);
     return;
   } catch (err) {
     reason = err instanceof RawUnsupported ? err.reason : null;
     if (!reason) console.warn('RAW development failed, falling back to the embedded preview', err);
   }
-  toast(t(state.lang, reason === 'nikon-he' ? 'rawHeUnsupported' : 'rawExtracting'), 12000);
+  toast(t(state.lang, 'rawExtracting'), 12000);
   try {
     const preview = await extractRawPreview(buffer);
     if (!preview) { toast(t(state.lang, 'rawUnsupported')); return; }
-    const note = t(state.lang, reason === 'nikon-he' ? 'rawPreviewHe' : 'rawPreview');
-    applyImage(preview.bitmap, file.name, `${note} · ${preview.width} × ${preview.height}`);
+    applyImage(preview.bitmap, file.name, `${t(state.lang, 'rawPreview')} · ${preview.width} × ${preview.height}`);
   } catch {
     toast(t(state.lang, 'rawUnsupported'));
   }

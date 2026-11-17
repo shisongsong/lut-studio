@@ -40,13 +40,14 @@ Dual-LUT stacking:
   function before the LUT runs. Gamut is still treated as sRGB, so vendor LUTs are
   close but not byte-exact.
 - **RAW uploads are really developed** — NEF/CR2/CR3/ARW/DNG/RAF… go through
-  LibRaw compiled to WebAssembly (vendored under `public/vendor/libraw`, ~1.4 MB,
-  fetched only when a RAW is actually opened). Demosaicing, camera white balance
-  and the camera colour matrix run in a Web Worker on your machine: a 26 MP Nikon
-  Z50 II NEF becomes a full-resolution 5600×3728 frame in ~1.5 s, and 100% export
-  is 100% of that. Nikon's HE/HE\* (TicoRAW) compression is proprietary and not in
-  LibRaw, so those files fall back to the camera JPEG embedded in the file — they
-  still open and grade, just without highlight recovery.
+  [flashraw](https://github.com/ybouane/flashraw) compiled to WebAssembly (vendored
+  under `public/vendor/flashraw`, ~3.4 MB, fetched only when a RAW is actually
+  opened). Unpacking, AHD demosaicing, camera white balance, the camera colour
+  matrix and the sRGB encode all run in a Web Worker on your machine: a 26 MP Nikon
+  Z50 II NEF becomes a full-resolution 5568×3712 frame in ~1 s, and 100% export is
+  100% of that. This includes Nikon's **HE/HE\*** (TicoRAW) compression, which most
+  open-source RAW tools still cannot read. If a file cannot be unpacked at all, the
+  app falls back to the camera JPEG embedded in it.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in

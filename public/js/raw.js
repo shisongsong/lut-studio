@@ -1,18 +1,17 @@
 /**
  * RAW support.
  *
- * Two paths, tried in this order:
+ * A WebAssembly build of [flashraw](https://github.com/ybouane/flashraw) does the
+ * whole RAW pipeline in the browser, in a Web Worker: unpack (including Nikon
+ * HE/HE* / TicoRAW), demosaic (AHD on Bayer sensors), camera white balance, the
+ * camera colour matrix, highlight handling, and the sRGB encode. What comes back
+ * is display-ready RGBA at full sensor resolution — exactly what a LUT should be
+ * applied to.
  *
- * 1. `developRaw()` — real RAW development. A WebAssembly build of LibRaw
- *    (libraw-wasm, loaded lazily, ~1.4 MB) demosaics the sensor data in a Web
- *    Worker with the camera's white balance and colour matrix, and hands back a
- *    full-resolution RGB frame. This is the same class of pipeline the camera
- *    maker's own software runs, and it is what a LUT should be applied to.
- *
- * 2. `extractRawPreview()` — fallback. Some NEFs use Nikon's HE/HE* (TicoRAW)
- *    compression, which LibRaw cannot unpack; those files still carry a
- *    ready-made camera JPEG, so we pull that out instead. The result is a camera
- *    JPEG, not a RAW development.
+ * The decoder is a ~3.4 MB WASM payload that is only fetched the first time a RAW
+ * file is opened. If it cannot decode the file (an exotic or damaged file), the
+ * caller falls back to the camera JPEG embedded in the RAW via
+ * `extractRawPreview()`.
  */
 
 function findJpegSpans(bytes) {
@@ -58,88 +57,70 @@ export async function extractRawPreview(buffer) {
   return null;
 }
 
-// The decoder is a ~1.4 MB WASM payload. Most visitors never open a RAW file,
-// so it is only fetched the first time one is dropped in.
-let librawModule = null;
-function loadLibRaw() {
-  librawModule ||= import('/vendor/libraw/index.js')
-    .then((m) => m.default)
-    .catch((err) => { librawModule = null; throw err; });
-  return librawModule;
-}
-
 /**
- * Thrown when a RAW file is recognised but its compression codec is not in the
- * bundled LibRaw build. Callers should fall back to the embedded JPEG preview.
+ * Thrown when the RAW file is understood but cannot be developed — an unsupported
+ * compression, a truncated file, an exotic sensor layout. The caller falls back
+ * to the embedded JPEG preview.
  */
 export class RawUnsupported extends Error {
-  constructor(reason) { super(reason); this.reason = reason; }
-}
-
-// Nikon NEF compression codes (ExifTool Nikon.pm NEFCompression table).
-// 13 = High Efficiency, 14 = High Efficiency* — the TicoRAW payload. LibRaw
-// 0.22.x reads the tag and the embedded JPEG but cannot unpack the sensor data,
-// and it does not report that as an error: imageData() hands back whatever is in
-// the decode buffer. Detect it up front instead of drawing garbage.
-const NIKON_HE = new Set([13, 14]);
-
-/**
- * Develop a RAW file into a full-resolution RGB canvas.
- *
- * Camera white balance is used (the shot as the photographer framed it), output
- * is sRGB at 8 bits — the LUT pipeline downstream is 8-bit anyway — and AHD
- * demosaicing, which is the quality/speed sweet spot.
- *
- * @param {ArrayBuffer} buffer raw file bytes
- * @returns {Promise<{canvas: HTMLCanvasElement, width: number, height: number, model: string, ms: number}>}
- */
-export async function developRaw(buffer) {
-  const started = performance.now();
-  const LibRaw = await loadLibRaw();
-  const raw = new LibRaw();
-  try {
-    // postMessage transfers the buffer to the worker, which detaches it here —
-    // hand over a copy so the caller can still fall back to the embedded JPEG.
-    await raw.open(new Uint8Array(buffer.slice(0)), {
-      useCameraWb: true,
-      outputColor: 1, // sRGB
-      outputBps: 8,
-      userQual: 3, // AHD
-    });
-    const meta = await raw.metadata(true);
-    if (NIKON_HE.has(meta?.nikon?.NEFCompression)) throw new RawUnsupported('nikon-he');
-    const img = await raw.imageData();
-    if (!img || !img.width || !img.height) throw new RawUnsupported('decode-empty');
-
-    const pixels = img.data.constructor === Uint16Array ? to8Bit(img.data) : img.data;
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d', { alpha: false });
-    const frame = ctx.createImageData(img.width, img.height);
-    for (let i = 0, j = 0, n = img.width * img.height; i < n; i++, j += 3) {
-      const k = i * 4;
-      frame.data[k] = pixels[j];
-      frame.data[k + 1] = pixels[j + 1];
-      frame.data[k + 2] = pixels[j + 2];
-      frame.data[k + 3] = 255;
-    }
-    ctx.putImageData(frame, 0, 0);
-
-    return {
-      canvas,
-      width: img.width,
-      height: img.height,
-      model: [meta?.camera_make, meta?.camera_model].filter(Boolean).join(' ').trim(),
-      ms: Math.round(performance.now() - started),
-    };
-  } finally {
-    raw.dispose();
+  /** @param {'compression'|'corrupt'|'decode'} reason */
+  constructor(reason, cause) {
+    super(reason, cause ? { cause } : undefined);
+    this.reason = reason;
   }
 }
 
-function to8Bit(src) {
-  const out = new Uint8ClampedArray(src.length);
-  for (let i = 0; i < src.length; i++) out[i] = src[i] / 257;
-  return out;
+let rawWorker = null;
+let nextId = 0;
+const pending = new Map();
+
+function getWorker() {
+  if (rawWorker) return rawWorker;
+  rawWorker = new Worker('/js/raw-worker.js', { type: 'module' });
+  rawWorker.onmessage = ({ data }) => {
+    const job = pending.get(data.id);
+    if (!job) return;
+    pending.delete(data.id);
+    if (data.ok) job.resolve(data);
+    else {
+      const kind = data.kind;
+      job.reject(new RawUnsupported(
+        kind === 'UnsupportedCompression' || kind === 'CameraUnsupported' ? 'compression'
+          : kind === 'CorruptFile' ? 'corrupt'
+            : 'decode',
+        new Error(data.message),
+      ));
+    }
+  };
+  rawWorker.onerror = (event) => {
+    for (const job of pending.values()) job.reject(event);
+    pending.clear();
+    rawWorker = null;
+  };
+  return rawWorker;
+}
+
+/**
+ * Develop a RAW file into a full-resolution RGB image, in a worker.
+ *
+ * @param {ArrayBuffer} buffer raw file bytes (kept intact — a copy goes to the worker)
+ * @returns {Promise<{bitmap: ImageBitmap, width: number, height: number, model: string, ms: number}>}
+ */
+export function developRaw(buffer) {
+  const started = performance.now();
+  const id = ++nextId;
+  const copy = buffer.slice(0);
+  return new Promise((resolve, reject) => {
+    pending.set(id, {
+      resolve: (data) => resolve({
+        bitmap: data.bitmap,
+        width: data.width,
+        height: data.height,
+        model: data.model,
+        ms: Math.round(performance.now() - started),
+      }),
+      reject,
+    });
+    getWorker().postMessage({ id, buffer: copy }, [copy]);
+  });
 }
