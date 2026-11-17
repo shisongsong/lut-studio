@@ -498,8 +498,15 @@ function setCat(cat){
   const visible = new Set(visibleLooks().map(l => l.id));
   el.film.querySelectorAll('.chip').forEach(c => { c.hidden = !visible.has(c.dataset.id); });
   el.film.scrollTo({ left: 0 });
-  if (!visible.has(state.look)) selectLook(visibleLooks()[0].id, 'A');
-  else centerChip(state.look);
+  // Switching category is only a browsing filter: never replace a slot the user
+  // already picked. With dual LUT on, the whole point of changing category is to
+  // find a B while A stays put. Only a single-LUT session follows the filter.
+  if (!state.dual.enabled && !visible.has(state.look)) {
+    selectLook(visibleLooks()[0].id, 'A');
+    return;
+  }
+  const focus = state.dual.enabled && state.activeSlot === 'B' ? state.dual.b : state.look;
+  if (visible.has(focus)) centerChip(focus);
 }
 
 function parseCube(text){
