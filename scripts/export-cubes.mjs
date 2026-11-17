@@ -14,7 +14,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GRADES } from './looks.mjs';
+import { GRADES, gradeLook } from './looks.mjs';
 import { LOOKS } from '../public/js/looks.js';
 
 const SIZE = 33;
@@ -40,7 +40,7 @@ for (const look of LOOKS) {
   for (let b = 0; b < SIZE; b++) {
     for (let g = 0; g < SIZE; g++) {
       for (let r = 0; r < SIZE; r++) {
-        const [cr, cg, cb] = grade.fn([r / (SIZE - 1), g / (SIZE - 1), b / (SIZE - 1)]);
+        const [cr, cg, cb] = gradeLook(grade, [r / (SIZE - 1), g / (SIZE - 1), b / (SIZE - 1)]);
         lines.push(`${fmt(cr)} ${fmt(cg)} ${fmt(cb)}`);
       }
     }

@@ -49,9 +49,242 @@ const shoulder = (v, knee = 0.72, amount = 0.2) => {
 /** 平滑 S 曲线：两端不动，中间分离度更高，比线性 contrast 更柔。 */
 const scurve = (v, k = 0.18) => clamp01(v + k * (v - 0.5) * (1 - Math.abs(2 * v - 1)));
 
+/* ------------------------------------------------------------------------- *
+ * Hue-selective colour stage
+ *
+ * Per-channel curves move contrast and cast, but they cannot do what a real film
+ * emulation does: treat one part of the colour wheel differently from another.
+ * ETERNA mutes greens and cyans while leaving skin alone; Classic Chrome pushes
+ * blues toward cyan and pulls the saturation out of foliage. That needs an HSL
+ * round-trip with smooth, overlapping hue lobes — which is exactly what a 3D LUT
+ * can carry and what plain curves cannot.
+ * ------------------------------------------------------------------------- */
+
+function rgb2hsl(r, g, b) {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d === 0) return [0, 0, l];
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return [h, s, l];
+}
+
+function hsl2rgb(h, s, l) {
+  if (s <= 0) return [l, l, l];
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const chan = (t) => {
+    t = (t % 1 + 1) % 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  return [chan(h + 1 / 3), chan(h), chan(h - 1 / 3)];
+}
+
+/** Smooth 0..1 weight around a hue, zero beyond `width` (fraction of the wheel). */
+function hueLobe(h, center, width) {
+  let d = Math.abs(h - center) % 1;
+  if (d > 0.5) d = 1 - d;
+  if (d >= width) return 0;
+  return 0.5 * (1 + Math.cos((Math.PI * d) / width));
+}
+
+/**
+ * Apply a hue-selective colour character on top of the per-channel curve.
+ *
+ * @param {number[]} rgb gamma-space 0..1
+ * @param {{shifts?: Array<{h:number,w:number,dh?:number,ds?:number,dl?:number}>,
+ *          vib?: number, split?: {sh:number[],hi:number[]}, protectSkin?: boolean}} color
+ */
+export function applyColor(rgb, color) {
+  if (!color) return rgb;
+  let [r, g, b] = [clamp01(rgb[0]), clamp01(rgb[1]), clamp01(rgb[2])];
+
+  if (color.vib && color.vib !== 1) {
+    const [h, s, l] = rgb2hsl(r, g, b);
+    // Vibrance: the duller a pixel is, the more it moves; vivid pixels barely budge.
+    const w = 1 - 0.7 * Math.min(1, Math.abs(s - 0.3) / 0.7);
+    [r, g, b] = hsl2rgb(h, clamp01(s * (1 + (color.vib - 1) * w)), l);
+  }
+
+  if (color.shifts && color.shifts.length) {
+    let [h, s, l] = rgb2hsl(r, g, b);
+    for (const sh of color.shifts) {
+      const k = hueLobe(h, sh.h, sh.w ?? 0.12);
+      if (!k) continue;
+      if (sh.dh) h = (h + sh.dh * k + 1) % 1;
+      if (sh.ds) s = clamp01(s * (1 + (sh.ds - 1) * k));
+      if (sh.dl) l = clamp01(l + sh.dl * k);
+    }
+    if (color.protectSkin) {
+      // Keep the orange band from drifting and from over-saturating.
+      const k = hueLobe(h, 0.07, 0.09);
+      s = clamp01(mix(s, Math.min(s, 0.60), 0.55 * k));
+      h = mix(h, 0.07, 0.35 * k);
+    }
+    [r, g, b] = hsl2rgb(h, s, l);
+  }
+
+  if (color.split) {
+    const sh = color.split.sh || [0, 0, 0];
+    const hi = color.split.hi || [0, 0, 0];
+    const l = luma(r, g, b);
+    const ws = Math.pow(1 - l, 2), wh = Math.pow(l, 2);
+    r = clamp01(r + sh[0] * ws + hi[0] * wh);
+    g = clamp01(g + sh[1] * ws + hi[1] * wh);
+    b = clamp01(b + sh[2] * ws + hi[2] * wh);
+  }
+  return [r, g, b];
+}
+
+/** The full recipe: per-channel curve, then the hue-selective character. */
+export function gradeLook(look, rgb) {
+  return applyColor(look.fn(rgb), look.color);
+}
+
+/* Named colour characters. Each one is a deliberate answer to "what should this
+ * look do to greens / blues / skin / shadows", not a random tweak. */
+const C = {
+  // Fuji ETERNA: muted greens and cyans, gentle warm highlights, skin untouched.
+  eterna: {
+    shifts: [
+      { h: 0.30, w: 0.16, ds: 0.72 },
+      { h: 0.50, w: 0.15, ds: 0.78 },
+      { h: 0.66, w: 0.12, ds: 0.86, dh: -0.010 },
+    ],
+    vib: 0.95, protectSkin: true,
+    split: { sh: [0.004, 0.010, 0.008], hi: [0.012, 0.006, -0.004] },
+  },
+  // Fuji Classic Chrome: desaturated foliage, deeper reds, blues pulled to cyan.
+  classicChrome: {
+    shifts: [
+      { h: 0.33, w: 0.14, ds: 0.60 },
+      { h: 0.50, w: 0.12, ds: 0.78 },
+      { h: 0.63, w: 0.14, ds: 0.76, dh: 0.012 },
+      { h: 0.99, w: 0.10, ds: 0.96, dl: -0.008 },
+    ],
+    vib: 0.88, protectSkin: true,
+    split: { sh: [0.004, 0.005, 0.010], hi: [0.008, 0.004, -0.004] },
+  },
+  // Provia-ish: clean, punchy, greens and blues lifted, nothing muddy.
+  provia: {
+    shifts: [
+      { h: 0.32, w: 0.12, ds: 1.06, dh: -0.006 },
+      { h: 0.63, w: 0.12, ds: 1.07 },
+    ],
+    vib: 1.10, protectSkin: true,
+  },
+  // Kodak Portra: warm skin, pastel greens, soft blues.
+  portra: {
+    shifts: [
+      { h: 0.31, w: 0.15, ds: 0.84, dh: 0.010 },
+      { h: 0.62, w: 0.12, ds: 0.86 },
+    ],
+    vib: 0.92, protectSkin: true,
+    split: { sh: [0.006, 0.004, 0.002], hi: [0.014, 0.008, 0.000] },
+  },
+  // Blockbuster teal-and-orange, but restrained enough to stay photographic.
+  tealOrange: {
+    shifts: [
+      { h: 0.55, w: 0.14, dh: -0.018, ds: 0.90 },
+      { h: 0.06, w: 0.09, ds: 1.06 },
+    ],
+    vib: 0.98, protectSkin: true,
+    split: { sh: [-0.006, 0.004, 0.014], hi: [0.016, 0.006, -0.006] },
+  },
+  // Leica: rich and clean, a touch warm, saturated but never neon.
+  leica: {
+    shifts: [
+      { h: 0.33, w: 0.12, ds: 1.05 },
+      { h: 0.62, w: 0.12, ds: 1.04 },
+    ],
+    vib: 1.06, protectSkin: true,
+  },
+  // Hasselblad: natural, slightly cool-neutral, clean separation.
+  hasselblad: {
+    shifts: [
+      { h: 0.30, w: 0.12, ds: 0.96 },
+      { h: 0.60, w: 0.12, ds: 0.98 },
+    ],
+    vib: 1.02, protectSkin: true,
+  },
+  // Faded vintage: low saturation everywhere, warm shadows.
+  vintage: {
+    shifts: [
+      { h: 0.33, w: 0.15, ds: 0.76 },
+      { h: 0.60, w: 0.14, ds: 0.80 },
+    ],
+    vib: 0.85, protectSkin: true,
+    split: { sh: [0.010, 0.006, 0.000], hi: [0.012, 0.008, -0.004] },
+  },
+  // Airy / pastel: pale greens, very light touch.
+  airy: {
+    shifts: [
+      { h: 0.33, w: 0.14, ds: 0.88 },
+      { h: 0.58, w: 0.12, ds: 0.90 },
+    ],
+    vib: 0.90, protectSkin: true,
+    split: { sh: [0.004, 0.006, 0.008], hi: [0.010, 0.008, 0.004] },
+  },
+  // Cool daylight: blues kept clean, greens pulled back.
+  cool: {
+    shifts: [
+      { h: 0.58, w: 0.14, ds: 1.02, dh: -0.006 },
+      { h: 0.33, w: 0.12, ds: 0.88 },
+    ],
+    vib: 0.98,
+    split: { sh: [0.000, 0.006, 0.014], hi: [0.006, 0.006, 0.004] },
+  },
+  // Night / noir colour: desaturated everywhere, cyan-blue shadows.
+  noir: {
+    shifts: [
+      { h: 0.33, w: 0.16, ds: 0.55 },
+      { h: 0.58, w: 0.16, ds: 0.80 },
+      { h: 0.06, w: 0.10, ds: 0.82 },
+    ],
+    vib: 0.80, protectSkin: true,
+    split: { sh: [-0.008, 0.002, 0.016], hi: [0.006, 0.004, 0.000] },
+  },
+  // Bleach bypass: almost no chroma left, cold highlights.
+  bleach: {
+    shifts: [
+      { h: 0.33, w: 0.18, ds: 0.45 },
+      { h: 0.58, w: 0.16, ds: 0.62 },
+      { h: 0.06, w: 0.12, ds: 0.70 },
+    ],
+    vib: 0.70,
+    split: { sh: [0.002, 0.004, 0.008], hi: [0.006, 0.006, 0.006] },
+  },
+  // Green negative: the shadow side of old stock, greens pulled toward olive.
+  greenNeg: {
+    shifts: [
+      { h: 0.30, w: 0.16, ds: 0.82, dh: 0.012 },
+      { h: 0.55, w: 0.14, ds: 0.78 },
+    ],
+    vib: 0.90, protectSkin: true,
+    split: { sh: [-0.004, 0.012, 0.002], hi: [0.010, 0.006, -0.006] },
+  },
+  // Tungsten: warm interior, blues lifted only in the shadows.
+  tungsten: {
+    shifts: [
+      { h: 0.62, w: 0.13, ds: 1.04 },
+      { h: 0.33, w: 0.13, ds: 0.86 },
+    ],
+    vib: 1.00, protectSkin: true,
+    split: { sh: [-0.004, 0.004, 0.012], hi: [0.016, 0.008, -0.006] },
+  },
+};
+
 export const GRADES = [
   {
     id: 'soft-veil', name: '柔光', category: '胶片',
+    color: C.vintage,
     fn: ([r, g, b]) => {
       let c = [r, g, b].map((v) => lift(contrast(v, 0.86), 0.045));
       c = sat(c[0], c[1], c[2], 0.90);
@@ -60,6 +293,7 @@ export const GRADES = [
   },
   {
     id: 'film-classic', name: '胶片', category: '胶片',
+    color: C.classicChrome,
     fn: ([r, g, b]) => {
       let c = [contrast(r, 1.10), contrast(g, 1.08), contrast(b, 1.04)].map((v) => lift(v, 0.026));
       c = sat(c[0], c[1], c[2], 0.94);
@@ -69,6 +303,7 @@ export const GRADES = [
   },
   {
     id: 'cinema-teal', name: '电影', category: '电影',
+    color: C.tealOrange,
     fn: ([r, g, b]) => {
       let c = [contrast(r, 1.14), contrast(g, 1.12), contrast(b, 1.10)];
       c = sat(c[0], c[1], c[2], 0.88);
@@ -94,6 +329,7 @@ export const GRADES = [
   },
   {
     id: 'warm-sun', name: '暖阳', category: '暖调',
+    color: C.vintage,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.085), gain(g, 1.005), gain(b, 0.900)];
       c = sat(c[0], c[1], c[2], 1.12);
@@ -102,6 +338,7 @@ export const GRADES = [
   },
   {
     id: 'cool-shade', name: '冷调', category: '冷调',
+    color: C.cool,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.925), gain(g, 0.990), gain(b, 1.075)];
       c = sat(c[0], c[1], c[2], 1.02);
@@ -110,6 +347,7 @@ export const GRADES = [
   },
   {
     id: 'punch', name: '高对比', category: '高对比',
+    color: C.provia,
     fn: ([r, g, b]) => {
       let c = [contrast(r, 1.18), contrast(g, 1.18), contrast(b, 1.18)];
       c = sat(c[0], c[1], c[2], 1.04);
@@ -118,6 +356,7 @@ export const GRADES = [
   },
   {
     id: 'faded-matte', name: '褪色', category: '复古',
+    color: C.vintage,
     fn: ([r, g, b]) => {
       let c = [contrast(r, 0.88), contrast(g, 0.88), contrast(b, 0.88)].map((v) => lift(v, 0.068));
       c = sat(c[0], c[1], c[2], 0.70);
@@ -126,6 +365,7 @@ export const GRADES = [
   },
   {
     id: 'airy-day', name: '日系', category: '空气感',
+    color: C.airy,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.04), gain(g, 1.055), gain(b, 1.03)].map((v) => lift(v, 0.03));
       c = [contrast(c[0], 0.92), contrast(c[1], 0.92), contrast(c[2], 0.92)];
@@ -135,6 +375,7 @@ export const GRADES = [
   },
   {
     id: 'vintage-70', name: '复古', category: '复古',
+    color: C.vintage,
     fn: ([r, g, b]) => {
       const l = luma(r, g, b);
       let c = [mix(r, l * 1.08 + 0.03, 0.35), mix(g, l * 1.0 + 0.02, 0.3), mix(b, l * 0.86 + 0.01, 0.35)];
@@ -144,6 +385,7 @@ export const GRADES = [
   },
   {
     id: 'haze-dream', name: '空气感', category: '空气感',
+    color: C.airy,
     fn: ([r, g, b]) => {
       let c = [lift(r, 0.050), lift(g, 0.052), lift(b, 0.062)];
       c = [contrast(c[0], 0.88), contrast(c[1], 0.88), contrast(c[2], 0.88)];
@@ -158,6 +400,7 @@ export const GRADES = [
   {
     id: 'leica-classic', name: '徕卡风 · 经典', category: '徕卡',
     // 暖调、深黑、红润、低饱和：琥珀阴影 + 轻微红润，收一点饱和
+    color: C.leica,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.055), gain(g, 1.0), gain(b, 0.940)];
       c = [scurve(c[0], 0.26), scurve(c[1], 0.22), scurve(c[2], 0.19)];
@@ -171,6 +414,7 @@ export const GRADES = [
   {
     id: 'leica-modern', name: '徕卡风 · 现代', category: '徕卡',
     // 干净、微冷阴影、红黄鲜活：中性白平衡 + 冷阴影 + 暖高光
+    color: C.leica,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.012), gain(g, 1.0), gain(b, 0.996)];
       c = [scurve(c[0], 0.16), scurve(c[1], 0.16), scurve(c[2], 0.15)];
@@ -183,6 +427,7 @@ export const GRADES = [
   {
     id: 'leica-vivid', name: '徕卡风 · 鲜艳', category: '徕卡',
     // 高饱和高对比，但不炸色：S 曲线 + 收黑 + 提饱和
+    color: C.provia,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.02), gain(g, 1.005), gain(b, 0.985)];
       c = [scurve(c[0], 0.28), scurve(c[1], 0.26), scurve(c[2], 0.24)];
@@ -194,6 +439,7 @@ export const GRADES = [
   {
     id: 'leica-ccd', name: '徕卡风 · CCD', category: '徕卡',
     // 洋红阴影、暖肤色、绿色略降（CCD 数码机味道）
+    color: C.leica,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.012), gain(g, 0.99), gain(b, 0.995)];
       c = [scurve(c[0], 0.17), scurve(c[1], 0.15), scurve(c[2], 0.16)];
@@ -228,6 +474,7 @@ export const GRADES = [
   {
     id: 'hasselblad-natural', name: '哈苏风 · 自然', category: '哈苏',
     // 肤色准确、柔和肩部、低饱和、高分离
+    color: C.hasselblad,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.004), gain(g, 1.002), gain(b, 1.000)];
       c = [scurve(c[0], 0.08), scurve(c[1], 0.08), scurve(c[2], 0.08)];
@@ -239,6 +486,7 @@ export const GRADES = [
   {
     id: 'hasselblad-portrait', name: '哈苏风 · 人像', category: '哈苏',
     // 奶油肤色、柔对比：轻微暖调 + 低对比 + 抬阴影 + 柔高光
+    color: C.hasselblad,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.035), gain(g, 1.004), gain(b, 0.972)];
       c = [contrast(c[0], 0.96), contrast(c[1], 0.96), contrast(c[2], 0.96)];
@@ -251,6 +499,7 @@ export const GRADES = [
   {
     id: 'hasselblad-landscape', name: '哈苏风 · 风光', category: '哈苏',
     // 青蓝/深绿、中对比：冷阴影 + 压深绿色 + 高光略绿不偏黄
+    color: C.hasselblad,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.960), gain(g, 1.010), gain(b, 1.040)];
       c = [scurve(c[0], 0.17), scurve(c[1], 0.19), scurve(c[2], 0.16)];
@@ -263,6 +512,7 @@ export const GRADES = [
   {
     id: 'hasselblad-cream', name: '哈苏风 · 奶油', category: '哈苏',
     // 提亮阴影、柔高光、低对比：奶油肤色，阴影不灰
+    color: C.airy,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.045), gain(g, 1.010), gain(b, 0.955)];
       c = [contrast(c[0], 0.92), contrast(c[1], 0.92), contrast(c[2], 0.92)];
@@ -275,6 +525,7 @@ export const GRADES = [
   {
     id: 'hasselblad-cool', name: '哈苏风 · 清冷', category: '哈苏',
     // 冷阴影、干净白：青蓝暗部 + 中性高光 + 低饱和
+    color: C.cool,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.950), gain(g, 0.995), gain(b, 1.065)];
       c = [scurve(c[0], 0.16), scurve(c[1], 0.17), scurve(c[2], 0.16)];
@@ -299,6 +550,7 @@ export const GRADES = [
   // 中性 Rec.709：明显收饱和 + 轻微 S，阴影微冷
   {
     id: 'cinema-709', name: '电影 709', category: '电影',
+    color: C.eterna,
     fn: ([r, g, b]) => {
       let c = [scurve(r, 0.20), scurve(g, 0.20), scurve(b, 0.20)];
       c = [gain(c[0], 0.980), gain(c[1], 0.995), gain(c[2], 1.020)];
@@ -312,6 +564,7 @@ export const GRADES = [
   // 强青蓝：蓝通道抬高、阴影青、饱和略增
   {
     id: 'cinema-blue', name: '电影蓝', category: '电影',
+    color: C.tealOrange,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.920), gain(g, 1.010), gain(b, 1.090)];
       c = [contrast(c[0], 1.12), contrast(c[1], 1.12), contrast(c[2], 1.12)];
@@ -324,6 +577,7 @@ export const GRADES = [
   // 暗调：压 gamma、低饱和、冷阴影
   {
     id: 'cinema-noir', name: '暗调电影', category: '电影',
+    color: C.noir,
     fn: ([r, g, b]) => {
       let c = [contrast(r, 1.28), contrast(g, 1.28), contrast(b, 1.28)];
       c = [gamma(c[0], 1.22), gamma(c[1], 1.22), gamma(c[2], 1.22)];
@@ -336,6 +590,7 @@ export const GRADES = [
   // 电影绿：低饱和、青绿中间调、抬黑
   {
     id: 'film-eter', name: '电影绿', category: '胶片',
+    color: C.eterna,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.95), gain(g, 1.03), gain(b, 1.01)];
       c = [scurve(c[0], 0.10), scurve(c[1], 0.12), scurve(c[2], 0.10)];
@@ -349,6 +604,7 @@ export const GRADES = [
   // 漂白旁路：极低饱和 + 高反差 + 亮肩
   {
     id: 'film-bleach', name: '漂白', category: '胶片',
+    color: C.bleach,
     fn: ([r, g, b]) => {
       let c = [contrast(r, 1.35), contrast(g, 1.35), contrast(b, 1.35)];
       c = sat(c[0], c[1], c[2], 0.30);
@@ -361,6 +617,7 @@ export const GRADES = [
   // 纪录片：冷、清晰、去饱和
   {
     id: 'film-doc', name: '纪录片', category: '胶片',
+    color: C.classicChrome,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.955), gain(g, 0.995), gain(b, 1.065)];
       c = [contrast(c[0], 1.14), contrast(c[1], 1.14), contrast(c[2], 1.14)];
@@ -373,6 +630,7 @@ export const GRADES = [
   // 专业负片：暖肤、饱和、红黄
   {
     id: 'film-neg-hi', name: '专业负片', category: '胶片',
+    color: C.portra,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.085), gain(g, 1.010), gain(b, 0.925)];
       c = [scurve(c[0], 0.22), scurve(c[1], 0.22), scurve(c[2], 0.20)];
@@ -384,6 +642,7 @@ export const GRADES = [
   // 绿调负片：绿阴影、高饱和
   {
     id: 'film-green-neg', name: '绿调负片', category: '胶片',
+    color: C.greenNeg,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.96), gain(g, 1.04), gain(b, 0.97)];
       c = [scurve(c[0], 0.18), scurve(c[1], 0.18), scurve(c[2], 0.16)];
@@ -395,6 +654,7 @@ export const GRADES = [
   // 夜色青蓝：强蓝、暖高光
   {
     id: 'film-tungsten', name: '夜色青蓝', category: '胶片',
+    color: C.tungsten,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.860), gain(g, 0.940), gain(b, 1.200)];
       c = [contrast(c[0], 1.15), contrast(c[1], 1.15), contrast(c[2], 1.15)];
@@ -409,6 +669,7 @@ export const GRADES = [
   // 奶油负片：暖、低对比、大抬黑、低饱和
   {
     id: 'film-cream', name: '奶油负片', category: '胶片',
+    color: C.airy,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.10), gain(g, 1.03), gain(b, 0.90)];
       c = [contrast(c[0], 0.86), contrast(c[1], 0.86), contrast(c[2], 0.86)];
@@ -457,6 +718,7 @@ export const GRADES = [
   // 一次成像：青阴影、暖高光、大抬黑、低饱和
   {
     id: 'vintage-instant', name: '一次成像', category: '复古',
+    color: C.vintage,
     fn: ([r, g, b]) => {
       let c = [contrast(r, 0.80), contrast(g, 0.84), contrast(b, 0.76)];
       c = [lift(c[0], 0.090), lift(c[1], 0.075), lift(c[2], 0.100)];
@@ -468,6 +730,7 @@ export const GRADES = [
   // 金色负片：暖黄、高饱和
   {
     id: 'vintage-gold', name: '金色负片', category: '复古',
+    color: C.vintage,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.12), gain(g, 1.02), gain(b, 0.86)];
       c = [scurve(c[0], 0.20), scurve(c[1], 0.20), scurve(c[2], 0.18)];
@@ -479,6 +742,7 @@ export const GRADES = [
   // 杂志褪色：冷、低饱和、抬黑
   {
     id: 'vintage-mag', name: '杂志褪色', category: '复古',
+    color: C.vintage,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.96), gain(g, 0.97), gain(b, 1.03)];
       c = [contrast(c[0], 0.88), contrast(c[1], 0.88), contrast(c[2], 0.88)];
@@ -490,6 +754,7 @@ export const GRADES = [
   // 薄雾：冷、低对比、大抬黑
   {
     id: 'airy-mist', name: '薄雾', category: '空气感',
+    color: C.airy,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.98), gain(g, 1.00), gain(b, 1.05)];
       c = [lift(c[0], 0.060), lift(c[1], 0.062), lift(c[2], 0.065)];
@@ -501,6 +766,7 @@ export const GRADES = [
   // 奶油高光：暖白、强柔肩、抬黑
   {
     id: 'airy-cream', name: '奶油高光', category: '空气感',
+    color: C.airy,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.075), gain(g, 1.030), gain(b, 0.930)];
       c = [shoulder(c[0], 0.52, 0.40), shoulder(c[1], 0.52, 0.40), shoulder(c[2], 0.56, 0.40)];
@@ -513,6 +779,7 @@ export const GRADES = [
   // 蓝调黄昏：强蓝、低饱和
   {
     id: 'style-dusk', name: '蓝调黄昏', category: '风格',
+    color: C.cool,
     fn: ([r, g, b]) => {
       let c = [gain(r, 0.88), gain(g, 0.95), gain(b, 1.16)];
       c = [contrast(c[0], 1.10), contrast(c[1], 1.10), contrast(c[2], 1.10)];
@@ -524,6 +791,7 @@ export const GRADES = [
   // 暖光室内：钨丝灯强暖
   {
     id: 'style-warmth', name: '暖光室内', category: '风格',
+    color: C.tungsten,
     fn: ([r, g, b]) => {
       let c = [gain(r, 1.14), gain(g, 1.00), gain(b, 0.80)];
       c = [contrast(c[0], 0.92), contrast(c[1], 0.92), contrast(c[2], 0.92)];

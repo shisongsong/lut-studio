@@ -529,13 +529,10 @@ function setCat(cat){
   const visible = new Set(visibleLooks().map(l => l.id));
   el.film.querySelectorAll('.chip').forEach(c => { c.hidden = !visible.has(c.dataset.id); });
   el.film.scrollTo({ left: 0 });
-  // Switching category is only a browsing filter: never replace a slot the user
-  // already picked. With dual LUT on, the whole point of changing category is to
-  // find a B while A stays put. Only a single-LUT session follows the filter.
-  if (!state.dual.enabled && !visible.has(state.look)) {
-    selectLook(visibleLooks()[0].id, 'A');
-    return;
-  }
+  // A category is a browsing filter, nothing more: it must never replace the look
+  // that is currently applied. The active chip may end up hidden (the look lives in
+  // another category) — that is fine, the grade stays on the photo until the user
+  // picks another chip.
   const focus = state.dual.enabled && state.activeSlot === 'B' ? state.dual.b : state.look;
   if (visible.has(focus)) centerChip(focus);
 }
@@ -645,6 +642,8 @@ async function handleImport(files){
     buildFilm();
     buildCats();
     setCat('mine');
+    const last = state.imported[state.imported.length - 1];
+    if (last) selectLook(last.id, state.dual.enabled && state.activeSlot === 'B' ? 'B' : 'A');
   }
   // The sheet sits above the toast, so a failure has to be reported inside it —
   // otherwise the click looks like it did nothing at all.
