@@ -104,7 +104,7 @@ function getWorker() {
  * Develop a RAW file into a full-resolution RGB image, in a worker.
  *
  * @param {ArrayBuffer} buffer raw file bytes (kept intact — a copy goes to the worker)
- * @returns {Promise<{bitmap: ImageBitmap, width: number, height: number, model: string, ms: number}>}
+ * @returns {Promise<{bitmap: ImageBitmap, width: number, height: number, model: string, exposureEV: number, ms: number}>}
  */
 export function developRaw(buffer) {
   const started = performance.now();
@@ -117,6 +117,7 @@ export function developRaw(buffer) {
         width: data.width,
         height: data.height,
         model: data.model,
+        exposureEV: data.exposureEV || 0,
         ms: Math.round(performance.now() - started),
       }),
       reject,

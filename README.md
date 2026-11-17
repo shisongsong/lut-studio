@@ -49,7 +49,10 @@ Dual-LUT stacking:
   Z50 II NEF becomes a full-resolution 5568×3712 frame in ~1 s, and 100% export is
   100% of that. This includes Nikon's **HE/HE\*** (TicoRAW) compression, which most
   open-source RAW tools still cannot read. If a file cannot be unpacked at all, the
-  app falls back to the camera JPEG embedded in it.
+  app falls back to the camera JPEG embedded in it. RAW files also get an
+  automatic brightness correction (percentile based, brightness only — no colour,
+  saturation or white balance), applied as a linear exposure so the preview and the
+  export always match; the `AUTO` button in the toolbar turns it off.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in

@@ -121,6 +121,7 @@ a.tbtn{text-decoration:none}
 .quick button{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--muted);padding-bottom:2px;border-bottom:1px solid transparent;transition:color .15s,border-color .15s}
 .quick button:hover{color:#fff;border-color:rgba(255,255,255,.5)}
 .quick .dual{color:var(--ink);display:inline-flex;align-items:center;gap:6px}
+.quick .auto.on{color:var(--accent);border-color:var(--accent)}
 .quick .quick-export{margin-left:auto;color:var(--ink);border-bottom:1px solid rgba(255,255,255,.5);font-weight:500}
 .quick button.on{color:var(--accent);border-color:var(--accent)}
 
@@ -252,6 +253,7 @@ a.tbtn{text-decoration:none}
       <button id="fitBtn">FILL</button>
       <button id="dualBtn" class="dual">DUAL LUT</button>
       <button id="logBtn" title="输入色彩空间 / input profile">sRGB</button>
+      <button id="autoBtn" class="auto" title="RAW 自动亮度 / RAW auto brightness" hidden>AUTO</button>
       <button id="importBtn">导入 LUT</button>
       <button id="exportBtn" class="quick-export">导出 ↗</button>
     </div>
@@ -320,7 +322,7 @@ const el = {
   photoBtn: $('#photoBtn'), fitBtn: $('#fitBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'), importError: $('#importError'),
+  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'),
   importSheet: $('#importSheet'), importClose: $('#importClose'), importPick: $('#importPick'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
   q50Dims: $('#q50Dims'), q75Dims: $('#q75Dims'), q100Dims: $('#q100Dims'),
@@ -334,6 +336,10 @@ const state = {
   activeSlot: 'A',
   cat: 'all',
   logMode: 0,
+  // RAW auto-brightness: brightness only, computed at decode time, applied as a
+  // linear exposure in the shader so the toggle is instant and export matches.
+  autoBright: localStorage.getItem('lut.autoBright') !== '0',
+  rawExposure: 0,
   imported: [],
   quality: 100,
   lang: localStorage.getItem('lut.lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en'),
@@ -419,6 +425,14 @@ function sizeCanvases(){
 
 function drawBase(){
   if (!source || !el.base) return;
+  // The BEFORE side has to see the same exposure as AFTER, or the comparison lies.
+  const ev = state.autoBright ? state.rawExposure || 0 : 0;
+  if (ev) {
+    if (!el.base.width) sizeCanvases();
+    renderer.render([], { exposure: ev, contrast: 0, temp: 0, logMode: 0 }, el.base.width, el.base.height, state.fit);
+    el.base.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
+    return;
+  }
   const w = innerWidth, h = innerHeight;
   const dpr = Math.min(devicePixelRatio || 1, 2);
   const ctx = el.base.getContext('2d', { alpha: false });
@@ -431,11 +445,20 @@ function drawBase(){
   ctx.drawImage(source, (w - dw) / 2, (h - dh) / 2, dw, dh);
 }
 
+// Every render and export goes through this, so auto-brightness can never apply
+// to the preview but not the export (or the other way round).
+function adjFor(){
+  return {
+    exposure: state.autoBright ? state.rawExposure || 0 : 0,
+    contrast: 0, temp: 0, logMode: state.logMode,
+  };
+}
+
 function render({ instant = false } = {}){
   if (!renderer) return;
   const target = layers[active ^ 1], prev = layers[active];
   if (!target.width) sizeCanvases();
-  renderer.render(currentStack(), { exposure: 0, contrast: 0, temp: 0, logMode: state.logMode }, target.width, target.height, state.fit);
+  renderer.render(currentStack(), adjFor(), target.width, target.height, state.fit);
   target.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   if (instant) {
     target.style.transition = 'none'; prev.style.transition = 'none';
@@ -451,7 +474,7 @@ function render({ instant = false } = {}){
 function renderDirect(){
   if (!renderer) return;
   const visible = layers.find(l => !l.classList.contains('off')) || layers[0];
-  renderer.render(currentStack(), { exposure: 0, contrast: 0, temp: 0, logMode: state.logMode }, visible.width, visible.height, state.fit);
+  renderer.render(currentStack(), adjFor(), visible.width, visible.height, state.fit);
   visible.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   sampleAccent();
 }
@@ -697,7 +720,7 @@ async function renderFilmThumbs(){
   const all = allLooks();
   for (let i = 0; i < chips.length; i++) {
     const look = all[i];
-    renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], { exposure: 0, contrast: 0, temp: 0, logMode: state.logMode }, 156, 104, 'cover');
+    renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], adjFor(), 156, 104, 'cover');
     chips[i].querySelector('canvas').getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
     if (i % 6 === 5) await new Promise(r => requestAnimationFrame(r));
   }
@@ -802,6 +825,7 @@ function applyLang(lang, { persist = true } = {}){
   if (persist) localStorage.setItem('lut.lang', lang);
   document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
   el.langBtn.textContent = t(lang, 'language');
+  if (el.autoBtn) syncAutoBtn();
   el.photoBtn.textContent = t(lang, 'photo');
   el.fitBtn.textContent = t(lang, state.fit === 'contain' ? 'fill' : 'fit');
   el.exportBtn.textContent = `${t(lang, 'export')} ↗`;
@@ -848,7 +872,7 @@ async function exportImage(quality){
   if (!source) return;
   toast(t(state.lang, 'exportDone') + '…');
   const stack = currentStack();
-  const adj = { exposure: 0, contrast: 0, temp: 0, logMode: state.logMode };
+  const adj = adjFor();
   const scale = quality / 100;
   const w = Math.max(2, Math.round(source.width * scale));
   const h = Math.max(2, Math.round(source.height * scale));
@@ -924,6 +948,13 @@ function bind(){
     const files = [...el.importInput.files];
     el.importInput.value = '';
     if (files.length) await handleImport(files);
+  });
+  el.autoBtn.addEventListener('click', () => {
+    state.autoBright = !state.autoBright;
+    localStorage.setItem('lut.autoBright', state.autoBright ? '1' : '0');
+    syncAutoBtn();
+    drawBase();
+    render();
   });
   el.fitBtn.addEventListener('click', () => setFit(state.fit === 'cover' ? 'contain' : 'cover'));
   el.langBtn.addEventListener('click', () => applyLang(state.lang === 'zh' ? 'en' : 'zh'));
@@ -1129,6 +1160,7 @@ async function loadFile(file){
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null);
     const img = bitmap || await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+    state.rawExposure = 0; syncAutoBtn();
     applyImage(img, file.name);
   } catch { toast(t(state.lang, 'formatError')); }
 }
@@ -1137,6 +1169,15 @@ async function loadFile(file){
 // camera white balance, camera colour matrix). If that fails — Nikon HE/HE*
 // files use a proprietary codec LibRaw cannot unpack — fall back to the camera
 // JPEG embedded in the file.
+function syncAutoBtn(){
+  const ev = state.rawExposure || 0;
+  el.autoBtn.hidden = !ev;
+  el.autoBtn.classList.toggle('on', state.autoBright);
+  el.autoBtn.title = ev
+    ? `${t(state.lang, 'autoBright')} · ${ev >= 0 ? '+' : ''}${ev.toFixed(1)} EV`
+    : t(state.lang, 'autoBright');
+}
+
 async function loadRaw(file){
   const buffer = await file.arrayBuffer();
   toast(t(state.lang, 'rawDecoding'), 12000);
@@ -1145,7 +1186,12 @@ async function loadRaw(file){
     const out = await developRaw(buffer);
     const bits = `${out.width} × ${out.height}`;
     const who = out.model ? ` · ${out.model}` : '';
-    applyImage(out.bitmap, file.name, `${t(state.lang, 'rawDeveloped')}${who} · ${bits} · ${(out.ms / 1000).toFixed(1)}s`);
+    state.rawExposure = out.exposureEV || 0;
+    syncAutoBtn();
+    const ev = state.autoBright && state.rawExposure
+      ? ` · ${t(state.lang, 'autoBright')} ${state.rawExposure >= 0 ? '+' : ''}${state.rawExposure.toFixed(1)} EV`
+      : '';
+    applyImage(out.bitmap, file.name, `${t(state.lang, 'rawDeveloped')}${who} · ${bits}${ev} · ${(out.ms / 1000).toFixed(1)}s`);
     return;
   } catch (err) {
     reason = err instanceof RawUnsupported ? err.reason : null;
@@ -1155,6 +1201,7 @@ async function loadRaw(file){
   try {
     const preview = await extractRawPreview(buffer);
     if (!preview) { toast(t(state.lang, 'rawUnsupported')); return; }
+    state.rawExposure = 0; syncAutoBtn();
     applyImage(preview.bitmap, file.name, `${t(state.lang, 'rawPreview')} · ${preview.width} × ${preview.height}`);
   } catch {
     toast(t(state.lang, 'rawUnsupported'));
