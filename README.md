@@ -53,6 +53,9 @@ Dual-LUT stacking:
   automatic brightness correction (percentile based, brightness only — no colour,
   saturation or white balance), applied as a linear exposure so the preview and the
   export always match; the `AUTO` button in the toolbar turns it off.
+- **Light panel** — exposure, contrast, highlights, shadows, whites and blacks,
+  all applied in the shader (no re-decode) and shared by the preview and the
+  export. It moves brightness only; the LUT still owns the colour.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in

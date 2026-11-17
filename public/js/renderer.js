@@ -33,6 +33,10 @@ uniform float uFit;
 uniform float uExposure;
 uniform float uContrast;
 uniform float uTemp;
+uniform float uHighlights;
+uniform float uShadows;
+uniform float uWhites;
+uniform float uBlacks;
 // 0 = sRGB input, 1 = F-Log, 2 = F-Log2, 3 = V-Log.
 // LOG modes encode the photo into the log curve the LUT expects, so vendor
 // LUTs designed for log footage behave as intended instead of blowing out.
@@ -109,6 +113,19 @@ void main() {
   c.r = clamp(c.r * (1.0 + uTemp * 0.0013), 0.0, 1.0);
   c.b = clamp(c.b * (1.0 - uTemp * 0.0013), 0.0, 1.0);
 
+  // Light panel. Each control is masked to the part of the range it should move,
+  // so lifting shadows cannot wash out the whole frame and pulling highlights
+  // cannot darken the midtones.
+  if (uShadows != 0.0 || uHighlights != 0.0 || uWhites != 0.0 || uBlacks != 0.0) {
+    vec3 loMask = 1.0 - smoothstep(vec3(0.0), vec3(0.5), c);
+    vec3 hiMask = smoothstep(vec3(0.5), vec3(1.0), c);
+    c += uShadows * 0.40 * loMask * (1.0 - c);
+    c -= uHighlights * 0.40 * hiMask * c;
+    c *= 1.0 + uWhites * 0.35 * smoothstep(vec3(0.55), vec3(1.0), c);
+    c += uBlacks * 0.30 * (1.0 - smoothstep(vec3(0.0), vec3(0.45), c));
+    c = clamp(c, 0.0, 1.0);
+  }
+
   if (uLogMode > 0) c = clamp(encodeLog(srgbToLinear(c), uLogMode), 0.0, 1.0);
 
   if (uHas0 == 1) c = applyLut(uLut0, c, uStr0);
@@ -142,7 +159,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uContrast', 'uTemp', 'uLogMode']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uContrast', 'uTemp', 'uLogMode', 'uHighlights', 'uShadows', 'uWhites', 'uBlacks']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -258,6 +275,10 @@ export class LookRenderer {
     gl.uniform1f(this.uniform.uContrast, adjust?.contrast || 0);
     gl.uniform1f(this.uniform.uTemp, adjust?.temp || 0);
     gl.uniform1i(this.uniform.uLogMode, adjust?.logMode || 0);
+    gl.uniform1f(this.uniform.uHighlights, adjust?.highlights || 0);
+    gl.uniform1f(this.uniform.uShadows, adjust?.shadows || 0);
+    gl.uniform1f(this.uniform.uWhites, adjust?.whites || 0);
+    gl.uniform1f(this.uniform.uBlacks, adjust?.blacks || 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     return this.canvas;

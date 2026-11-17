@@ -179,6 +179,13 @@ a.tbtn{text-decoration:none}
 .import-links a{font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--muted);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.25)}
 .import-links a:hover{color:var(--ink);border-color:rgba(242,241,236,.6)}
 .import-help{margin:14px 0 0;font-size:9px;line-height:1.6;color:var(--faint)}
+.tone-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.tone-list label{display:grid;grid-template-columns:52px 1fr 30px;align-items:center;gap:10px}
+.tone-list span{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--muted)}
+.tone-list b{font-family:var(--mono);font-size:9px;font-weight:400;color:var(--ink);text-align:right}
+.tone-list input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;background:rgba(255,255,255,.28);outline:none}
+.tone-list input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;border-radius:50%;background:var(--ink);border:0;cursor:pointer}
+.tone-list input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--ink);border:0;cursor:pointer}
 .import-error{margin:12px 0 0;padding:9px 10px;border:1px solid rgba(255,120,110,.42);background:rgba(255,90,80,.1);font-family:var(--mono);font-size:9px;line-height:1.6;letter-spacing:.02em;color:#ffb9b2}
 .import-help a{color:var(--muted)}
 .quality-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
@@ -254,6 +261,7 @@ a.tbtn{text-decoration:none}
       <button id="dualBtn" class="dual">DUAL LUT</button>
       <button id="logBtn" title="输入色彩空间 / input profile">sRGB</button>
       <button id="autoBtn" class="auto" title="RAW 自动亮度 / RAW auto brightness" hidden>AUTO</button>
+      <button id="toneBtn">亮度</button>
       <button id="importBtn">导入 LUT</button>
       <button id="exportBtn" class="quick-export">导出 ↗</button>
     </div>
@@ -279,6 +287,22 @@ a.tbtn{text-decoration:none}
     </div>
     <button class="export-confirm" id="exportConfirm">导出 JPEG</button>
     <p class="export-note">照片只在本机渲染，导出不经过服务器。</p>
+  </div>
+</div>
+
+<div class="exportsheet" id="toneSheet" hidden>
+  <div class="export-card">
+    <header><span id="toneTitle">亮度</span><button class="icon-x" id="toneClose" aria-label="关闭">×</button></header>
+    <p class="export-sub" id="toneSub">只调明暗，不动颜色。RAW 的自动亮度是这一组的起点。</p>
+    <div class="tone-list" id="toneList">
+      <label><span data-tone-label="exposure">曝光</span><input type="range" data-tone="exposure" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label><span data-tone-label="contrast">对比度</span><input type="range" data-tone="contrast" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label><span data-tone-label="highlights">高光</span><input type="range" data-tone="highlights" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label><span data-tone-label="shadows">阴影</span><input type="range" data-tone="shadows" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label><span data-tone-label="whites">白色</span><input type="range" data-tone="whites" min="-100" max="100" value="0" step="1"><b>0</b></label>
+      <label><span data-tone-label="blacks">黑色</span><input type="range" data-tone="blacks" min="-100" max="100" value="0" step="1"><b>0</b></label>
+    </div>
+    <button class="export-confirm" id="toneReset">全部归零</button>
   </div>
 </div>
 
@@ -322,7 +346,7 @@ const el = {
   photoBtn: $('#photoBtn'), fitBtn: $('#fitBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'),
+  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'), toneSheet: $('#toneSheet'), toneClose: $('#toneClose'), toneList: $('#toneList'), toneReset: $('#toneReset'), toneTitle: $('#toneTitle'), toneSub: $('#toneSub'),
   importSheet: $('#importSheet'), importClose: $('#importClose'), importPick: $('#importPick'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
   q50Dims: $('#q50Dims'), q75Dims: $('#q75Dims'), q100Dims: $('#q100Dims'),
@@ -340,6 +364,7 @@ const state = {
   // linear exposure in the shader so the toggle is instant and export matches.
   autoBright: localStorage.getItem('lut.autoBright') !== '0',
   rawExposure: 0,
+  tone: { exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0 },
   imported: [],
   quality: 100,
   lang: localStorage.getItem('lut.lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en'),
@@ -424,33 +449,36 @@ function sizeCanvases(){
 }
 
 function drawBase(){
-  if (!source || !el.base) return;
-  // The BEFORE side has to see the same exposure as AFTER, or the comparison lies.
-  const ev = state.autoBright ? state.rawExposure || 0 : 0;
-  if (ev) {
-    if (!el.base.width) sizeCanvases();
-    renderer.render([], { exposure: ev, contrast: 0, temp: 0, logMode: 0 }, el.base.width, el.base.height, state.fit);
-    el.base.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
-    return;
-  }
-  const w = innerWidth, h = innerHeight;
-  const dpr = Math.min(devicePixelRatio || 1, 2);
-  const ctx = el.base.getContext('2d', { alpha: false });
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, w, h);
-  const iw = source.width, ih = source.height;
-  const scale = state.fit === 'contain' ? Math.min(w / iw, h / ih) : Math.max(w / iw, h / ih);
-  const dw = iw * scale, dh = ih * scale;
-  ctx.drawImage(source, (w - dw) / 2, (h - dh) / 2, dw, dh);
+  if (!source || !el.base || !renderer) return;
+  // Drawn through the renderer (no LUTs, no LOG, baseline exposure only) so the
+  // BEFORE side can never drift out of alignment with AFTER.
+  if (!el.base.width) sizeCanvases();
+  renderer.render([], adjBase(), el.base.width, el.base.height, state.fit);
+  el.base.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
 }
 
 // Every render and export goes through this, so auto-brightness can never apply
 // to the preview but not the export (or the other way round).
 function adjFor(){
+  const t = state.tone;
+  return {
+    // auto-brightness is the RAW baseline; the exposure slider is on top of it
+    exposure: (state.autoBright ? state.rawExposure || 0 : 0) + t.exposure * 0.02,
+    contrast: t.contrast,
+    temp: 0,
+    logMode: state.logMode,
+    highlights: t.highlights / 100,
+    shadows: t.shadows / 100,
+    whites: t.whites / 100,
+    blacks: t.blacks / 100,
+  };
+}
+
+/** The BEFORE side: the photo as loaded, with the RAW baseline only. */
+function adjBase(){
   return {
     exposure: state.autoBright ? state.rawExposure || 0 : 0,
-    contrast: 0, temp: 0, logMode: state.logMode,
+    contrast: 0, temp: 0, logMode: 0,
   };
 }
 
@@ -826,6 +854,13 @@ function applyLang(lang, { persist = true } = {}){
   document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
   el.langBtn.textContent = t(lang, 'language');
   if (el.autoBtn) syncAutoBtn();
+  if (el.toneBtn) {
+    el.toneBtn.textContent = t(lang, 'light');
+    el.toneTitle.textContent = t(lang, 'light');
+    el.toneSub.textContent = t(lang, 'lightSub');
+    el.toneReset.textContent = t(lang, 'lightReset');
+    el.toneList.querySelectorAll('[data-tone-label]').forEach((n) => { n.textContent = t(lang, 'tone_' + n.dataset.toneLabel); });
+  }
   el.photoBtn.textContent = t(lang, 'photo');
   el.fitBtn.textContent = t(lang, state.fit === 'contain' ? 'fill' : 'fit');
   el.exportBtn.textContent = `${t(lang, 'export')} ↗`;
@@ -948,6 +983,22 @@ function bind(){
     const files = [...el.importInput.files];
     el.importInput.value = '';
     if (files.length) await handleImport(files);
+  });
+  el.toneBtn.addEventListener('click', () => { el.toneSheet.hidden = false; });
+  el.toneClose.addEventListener('click', () => { el.toneSheet.hidden = true; });
+  el.toneSheet.addEventListener('click', (e) => { if (e.target === el.toneSheet) el.toneSheet.hidden = true; });
+  el.toneList.addEventListener('input', (e) => {
+    const input = e.target.closest('input[data-tone]');
+    if (!input) return;
+    const key = input.dataset.tone;
+    state.tone[key] = Number(input.value);
+    input.nextElementSibling.textContent = input.value > 0 ? `+${input.value}` : input.value;
+    render({ instant: true });
+  });
+  el.toneReset.addEventListener('click', () => {
+    for (const k of Object.keys(state.tone)) state.tone[k] = 0;
+    el.toneList.querySelectorAll('input[data-tone]').forEach((i) => { i.value = '0'; i.nextElementSibling.textContent = '0'; });
+    render({ instant: true });
   });
   el.autoBtn.addEventListener('click', () => {
     state.autoBright = !state.autoBright;
@@ -1145,8 +1196,7 @@ function applyImage(img, name, note){
   sourceName = name.replace(/\.[^.]+$/, '').slice(0, 28) || 'Untitled';
   el.metaName.textContent = sourceName.toUpperCase();
   el.metaDims.textContent = `${source.width} × ${source.height}`;
-  state.fit = 'contain';
-  el.fitBtn.textContent = t(state.lang, 'fill');
+  el.fitBtn.textContent = t(state.lang, state.fit === 'contain' ? 'fill' : 'fit');
   sizeCanvases();
   drawBase();
   render({ instant: true });
