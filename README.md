@@ -82,8 +82,10 @@ deploy to `*.workers.dev` instead.
 They are the source of truth for the site and are meant to be downloaded and used
 in other software:
 
-- **Download** — browse [`luts-src/`](https://github.com/shisongsong/lut-studio/tree/main/luts-src)
-  and grab the `.cube` you want (Resolve, Premiere, Photoshop, Lightroom…).
+- **Download all** — grab the [44-look `.cube` pack](https://github.com/shisongsong/lut-studio/releases)
+  (zip, ~11 MB) from Releases, or browse
+  [`luts-src/`](https://github.com/shisongsong/lut-studio/tree/main/luts-src) and
+  pick a single file.
 - **Regenerate** — `npm run export:cubes` rewrites every `.cube` from the recipes
   in `scripts/looks.mjs`; output is deterministic (5-decimal values), so re-running
   it is a no-op for existing files.
