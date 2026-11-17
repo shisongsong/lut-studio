@@ -156,7 +156,7 @@ export function applyColor(rgb, color) {
  * This stage puts every look on that footing, so the per-look recipes only have
  * to describe their character, not fight a milky base.
  * ------------------------------------------------------------------------- */
-const FINISH = { black: 0.035, knee: 0.62, rolloff: 0.88, sat: 1.50 };
+const FINISH = { black: 0.035, knee: 0.62, rolloff: 0.88, sat: 1.70 };
 
 function finishChannel(v, k) {
   const x = clamp01((v - k.black) / (1 - k.black));
@@ -177,132 +177,126 @@ export function gradeLook(look, rgb) {
 /* Named colour characters. Each one is a deliberate answer to "what should this
  * look do to greens / blues / skin / shadows", not a random tweak. */
 const C = {
-  // Fuji ETERNA: muted greens and cyans, gentle warm highlights, skin untouched.
+  // Fuji ETERNA: greens and cyans pulled down and cooled, blues dense, skin
+  // untouched, gentle warm highlights. Measured against the real cube, the
+  // character is "cool hues darker and denser, warm hues left alone".
   eterna: {
     shifts: [
-      { h: 0.30, w: 0.16, ds: 0.72 },
-      { h: 0.50, w: 0.15, ds: 0.78 },
-      { h: 0.66, w: 0.12, ds: 0.86, dh: -0.010 },
+      { h: 0.30, w: 0.16, ds: 0.90, dl: -0.06 },
+      { h: 0.50, w: 0.15, ds: 0.95, dl: -0.07 },
+      { h: 0.66, w: 0.14, ds: 1.10, dl: -0.09, dh: -0.010 },
+      // The reference pushes violet toward magenta and darkens it: that is what
+      // gives a film sky its dense, slightly purple blue instead of a flat one.
+      { h: 0.75, w: 0.13, dh: 0.075, dl: -0.10 },
+      { h: 0.88, w: 0.10, dh: 0.050, ds: 1.15 },
     ],
-    vib: 0.95, protectSkin: true,
+    vib: 1.02, protectSkin: true,
     split: { sh: [0.004, 0.010, 0.008], hi: [0.012, 0.006, -0.004] },
   },
   // Fuji Classic Chrome: desaturated foliage, deeper reds, blues pulled to cyan.
   classicChrome: {
     shifts: [
-      { h: 0.33, w: 0.14, ds: 0.60 },
-      { h: 0.50, w: 0.12, ds: 0.78 },
-      { h: 0.63, w: 0.14, ds: 0.76, dh: 0.012 },
-      { h: 0.99, w: 0.10, ds: 0.96, dl: -0.008 },
+      { h: 0.33, w: 0.14, ds: 0.80, dl: -0.04 },
+      { h: 0.50, w: 0.12, ds: 0.95, dl: -0.06 },
+      { h: 0.63, w: 0.14, ds: 1.00, dh: 0.012, dl: -0.05 },
+      { h: 0.99, w: 0.10, ds: 1.00, dl: -0.010 },
     ],
-    vib: 0.88, protectSkin: true,
+    vib: 1.00, protectSkin: true,
     split: { sh: [0.004, 0.005, 0.010], hi: [0.008, 0.004, -0.004] },
   },
-  // Provia-ish: clean, punchy, greens and blues lifted, nothing muddy.
   provia: {
     shifts: [
-      { h: 0.32, w: 0.12, ds: 1.06, dh: -0.006 },
-      { h: 0.63, w: 0.12, ds: 1.07 },
+      { h: 0.32, w: 0.12, ds: 1.10, dh: -0.006 },
+      { h: 0.63, w: 0.12, ds: 1.12 },
+    ],
+    vib: 1.14, protectSkin: true,
+  },
+  portra: {
+    shifts: [
+      { h: 0.31, w: 0.15, ds: 0.95, dh: 0.010 },
+      { h: 0.62, w: 0.12, ds: 1.00 },
+    ],
+    vib: 1.02, protectSkin: true,
+    split: { sh: [0.006, 0.004, 0.002], hi: [0.014, 0.008, 0.000] },
+  },
+  tealOrange: {
+    shifts: [
+      { h: 0.55, w: 0.14, dh: -0.018, ds: 1.05, dl: -0.05 },
+      { h: 0.06, w: 0.09, ds: 1.08 },
+    ],
+    vib: 1.02, protectSkin: true,
+    split: { sh: [-0.006, 0.004, 0.014], hi: [0.016, 0.006, -0.006] },
+  },
+  leica: {
+    shifts: [
+      { h: 0.33, w: 0.12, ds: 1.08, dl: -0.03 },
+      { h: 0.62, w: 0.12, ds: 1.08 },
     ],
     vib: 1.10, protectSkin: true,
   },
-  // Kodak Portra: warm skin, pastel greens, soft blues.
-  portra: {
+  hasselblad: {
     shifts: [
-      { h: 0.31, w: 0.15, ds: 0.84, dh: 0.010 },
-      { h: 0.62, w: 0.12, ds: 0.86 },
-    ],
-    vib: 0.92, protectSkin: true,
-    split: { sh: [0.006, 0.004, 0.002], hi: [0.014, 0.008, 0.000] },
-  },
-  // Blockbuster teal-and-orange, but restrained enough to stay photographic.
-  tealOrange: {
-    shifts: [
-      { h: 0.55, w: 0.14, dh: -0.018, ds: 0.90 },
-      { h: 0.06, w: 0.09, ds: 1.06 },
-    ],
-    vib: 0.98, protectSkin: true,
-    split: { sh: [-0.006, 0.004, 0.014], hi: [0.016, 0.006, -0.006] },
-  },
-  // Leica: rich and clean, a touch warm, saturated but never neon.
-  leica: {
-    shifts: [
-      { h: 0.33, w: 0.12, ds: 1.05 },
-      { h: 0.62, w: 0.12, ds: 1.04 },
+      { h: 0.30, w: 0.12, ds: 1.00 },
+      { h: 0.60, w: 0.12, ds: 1.02 },
     ],
     vib: 1.06, protectSkin: true,
   },
-  // Hasselblad: natural, slightly cool-neutral, clean separation.
-  hasselblad: {
-    shifts: [
-      { h: 0.30, w: 0.12, ds: 0.96 },
-      { h: 0.60, w: 0.12, ds: 0.98 },
-    ],
-    vib: 1.02, protectSkin: true,
-  },
-  // Faded vintage: low saturation everywhere, warm shadows.
   vintage: {
     shifts: [
-      { h: 0.33, w: 0.15, ds: 0.76 },
-      { h: 0.60, w: 0.14, ds: 0.80 },
+      { h: 0.33, w: 0.15, ds: 0.88, dl: -0.03 },
+      { h: 0.60, w: 0.14, ds: 0.92 },
     ],
-    vib: 0.85, protectSkin: true,
+    vib: 0.95, protectSkin: true,
     split: { sh: [0.010, 0.006, 0.000], hi: [0.012, 0.008, -0.004] },
   },
-  // Airy / pastel: pale greens, very light touch.
   airy: {
     shifts: [
-      { h: 0.33, w: 0.14, ds: 0.88 },
-      { h: 0.58, w: 0.12, ds: 0.90 },
+      { h: 0.33, w: 0.14, ds: 0.95 },
+      { h: 0.58, w: 0.12, ds: 0.96 },
     ],
-    vib: 0.90, protectSkin: true,
+    vib: 0.98, protectSkin: true,
     split: { sh: [0.004, 0.006, 0.008], hi: [0.010, 0.008, 0.004] },
   },
-  // Cool daylight: blues kept clean, greens pulled back.
   cool: {
     shifts: [
-      { h: 0.58, w: 0.14, ds: 1.02, dh: -0.006 },
-      { h: 0.33, w: 0.12, ds: 0.88 },
+      { h: 0.58, w: 0.14, ds: 1.06, dh: -0.006, dl: -0.04 },
+      { h: 0.33, w: 0.12, ds: 0.96 },
     ],
-    vib: 0.98,
+    vib: 1.02,
     split: { sh: [0.000, 0.006, 0.014], hi: [0.006, 0.006, 0.004] },
   },
-  // Night / noir colour: desaturated everywhere, cyan-blue shadows.
   noir: {
     shifts: [
-      { h: 0.33, w: 0.16, ds: 0.55 },
-      { h: 0.58, w: 0.16, ds: 0.80 },
-      { h: 0.06, w: 0.10, ds: 0.82 },
-    ],
-    vib: 0.80, protectSkin: true,
-    split: { sh: [-0.008, 0.002, 0.016], hi: [0.006, 0.004, 0.000] },
-  },
-  // Bleach bypass: almost no chroma left, cold highlights.
-  bleach: {
-    shifts: [
-      { h: 0.33, w: 0.18, ds: 0.45 },
-      { h: 0.58, w: 0.16, ds: 0.62 },
-      { h: 0.06, w: 0.12, ds: 0.70 },
-    ],
-    vib: 0.70,
-    split: { sh: [0.002, 0.004, 0.008], hi: [0.006, 0.006, 0.006] },
-  },
-  // Green negative: the shadow side of old stock, greens pulled toward olive.
-  greenNeg: {
-    shifts: [
-      { h: 0.30, w: 0.16, ds: 0.82, dh: 0.012 },
-      { h: 0.55, w: 0.14, ds: 0.78 },
+      { h: 0.33, w: 0.16, ds: 0.70, dl: -0.04 },
+      { h: 0.58, w: 0.16, ds: 0.92, dl: -0.05 },
+      { h: 0.06, w: 0.10, ds: 0.92 },
     ],
     vib: 0.90, protectSkin: true,
+    split: { sh: [-0.008, 0.002, 0.016], hi: [0.006, 0.004, 0.000] },
+  },
+  bleach: {
+    shifts: [
+      { h: 0.33, w: 0.18, ds: 0.55 },
+      { h: 0.58, w: 0.16, ds: 0.70 },
+      { h: 0.06, w: 0.12, ds: 0.78 },
+    ],
+    vib: 0.80,
+    split: { sh: [0.002, 0.004, 0.008], hi: [0.006, 0.006, 0.006] },
+  },
+  greenNeg: {
+    shifts: [
+      { h: 0.30, w: 0.16, ds: 0.95, dh: 0.012, dl: -0.03 },
+      { h: 0.55, w: 0.14, ds: 0.92, dl: -0.05 },
+    ],
+    vib: 0.98, protectSkin: true,
     split: { sh: [-0.004, 0.012, 0.002], hi: [0.010, 0.006, -0.006] },
   },
-  // Tungsten: warm interior, blues lifted only in the shadows.
   tungsten: {
     shifts: [
-      { h: 0.62, w: 0.13, ds: 1.04 },
-      { h: 0.33, w: 0.13, ds: 0.86 },
+      { h: 0.62, w: 0.13, ds: 1.08, dl: -0.03 },
+      { h: 0.33, w: 0.13, ds: 0.96 },
     ],
-    vib: 1.00, protectSkin: true,
+    vib: 1.04, protectSkin: true,
     split: { sh: [-0.004, 0.004, 0.012], hi: [0.016, 0.008, -0.006] },
   },
 };
