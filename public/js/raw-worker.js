@@ -37,6 +37,21 @@ function autoExposureEV(data) {
   return Math.max(-0.8, Math.min(2.0, ev));
 }
 
+/** Perceptual S-curve: 60% linear + 40% smoothstep. Deepens shadows, opens highlights. */
+function softenCurve(data) {
+  const lut = new Uint8ClampedArray(256);
+  for (let i = 0; i < 256; i++) {
+    const v = i / 255;
+    const s = v * v * (3 - 2 * v);
+    lut[i] = Math.round((v * 0.6 + s * 0.4) * 255);
+  }
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = lut[data[i]];
+    data[i + 1] = lut[data[i + 1]];
+    data[i + 2] = lut[data[i + 2]];
+  }
+}
+
 self.onmessage = async (event) => {
   const { id, buffer } = event.data;
   try {
@@ -47,6 +62,13 @@ self.onmessage = async (event) => {
       highlights: 'blend',   // keeps colour in partly clipped highlights
     });
     const imageData = frame.toImageData();
+    // A neutral linear render is correct but reads flat next to what a camera or
+    // Apple's RAW pipeline produces: measured against the same NEF rendered by
+    // sips, the neutral version had its midtones bunched up (25/50/75th
+    // percentile luminance 0.15/0.22/0.42 versus 0.04/0.09/0.29). A gentle
+    // S-curve gives the frame the shoulders and depth of a finished photo before
+    // any LUT is applied; the tone panel is still there to push it further.
+    softenCurve(imageData.data);
 
     // Camera label for the UI only — never let a metadata hiccup fail the decode.
     let model = '';
