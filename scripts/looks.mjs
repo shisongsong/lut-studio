@@ -234,12 +234,16 @@ const C = {
   // saturation kept, and the warm-highlight push made red rather than yellow.
   cinemaTeal: {
     shifts: [
-      { h: 0.50, w: 0.17, ds: 0.88, dl: -0.04 },
-      { h: 0.63, w: 0.15, ds: 0.84, dl: -0.03 },
+      // Blue/sky: restoring the old teal lobe. When the previous fix dropped
+      // cool-side saturation, the sky went cyan (hue +9.5°) and lost ~23%
+      // saturation against the reference; this lobe is what kept it deep blue.
+      { h: 0.545, w: 0.15, dh: -0.018, ds: 1.06, dl: -0.05 },
+      // Skin: the reason the previous fix existed — rotate back toward red and
+      // hold the red saturation instead of drifting yellow.
       { h: 0.075, w: 0.105, dh: -0.014, ds: 0.94 },
       { h: 0.02, w: 0.08, ds: 1.04, dh: -0.004 },
     ],
-    vib: 0.99, protectSkin: true,
+    vib: 1.0, protectSkin: true,
     split: { sh: [-0.005, 0.004, 0.012], hi: [0.014, 0.004, -0.004] },
   },
   leica: {
@@ -339,7 +343,7 @@ export const GRADES = [
   {
     id: 'cinema-teal', name: '电影', category: '电影',
     color: C.cinemaTeal,
-    finish: { sat: 1.58 },
+    finish: { sat: 1.64 },
     fn: ([r, g, b]) => {
       let c = [contrast(r, 1.14), contrast(g, 1.12), contrast(b, 1.10)];
       c = sat(c[0], c[1], c[2], 0.86);
