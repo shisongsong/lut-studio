@@ -227,6 +227,21 @@ const C = {
     vib: 1.02, protectSkin: true,
     split: { sh: [-0.006, 0.004, 0.014], hi: [0.016, 0.006, -0.006] },
   },
+  // Cinema Teal, tuned against a real Fuji film look on the same frame: the old
+  // version drifted skin +6.7° toward yellow, lost 4 points of Lab a*, gained 6
+  // points of b*, and made teal/blue ~30% more saturated than the reference.
+  // So: cool side less punchy, skin rotated back toward red with its red
+  // saturation kept, and the warm-highlight push made red rather than yellow.
+  cinemaTeal: {
+    shifts: [
+      { h: 0.50, w: 0.17, ds: 0.88, dl: -0.04 },
+      { h: 0.63, w: 0.15, ds: 0.84, dl: -0.03 },
+      { h: 0.075, w: 0.105, dh: -0.014, ds: 0.94 },
+      { h: 0.02, w: 0.08, ds: 1.04, dh: -0.004 },
+    ],
+    vib: 0.99, protectSkin: true,
+    split: { sh: [-0.005, 0.004, 0.012], hi: [0.014, 0.004, -0.004] },
+  },
   leica: {
     shifts: [
       { h: 0.33, w: 0.12, ds: 1.08, dl: -0.03 },
@@ -323,14 +338,16 @@ export const GRADES = [
   },
   {
     id: 'cinema-teal', name: '电影', category: '电影',
-    color: C.tealOrange,
+    color: C.cinemaTeal,
+    finish: { sat: 1.58 },
     fn: ([r, g, b]) => {
       let c = [contrast(r, 1.14), contrast(g, 1.12), contrast(b, 1.10)];
-      c = sat(c[0], c[1], c[2], 0.88);
-      c = tint(c[0], c[1], c[2], -0.050, 0.002, 0.055); // teal shadows
+      c = sat(c[0], c[1], c[2], 0.86);
+      c = tint(c[0], c[1], c[2], -0.042, 0.002, 0.046); // teal shadows
       const l = luma(c[0], c[1], c[2]);
       const high = l * l;
-      return [c[0] + 0.060 * high, c[1] + 0.022 * high, c[2] - 0.030 * high]; // warm highlights
+      // warm highlights: push red, not green — the old version yellowed the skin
+      return [c[0] + 0.050 * high, c[1] + 0.010 * high, c[2] - 0.015 * high];
     },
   },
   {

@@ -470,6 +470,7 @@ let renderer, source, luts, layers = [el.layerA, el.layerB], active = 0, accent 
 let sourceName = 'Positano';
 let pressTimer = 0;
 let applySplitVarsRef = null;
+let filmThumbTimer = 0;
 
 async function init(){
   const hadLang = !!localStorage.getItem('lut.lang');
@@ -692,6 +693,7 @@ function render({ instant = false } = {}){
   active ^= 1;
   sampleAccent();
   drawHistogram();
+  refreshFilmThumbsSoon();
 }
 
 function renderDirect(){
@@ -701,6 +703,7 @@ function renderDirect(){
   visible.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   sampleAccent();
   drawHistogram();
+  refreshFilmThumbsSoon();
 }
 
 /** RGB histogram of what the preview is actually showing. */
@@ -1004,6 +1007,12 @@ function buildFilm(){
   el.metaLooks.textContent = `${all.length} LOOKS`;
   el.introSub.textContent = `${LOOKS.length} LOOKS / OPEN SOURCE`;
   requestAnimationFrame(renderFilmThumbs);
+}
+
+/** Refresh the look thumbnails after the photo or the develop settings change. */
+function refreshFilmThumbsSoon(){
+  clearTimeout(filmThumbTimer);
+  filmThumbTimer = setTimeout(() => requestAnimationFrame(renderFilmThumbs), 220);
 }
 
 async function renderFilmThumbs(){
