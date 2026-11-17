@@ -624,7 +624,7 @@ async function handleImport(files){
       const probe = `${name} ${f.name}`.toLowerCase();
       const detected = probe.includes('f-log2') || probe.includes('flog2') ? 2
         : probe.includes('f-log') || probe.includes('flog') ? 1
-        : probe.includes('v-log') || probe.includes('vlog') ? 3 : 0;
+        : probe.includes('v-log') || probe.includes('vlog') || probe.includes('varicam') || probe.includes('s1h') ? 3 : 0;
       if (detected) { state.logMode = detected; updateLogUI(); }
       await saveLut({ id, name, size: parsed.size, data: parsed.data.buffer });
       state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: parsed.size, data: parsed.data });
