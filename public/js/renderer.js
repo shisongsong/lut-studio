@@ -103,6 +103,45 @@ function floatToHalf(value) {
   return bits;
 }
 
+/**
+ * The rectangle of the source image, in image uv coordinates, that the canvas
+ * shows. `fit` decides the framing when zoom is 1 (`contain` shows the whole
+ * photo with letterboxing, `cover` fills the canvas and crops), and `view`
+ * ({zoom, cx, cy}) is the interactive inspection view: zoom scales that
+ * rectangle down around a centre in image coordinates, so a zoomed preview
+ * samples the full-resolution texture instead of upscaling a screen capture.
+ *
+ * The rectangle is clamped so the photo can never be dragged off screen: when
+ * the rectangle is smaller than the image the photo edge stops at the canvas
+ * edge, and while it is larger (the contain letterbox at zoom 1) it stays
+ * centred on the uncovered axis.
+ *
+ * @returns {{x:number, y:number, w:number, h:number, cx:number, cy:number}}
+ */
+export function computeViewRect(imgW, imgH, canvasW, canvasH, fit = 'cover', view = null) {
+  const imgAspect = imgW / imgH;
+  const canvasAspect = canvasW / canvasH;
+  let w, h;
+  if (fit === 'contain') {
+    if (canvasAspect > imgAspect) { w = canvasAspect / imgAspect; h = 1; }
+    else { w = 1; h = imgAspect / canvasAspect; }
+  } else if (canvasAspect > imgAspect) { w = 1; h = imgAspect / canvasAspect; }
+  else { w = canvasAspect / imgAspect; h = 1; }
+
+  const zoom = Math.max(1, Math.min(16, Number(view?.zoom) || 1));
+  const bw = w / zoom;
+  const bh = h / zoom;
+  const clampAxis = (center, size) => {
+    const lo = Math.min(0, 1 - size);
+    const hi = Math.max(0, 1 - size);
+    const start = center - size / 2;
+    return Math.min(hi, Math.max(lo, start));
+  };
+  const x = clampAxis(Number.isFinite(view?.cx) ? view.cx : 0.5, bw);
+  const y = clampAxis(Number.isFinite(view?.cy) ? view.cy : 0.5, bh);
+  return { x, y, w: bw, h: bh, cx: x + bw / 2, cy: y + bh / 2 };
+}
+
 const VERT = `#version 300 es
 in vec2 aPos;
 out vec2 vUv;
@@ -124,9 +163,9 @@ uniform int uHas2;
 uniform float uStr0;
 uniform float uStr1;
 uniform float uStr2;
-uniform vec2 uRes;
-uniform float uImgAspect;
-uniform float uFit;
+// Image uv rectangle the canvas shows (x, y, w, h): fit + the interactive
+// zoom/pan view are resolved on the CPU so the shader stays a straight sample.
+uniform vec4 uRect;
 uniform float uExposure;
 uniform float uTemp;
 uniform float uTint;
@@ -231,30 +270,11 @@ vec3 denoise(vec3 c, vec2 uv) {
 void main() {
   // image-space uv: (0,0) = top-left of the source, independent of the
   // browser's flipY handling for Image vs ImageBitmap uploads.
-  vec2 uv = vec2(vUv.x, 1.0 - vUv.y);
-  float canvasAspect = uRes.x / uRes.y;
-  if (uFit > 0.5) {
-    // contain: whole photo visible, black letterbox
-    if (canvasAspect > uImgAspect) {
-      float visible = uImgAspect / canvasAspect;
-      uv.x = (uv.x - (1.0 - visible) * 0.5) / visible;
-    } else {
-      float visible = canvasAspect / uImgAspect;
-      uv.y = (uv.y - (1.0 - visible) * 0.5) / visible;
-    }
-    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-      outColor = vec4(0.0, 0.0, 0.0, 1.0);
-      return;
-    }
-  } else {
-    // cover: fill the viewport, crop the overflow
-    if (canvasAspect > uImgAspect) {
-      float visible = uImgAspect / canvasAspect;
-      uv.y = (uv.y - 0.5) * visible + 0.5;
-    } else {
-      float visible = canvasAspect / uImgAspect;
-      uv.x = (uv.x - 0.5) * visible + 0.5;
-    }
+  vec2 uv = uRect.xy + vec2(vUv.x, 1.0 - vUv.y) * uRect.zw;
+  // Outside the photo: black letterbox when fitting, nothing when cropping.
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+    outColor = vec4(0.0, 0.0, 0.0, 1.0);
+    return;
   }
 
   vec3 c = texture(uImage, uv).rgb;
@@ -329,7 +349,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRes', 'uImgAspect', 'uFit', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLogMode', 'uTone', 'uNr', 'uNrColor', 'uTexel']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLogMode', 'uTone', 'uNr', 'uNrColor', 'uTexel']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -441,8 +461,10 @@ export class LookRenderer {
    * @param {{exposure:number, contrast:number, temp:number, tint:number,
    *          vibrance:number, saturation:number, highlights:number,
    *          shadows:number, whites:number, blacks:number, logMode:number}} adjust
+   * @param {{zoom:number, cx:number, cy:number}|null} view interactive zoom/pan
+   *        around the fit framing; omitted for exports and thumbnails.
    */
-  render(luts, adjust, w, h, fit = 'cover') {
+  render(luts, adjust, w, h, fit = 'cover', view = null) {
     const gl = this.gl;
     if (!this.imageTex) return this.canvas;
     const max = this.maxTexture;
@@ -470,9 +492,8 @@ export class LookRenderer {
     }
     gl.activeTexture(gl.TEXTURE0);
 
-    gl.uniform2f(this.uniform.uRes, w, h);
-    gl.uniform1f(this.uniform.uImgAspect, this.imgW / this.imgH);
-    gl.uniform1f(this.uniform.uFit, fit === 'contain' ? 1 : 0);
+    const rect = computeViewRect(this.imgW, this.imgH, w, h, fit, view);
+    gl.uniform4f(this.uniform.uRect, rect.x, rect.y, rect.w, rect.h);
     gl.uniform1f(this.uniform.uExposure, adjust?.exposure || 0);
     gl.uniform1f(this.uniform.uTemp, adjust?.temp || 0);
     gl.uniform1f(this.uniform.uTint, adjust?.tint || 0);

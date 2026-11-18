@@ -74,6 +74,11 @@ a.tbtn{text-decoration:none}
 .film.drag{cursor:grabbing}
 .chip{flex:none;width:92px;scroll-snap-align:center;text-align:left;position:relative;opacity:.72;transition:opacity .18s,transform .25s cubic-bezier(.2,0,0,1)}
 .chip canvas{width:92px;height:61px;object-fit:cover;background:#151517;box-shadow:0 0 0 1px rgba(255,255,255,.12);transition:box-shadow .18s}
+/* Until the LUT pack has arrived a chip shows an animated film-grain skeleton,
+   so the strip reads as "loading" instead of "broken". */
+.chip.loading canvas{background:linear-gradient(100deg,#17171a 10%,#303036 32%,#17171a 54%);background-size:230% 100%;animation:shimmer 1.35s linear infinite}
+.chip.loading .n,.chip.loading .nm{color:rgba(242,241,236,.4)}
+@keyframes shimmer{0%{background-position:120% 0}100%{background-position:-120% 0}}
 .chip .slot-badge{position:absolute;right:4px;top:4px;font-family:var(--mono);font-size:6px;line-height:1;padding:2px 3px;background:rgba(10,10,11,.8);color:var(--ink);border:1px solid rgba(255,255,255,.25)}
 .chip .slot-badge.b{color:#141414;background:var(--ink);border-color:var(--ink)}
 .chip .n{position:absolute;left:5px;top:4px;font-family:var(--mono);font-size:7px;letter-spacing:.04em;color:rgba(255,255,255,.78);text-shadow:0 1px 3px rgba(0,0,0,.5)}
@@ -110,6 +115,8 @@ a.tbtn{text-decoration:none}
 .intro-line i{display:block;height:100%;width:40%;background:var(--accent);animation:load 1.2s cubic-bezier(.2,0,0,1) infinite}
 @keyframes load{0%{transform:translateX(-110%)}100%{transform:translateX(300%)}}
 .intro-sub{font-family:var(--mono);font-size:7px;letter-spacing:.2em;color:var(--faint)}
+.intro-wait{margin-top:2px;font-family:var(--mono);font-size:7px;letter-spacing:.24em;color:rgba(242,241,236,.42);opacity:0;animation:fadein .8s ease 1.4s forwards}
+@keyframes fadein{to{opacity:1}}
 
 .toast{position:fixed;left:50%;bottom:70px;transform:translate(-50%,8px);background:rgba(18,18,20,.94);border:1px solid rgba(255,255,255,.14);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.04em;padding:9px 12px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:60}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -158,13 +165,51 @@ a.tbtn{text-decoration:none}
   .film{margin-right:-14px}
 }
 
-.lqip{position:absolute;inset:-6%;background:#0a0a0b center/cover no-repeat;filter:blur(18px) brightness(.9);transform:scale(1.02)}
-.loadpill{position:fixed;left:24px;top:58px;z-index:60;display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(18,18,20,.92);border:1px solid rgba(255,255,255,.16);font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;color:var(--muted);cursor:pointer}
-.loadpill::before{content:'';width:6px;height:6px;border-radius:50%%;background:var(--accent);animation:pulse 1.1s ease-in-out infinite}
+.lqip{position:absolute;inset:-6%;background:#0a0a0b center/cover no-repeat;filter:blur(18px) brightness(.9);transform:scale(1.02);overflow:hidden}
+/* A slow connection gets an obvious sign of life instead of a frozen blurred frame. */
+.lqip::after{content:'';position:absolute;inset:-20%;background:linear-gradient(100deg,rgba(255,255,255,0) 34%,rgba(255,255,255,.07) 50%,rgba(255,255,255,0) 66%);animation:scan 2.6s linear infinite}
+@keyframes scan{0%{transform:translateX(-60%)}100%{transform:translateX(60%)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+/* ---------- background-load pill: what is still streaming in ---------- */
+.loadpill{position:fixed;left:24px;top:58px;z-index:60;display:flex;align-items:center;gap:9px;max-width:min(360px,calc(100vw - 48px));padding:7px 10px;background:rgba(18,18,20,.92);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;color:var(--muted);cursor:pointer;animation:fade .2s ease}
+.loadpill::before{content:'';width:5px;height:5px;flex:none;border-radius:50%;background:var(--accent);animation:pulse 1.1s ease-in-out infinite}
 .loadpill.error::before{background:#ff6b5e;animation:none}
 .loadpill.error{color:#ffb9b2;border-color:rgba(255,120,110,.4)}
-@keyframes pulse{0%%,100%%{opacity:.35}50%%{opacity:1}}
-@media(max-width:820px){.loadpill{left:14px;top:44px;font-size:8px;padding:5px 8px}}
+.loadpill #loadPillText{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.loadpill .bar{position:relative;width:66px;height:2px;flex:none;background:rgba(255,255,255,.14);overflow:hidden}
+.loadpill .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s linear}
+.loadpill .pct{flex:none;font-variant-numeric:tabular-nums;color:var(--ink)}
+.loadpill[data-indet] .bar i{width:34%;animation:sweep 1.1s cubic-bezier(.4,0,.3,1) infinite}
+@media(max-width:820px){.loadpill{left:14px;top:44px;font-size:8px;padding:6px 8px;gap:7px}.loadpill .bar{width:52px}}
+
+/* ---------- busy overlay: only for operations that block the photo ---------- */
+.busy{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(6,6,7,.74);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);animation:fade .18s ease}
+.busy[hidden]{display:none}
+.busy-box{display:flex;align-items:center;gap:22px;width:min(430px,calc(100vw - 40px));padding:22px 24px 20px;background:#0d0d0f;border:1px solid rgba(255,255,255,.14);box-shadow:0 28px 90px rgba(0,0,0,.65)}
+.busy-iris{position:relative;width:66px;height:66px;flex:none}
+.busy-iris i{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(217,199,163,0) 0deg 190deg,rgba(217,199,163,.9) 300deg,rgba(217,199,163,0) 359deg);-webkit-mask:radial-gradient(circle,transparent 54%,#000 55%);mask:radial-gradient(circle,transparent 54%,#000 55%);animation:spin 1.5s linear infinite}
+.busy-iris i:nth-child(2){inset:9px;animation-duration:2.2s;animation-direction:reverse;opacity:.45}
+.busy-iris i:nth-child(3){inset:18px;animation-duration:3.1s;opacity:.28}
+.busy-iris b{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out infinite}
+.busy-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:7px}
+.busy-kicker{font-size:7px;letter-spacing:.26em;color:var(--faint)}
+.busy-title{margin:0;font-size:15px;font-weight:400;letter-spacing:.01em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.busy-steps{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:7.5px;letter-spacing:.05em;color:var(--faint)}
+.busy-steps span{display:inline-flex;align-items:center;gap:5px;transition:color .2s}
+.busy-steps span::before{content:'';width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.22);transition:background .2s}
+.busy-steps span.on{color:var(--ink)}
+.busy-steps span.on::before{background:var(--accent);animation:pulse .9s ease-in-out infinite}
+.busy-steps span.done{color:rgba(242,241,236,.52)}
+.busy-steps span.done::before{background:rgba(217,199,163,.7)}
+.busy-track{position:relative;height:2px;background:rgba(255,255,255,.12);overflow:hidden}
+.busy-track i{display:block;height:100%;width:0;background:var(--accent);transition:width .22s cubic-bezier(.2,0,0,1)}
+.busy-track.indet i{width:34%;animation:sweep 1.1s cubic-bezier(.4,0,.3,1) infinite}
+@keyframes sweep{0%{transform:translateX(-120%)}100%{transform:translateX(330%)}}
+.busy-sub{display:flex;justify-content:space-between;gap:12px;font-size:7.5px;letter-spacing:.05em;color:var(--muted);font-variant-numeric:tabular-nums}
+@media(max-width:520px){.busy-box{flex-direction:column;align-items:flex-start;gap:14px;padding:18px 18px 16px}.busy-iris{width:50px;height:50px;align-self:center}.busy-copy{width:100%}}
 
 /* no look: the strength rail has nothing to drive, and the big title only
    competes with the develop panel. */
@@ -231,6 +276,15 @@ a.tbtn{text-decoration:none}
 .dev-hint{margin:12px 0 0;font-family:var(--mono);font-size:7.5px;line-height:1.7;letter-spacing:.03em;color:var(--faint)}
 .app.picking .field{cursor:crosshair}
 .app.picking .field canvas{cursor:crosshair}
+/* Zoomable stage. touch-action:none hands two-finger gestures to the app
+   instead of the browser's page zoom. */
+.field{touch-action:none;cursor:default}
+.app.zoomable .field,.app.zoomable .field canvas{cursor:zoom-in}
+.app.zoomed .field,.app.zoomed .field canvas{cursor:grab}
+.app.panning .field,.app.panning .field canvas{cursor:grabbing}
+.quick .zoom{color:var(--muted);min-width:34px;text-align:left;font-variant-numeric:tabular-nums}
+.quick .zoom.on{color:var(--accent);border-color:var(--accent)}
+.quick .zoom:empty{display:none}
 @media(min-width:821px){
   .devpanel{position:absolute;top:0;right:0;bottom:0;width:336px}
   .app.develop .field{right:336px}
@@ -327,6 +381,7 @@ a.tbtn{text-decoration:none}
     <div class="quick">
       <button id="photoBtn">PHOTO</button>
       <button id="fitBtn">FILL</button>
+      <button id="zoomBtn" class="zoom" title="缩放 / Zoom">100%</button>
       <button id="dualBtn" class="dual">DUAL LUT</button>
       <button id="logBtn" title="输入色彩空间 / input profile">sRGB</button>
       <button id="autoBtn" class="auto" title="RAW 自动亮度 / RAW auto brightness" hidden>AUTO</button>
@@ -343,6 +398,7 @@ a.tbtn{text-decoration:none}
     <span class="intro-word">LUT ARCHIVE</span>
     <span class="intro-line"><i></i></span>
     <span class="intro-sub" id="introSub">44 LOOKS / OPEN SOURCE</span>
+    <span class="intro-wait" id="introWait">LOADING · 加载中</span>
   </div>
 </div>
 <div class="exportsheet" id="exportSheet" hidden>
@@ -422,13 +478,25 @@ a.tbtn{text-decoration:none}
 
 <input type="file" id="fileInput" accept="image/*,.jpg,.jpeg,.png,.webp,.avif,.heic,.heif,.tif,.tiff,.nef,.nrw,.cr2,.cr3,.arw,.srf,.sr2,.dng,.raf,.orf,.rw2,.pef,.srw,.3fr,.erf,.kdc,.mos,.iiq,.x3f" hidden>
 <input type="file" id="importInput" multiple hidden>
-<div class="loadpill" id="loadPill" hidden><span id="loadPillText">LUT 加载中…</span></div>
+<div class="busy" id="busy" hidden aria-live="polite" aria-busy="true">
+  <div class="busy-box">
+    <div class="busy-iris" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+    <div class="busy-copy">
+      <span class="busy-kicker mono" id="busyKicker">LUT ARCHIVE</span>
+      <h2 class="busy-title" id="busyTitle">正在打开照片</h2>
+      <div class="busy-steps mono" id="busySteps"></div>
+      <div class="busy-track" id="busyTrack"><i id="busyFill"></i></div>
+      <div class="busy-sub mono"><span id="busySub"></span><span id="busyClock"></span></div>
+    </div>
+  </div>
+</div>
+<div class="loadpill" id="loadPill" hidden><span id="loadPillText">LUT 加载中…</span><span class="bar"><i id="loadPillFill"></i></span><span class="pct" id="loadPillPct"></span></div>
 <div class="toast" id="toast"></div>
 <div class="drop" id="drop">DROP A PHOTO</div>
 
 <script type="module">
 import { LOOKS } from '/js/looks.js';
-import { LookRenderer } from '/js/renderer.js';
+import { LookRenderer, computeViewRect } from '/js/renderer.js';
 import { t, displayName, displayMeta, CAT_EN } from '/js/i18n.js';
 import { loadLuts, saveLut, deleteLut } from '/js/lut-store.js';
 import { developRaw, extractRawPreview, RawUnsupported } from '/js/raw.js';
@@ -444,7 +512,9 @@ const el = {
   photoBtn: $('#photoBtn'), fitBtn: $('#fitBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'),
+  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'), zoomBtn: $('#zoomBtn'),
+  busy: $('#busy'), busyTitle: $('#busyTitle'), busySteps: $('#busySteps'), busyTrack: $('#busyTrack'), busyFill: $('#busyFill'), busySub: $('#busySub'), busyClock: $('#busyClock'),
+  loadPillFill: $('#loadPillFill'), loadPillPct: $('#loadPillPct'),
   devPanel: $('#devPanel'), devTitle: $('#devTitle'), devSub: $('#devSub'), devBody: $('#devBody'), devAuto: $('#devAuto'), devReset: $('#devReset'), devClose: $('#devClose'), devPick: $('#devPick'), devHint: $('#devHint'), devHist: $('#devHist'), lqip: $('#lqip'), loadPill: $('#loadPill'), loadPillText: $('#loadPillText'),
   importSheet: $('#importSheet'), importClose: $('#importClose'), importPick: $('#importPick'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
@@ -454,7 +524,11 @@ const state = {
   look: LOOKS[3].id,
   strength: 100,
   split: 0.5,
-  fit: 'cover',
+  // Fit, not fill, by default: opening a photo should show the whole frame.
+  fit: localStorage.getItem('lut.fit') === 'cover' ? 'cover' : 'contain',
+  // Interactive inspection view: zoom is relative to the fit framing, and cx/cy
+  // is the centre of the visible image rectangle in image uv coordinates.
+  view: { zoom: 1, cx: 0.5, cy: 0.5 },
   dual: { enabled: false, b: 'hasselblad-natural', strengthB: 60 },
   activeSlot: 'A',
   cat: 'all',
@@ -511,27 +585,170 @@ async function fetchWithTimeout(url, timeout = 120000){
   }
 }
 
-function setLoadPill(text, isError = false){
-  if (!el.loadPill) return;
-  el.loadPill.hidden = !text;
-  if (el.loadPillText) el.loadPillText.textContent = text || '';
-  el.loadPill.classList.toggle('error', !!isError);
+function fmtBytes(n){
+  if (!Number.isFinite(n) || n < 0) return '';
+  if (n >= 1048576) return `${(n / 1048576).toFixed(1)} MB`;
+  if (n >= 1024) return `${Math.round(n / 1024)} KB`;
+  return `${n} B`;
 }
 
-/** Read a response body as bytes, updating the loading pill with progress. */
-async function readBodyWithProgress(res, label){
+/* ---------------------------------------------------------------------------
+ * Waiting states, part 1: the small pill for work that streams in behind the
+ * photo (the LUT pack, the demo frame). Several tasks can be active at once, so
+ * the pill always shows the most important one and falls back to the next.
+ * ------------------------------------------------------------------------- */
+const loadTasks = new Map();
+const LOAD_RANK = { raw: 4, photo: 3, demo: 2, luts: 1 };
+
+function etaLabel(sec){
+  if (!(sec > 0) || !Number.isFinite(sec)) return '';
+  const s = Math.max(1, Math.round(sec));
+  return state.lang === 'zh' ? `约 ${s}s` : `~${s}s`;
+}
+
+function paintLoadPill(){
+  if (!el.loadPill) return;
+  const tasks = [...loadTasks.values()];
+  if (!tasks.length) { el.loadPill.hidden = true; return; }
+  tasks.sort((a, b) => (LOAD_RANK[b.id] || 0) - (LOAD_RANK[a.id] || 0));
+  const top = tasks[0];
+  el.loadPill.hidden = false;
+  el.loadPill.classList.toggle('error', !!top.error);
+  const pct = Number.isFinite(top.pct) ? Math.max(0, Math.min(1, top.pct)) : null;
+  const eta = pct !== null && pct < 1 ? etaLabel(top.eta) : '';
+  el.loadPillText.textContent = [top.text, eta].filter(Boolean).join(' · ');
+  el.loadPillPct.textContent = pct !== null ? `${Math.round(pct * 100)}%` : '';
+  if (pct === null) el.loadPill.dataset.indet = '1';
+  else { delete el.loadPill.dataset.indet; el.loadPillFill.style.width = `${pct * 100}%`; }
+}
+
+/** Add / patch / remove (patch === null) one background loading task. */
+function setLoadTask(id, patch){
+  if (patch === null) loadTasks.delete(id);
+  else loadTasks.set(id, { id, text: '', pct: null, eta: null, error: false, ...(loadTasks.get(id) || {}), ...patch });
+  paintLoadPill();
+}
+
+/* ---------------------------------------------------------------------------
+ * Waiting states, part 2: the full overlay for operations that own the photo —
+ * opening a file (read → decode → develop) and exporting. It shows the stage
+ * the app is in, a determinate bar when progress is known, and a live clock so
+ * a slow decode never looks frozen.
+ * ------------------------------------------------------------------------- */
+const busyState = { open: false, t0: 0, step: 0, steps: [], progress: null, timer: 0, delay: 0 };
+
+function paintBusySteps(){
+  if (!el.busySteps) return;
+  el.busySteps.innerHTML = '';
+  busyState.steps.forEach((label, i) => {
+    const sp = document.createElement('span');
+    sp.textContent = label;
+    if (i < busyState.step) sp.className = 'done';
+    else if (i === busyState.step) sp.className = 'on';
+    el.busySteps.appendChild(sp);
+  });
+}
+
+function paintBusyProgress(){
+  if (!el.busyTrack) return;
+  const p = busyState.progress;
+  el.busyTrack.classList.toggle('indet', !Number.isFinite(p));
+  if (Number.isFinite(p)) el.busyFill.style.width = `${Math.max(2, Math.min(100, p * 100))}%`;
+  else el.busyFill.style.width = '';
+}
+
+function paintBusyClock(){
+  if (!busyState.open) return;
+  const secs = (performance.now() - busyState.t0) / 1000;
+  if (el.busyClock) el.busyClock.textContent = `${secs.toFixed(1)}s`;
+  const p = busyState.progress;
+  if (Number.isFinite(p) && p > 0.02 && p < 1 && el.busySub) {
+    el.busySub.dataset.eta = etaLabel(secs * (1 - p) / p);
+  } else if (el.busySub) {
+    delete el.busySub.dataset.eta;
+  }
+}
+
+function busyShow({ title, steps = [], sub = '', progress = null }){
+  busyState.open = true;
+  busyState.t0 = performance.now();
+  busyState.steps = steps;
+  busyState.step = 0;
+  busyState.progress = progress;
+  if (el.busyTitle) el.busyTitle.textContent = title;
+  busyState.subText = sub;
+  if (el.busySub) { el.busySub.textContent = sub; el.busySub.dataset.base = sub; delete el.busySub.dataset.eta; }
+  if (el.busyClock) el.busyClock.textContent = '0.0s';
+  paintBusySteps();
+  paintBusyProgress();
+  clearInterval(busyState.timer);
+  clearTimeout(busyState.delay);
+  busyState.timer = setInterval(() => { paintBusyClock(); paintBusyEta(); }, 200);
+  // Do not flash an overlay for something that finishes in a few frames.
+  busyState.delay = setTimeout(() => {
+    if (!busyState.open) return;
+    el.busy.hidden = false;
+    paintBusyClock();
+  }, 150);
+}
+
+function paintBusyEta(){
+  if (!el.busySub) return;
+  const eta = el.busySub.dataset.eta;
+  const base = busyState.subText || el.busySub.dataset.base || '';
+  el.busySub.textContent = eta ? [base, eta].filter(Boolean).join(' · ') : base;
+}
+
+function busyUpdate({ title, sub, step, progress } = {}){
+  if (!busyState.open) return;
+  if (title !== undefined && el.busyTitle) el.busyTitle.textContent = title;
+  if (sub !== undefined) {
+    busyState.subText = sub;
+    if (el.busySub) el.busySub.dataset.base = sub;
+    paintBusyEta();
+  }
+  if (step !== undefined) { busyState.step = step; paintBusySteps(); }
+  if (progress !== undefined) { busyState.progress = progress; paintBusyProgress(); }
+}
+
+function busyHide(){
+  busyState.open = false;
+  clearInterval(busyState.timer);
+  clearTimeout(busyState.delay);
+  if (el.busy) el.busy.hidden = true;
+}
+
+/** Read a response body as bytes, reporting progress for the pill or the overlay. */
+async function readBodyWithProgress(res, label, task){
   const total = Number(res.headers.get('content-length')) || 0;
-  if (!res.body || !total) return new Uint8Array(await res.arrayBuffer());
+  const onProgress = task && task.onProgress ? task.onProgress : null;
+  const setTask = task && task.id;
+  if (!res.body || !total) {
+    if (setTask) setLoadTask(task.id, { text: label, pct: null });
+    const all = new Uint8Array(await res.arrayBuffer());
+    onProgress?.(1, all.byteLength, total || all.byteLength);
+    return all;
+  }
   const reader = res.body.getReader();
   const chunks = [];
   let loaded = 0;
+  const t0 = performance.now();
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
     chunks.push(value);
     loaded += value.length;
-    const pct = Math.min(99, Math.round((loaded * 100) / total));
-    setLoadPill(`${label} ${pct}%`);
+    const pct = Math.min(1, loaded / total);
+    if (setTask) {
+      const secs = (performance.now() - t0) / 1000;
+      const slow = secs > 2.5 && loaded / Math.max(secs, 0.001) < 60 * 1024;
+      setLoadTask(task.id, {
+        text: slow ? `${label} · ${t(state.lang, 'slowNet')}` : label,
+        pct,
+        eta: pct > 0.03 && pct < 1 ? secs * (1 - pct) / pct : null,
+      });
+    }
+    onProgress?.(pct, loaded, total);
   }
   const out = new Uint8Array(loaded);
   let offset = 0;
@@ -556,7 +773,7 @@ async function loadLutPack(){
     if (!packed) return null;
     if (packed.byteLength === expected) return packed;
     if (typeof DecompressionStream !== 'function') return null;
-    setLoadPill(`${t(state.lang, 'lutInflating')}`);
+    setLoadTask('luts', { text: t(state.lang, 'lutInflating'), pct: null, eta: null });
     try {
       const stream = new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'));
       const raw = await new Response(stream).arrayBuffer();
@@ -568,7 +785,7 @@ async function loadLutPack(){
   const tryResponse = async (res) => {
     if (!res || !res.ok) return null;
     try {
-      const packed = await readBodyWithProgress(res, t(state.lang, 'lutLoading'));
+      const packed = await readBodyWithProgress(res, t(state.lang, 'lutLoading'), { id: 'luts' });
       return await inflate(packed);
     } catch {
       return null;
@@ -591,7 +808,7 @@ async function loadLutPack(){
   try {
     const res = await fetchWithTimeout('/luts.bin', 120000);
     if (res.ok) {
-      const plain = await readBodyWithProgress(res, t(state.lang, 'lutLoading'));
+      const plain = await readBodyWithProgress(res, t(state.lang, 'lutLoading'), { id: 'luts' });
       if (plain.byteLength === expected) return plain;
     }
   } catch { /* fall through to the error */ }
@@ -612,6 +829,7 @@ async function init(){
   setStrength(100, { direct: false });
   setStrengthB(60, { direct: false });
   updateSlotUI();
+  updateZoomUI();
   if (el.metaDims) el.metaDims.textContent = '…';
   playIntro();
   if (!hadLang) detectGeo();
@@ -645,29 +863,42 @@ async function loadDemoImage(){
     ? '/photos/demo-phone.webp'
     : '/photos/demo.webp';
   try {
-    const img = await loadImageWithTimeout(url);
+    let img = null;
+    try {
+      const res = await fetchWithTimeout(url, 60000);
+      if (res.ok) {
+        const bytes = await readBodyWithProgress(res, t(state.lang, 'demoLoading'), { id: 'demo' });
+        const blobUrl = URL.createObjectURL(new Blob([bytes], { type: 'image/webp' }));
+        try { img = await loadImageWithTimeout(blobUrl, 20000); }
+        finally { URL.revokeObjectURL(blobUrl); }
+      }
+    } catch { /* fall back to a plain <img>, e.g. if streaming fetch is unavailable */ }
+    if (!img) img = await loadImageWithTimeout(url);
+    setLoadTask('demo', null);
     if (state.userPhoto) return;          // the user already opened their own photo
     source = makeSource(img);
     renderer.setImage(source);
     el.lqip?.remove();
     state.demoLoaded = true;
+    resetViewForPhoto();
     el.metaDims.textContent = `${source.width} × ${source.height}`;
     sizeCanvases();
     drawBase();
     render({ instant: true });
     updateQualityDims();
   } catch (err) {
+    setLoadTask('demo', null);
     console.warn('[demo] image could not be loaded', err);
   }
 }
 
 async function loadLutsInBackground(){
   try {
-    setLoadPill(t(state.lang, 'lutLoading'));
+    setLoadTask('luts', { text: t(state.lang, 'lutLoading'), pct: null });
     const buf = await loadLutPack();
     luts = new Uint8Array(buf);
     state.lutsReady = true;
-    setLoadPill('');
+    setLoadTask('luts', null);
     render({ instant: true });
     setLookText();
     updateActiveChip();
@@ -675,11 +906,15 @@ async function loadLutsInBackground(){
     prewarmRawDecoder();
   } catch (err) {
     console.warn('[lut pack] load failed', err);
-    setLoadPill(t(state.lang, 'lutLoadFailed'), true);
+    // A failed pack must not leave the strip shimmering forever: the pill turns
+    // into a retry button and the chips go back to plain placeholders.
+    el.film.querySelectorAll('.chip.loading').forEach((c) => c.classList.remove('loading'));
+    setLoadTask('luts', { text: t(state.lang, 'lutLoadFailed'), pct: null, error: true });
     if (el.loadPill) {
       el.loadPill.onclick = () => {
         el.loadPill.onclick = null;
-        setLoadPill('');
+        loadTasks.delete('luts');
+        paintLoadPill();
         loadLutsInBackground();
       };
     }
@@ -822,13 +1057,13 @@ function currentStack(){
   return stack;
 }
 
-function sizeCanvases(){
+function sizeCanvases(dprCap = 2){
   // The photo stage is the field itself: when the Develop rail is open the field
   // is inset, so measuring the viewport would stretch the render outside it.
   const box = el.field;
   const w = Math.max(2, box.clientWidth || innerWidth);
   const h = Math.max(2, box.clientHeight || innerHeight);
-  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const dpr = Math.min(devicePixelRatio || 1, dprCap);
   for (const l of layers) { l.width = Math.round(w * dpr); l.height = Math.round(h * dpr); }
   if (el.base) { el.base.width = Math.round(w * dpr); el.base.height = Math.round(h * dpr); }
 }
@@ -838,7 +1073,7 @@ function drawBase(){
   // Drawn through the renderer (no LUTs, no LOG, baseline exposure only) so the
   // BEFORE side can never drift out of alignment with AFTER.
   if (!el.base.width) sizeCanvases();
-  renderer.render([], adjBase(), el.base.width, el.base.height, state.fit);
+  renderer.render([], adjBase(), el.base.width, el.base.height, state.fit, state.view);
   el.base.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
 }
 
@@ -876,7 +1111,7 @@ function render({ instant = false } = {}){
   if (!renderer || !source) return;
   const target = layers[active ^ 1], prev = layers[active];
   if (!target.width) sizeCanvases();
-  renderer.render(currentStack(), adjFor(), target.width, target.height, state.fit);
+  renderer.render(currentStack(), adjFor(), target.width, target.height, state.fit, state.view);
   target.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   if (instant) {
     target.style.transition = 'none'; prev.style.transition = 'none';
@@ -894,11 +1129,181 @@ function render({ instant = false } = {}){
 function renderDirect(){
   if (!renderer || !source) return;
   const visible = layers.find(l => !l.classList.contains('off')) || layers[0];
-  renderer.render(currentStack(), adjFor(), visible.width, visible.height, state.fit);
+  renderer.render(currentStack(), adjFor(), visible.width, visible.height, state.fit, state.view);
   visible.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   sampleAccent();
   drawHistogram();
   refreshFilmThumbsSoon();
+}
+
+/* ---------------------------------------------------------------------------
+ * Zoom / pan: the shader samples a rectangle of the full-resolution texture
+ * (see computeViewRect), so zooming in shows real pixels instead of an upscaled
+ * screen capture. Gestures update that rectangle and redraw at display quality;
+ * a slower full-quality pass lands when the gesture settles.
+ * ------------------------------------------------------------------------- */
+let liveRaf = 0;
+let lowQuality = false;
+let viewSettleTimer = 0;
+let viewAnimToken = 0;
+
+function stageSize(){
+  return {
+    w: Math.max(1, el.field.clientWidth || innerWidth),
+    h: Math.max(1, el.field.clientHeight || innerHeight),
+  };
+}
+function fieldRect(){ return el.field.getBoundingClientRect(); }
+
+/** A client point as a fraction (0..1) of the visible photo stage. */
+function clientFrac(e){
+  const r = fieldRect();
+  return { x: (e.clientX - r.left) / Math.max(1, r.width), y: (e.clientY - r.top) / Math.max(1, r.height) };
+}
+
+/** The image rectangle the stage currently shows (same maths as the shader). */
+function currentRect(){
+  const { w, h } = stageSize();
+  return computeViewRect(source.width, source.height, w, h, state.fit, state.view);
+}
+
+/**
+ * Draw the visible part of a rendered photo into a small sampling canvas.
+ * Contain letterboxing turns into black bars inside the layer canvas, and those
+ * bars must not skew the histogram or the accent colour.
+ */
+function samplePhotoCanvas(canvas, vis){
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!source || !vis || !vis.width) return ctx;
+  const rect = currentRect();
+  const fx0 = Math.max(0, (0 - rect.x) / rect.w), fx1 = Math.min(1, (1 - rect.x) / rect.w);
+  const fy0 = Math.max(0, (0 - rect.y) / rect.h), fy1 = Math.min(1, (1 - rect.y) / rect.h);
+  if (fx1 <= fx0 || fy1 <= fy0) return ctx;
+  ctx.drawImage(vis, fx0 * vis.width, fy0 * vis.height, (fx1 - fx0) * vis.width, (fy1 - fy0) * vis.height,
+    0, 0, canvas.width, canvas.height);
+  return ctx;
+}
+
+function updateZoomUI(){
+  const zoom = state.view.zoom;
+  if (zoom > 1.01) el.field.style.transform = 'scale(1.02)';
+  if (el.zoomBtn) {
+    el.zoomBtn.textContent = `${Math.round(zoom * 100)}%`;
+    el.zoomBtn.classList.toggle('on', zoom > 1.01);
+    el.zoomBtn.title = zoom > 1.01 ? t(state.lang, 'zoomReset') : t(state.lang, 'zoomHintShort');
+  }
+  el.app.classList.toggle('zoomed', zoom > 1.01);
+}
+
+/** Move the inspection view; centres are clamped by computeViewRect. */
+function setView(zoom, cx, cy){
+  if (!source) return;
+  const z = Math.max(1, Math.min(16, Number(zoom) || 1));
+  if (z <= 1.01) {
+    state.view = { zoom: 1, cx: 0.5, cy: 0.5 };
+  } else {
+    const { w, h } = stageSize();
+    const rect = computeViewRect(source.width, source.height, w, h, state.fit, { zoom: z, cx, cy });
+    state.view = { zoom: z, cx: rect.cx, cy: rect.cy };
+  }
+  updateZoomUI();
+  scheduleLive();
+}
+
+function scheduleLive(){
+  if (liveRaf) return;
+  liveRaf = requestAnimationFrame(() => { liveRaf = 0; renderLive(); });
+}
+
+/** Interaction-quality render: no crossfade, histogram or thumbnails. */
+function renderLive(){
+  if (!renderer || !source) return;
+  const target = layers.find(l => !l.classList.contains('off')) || layers[0];
+  if (!target || !target.width) sizeCanvases(lowQuality ? 1 : 2);
+  renderer.render(currentStack(), adjFor(), target.width, target.height, state.fit, state.view);
+  target.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
+  // The BEFORE side has to move with the AFTER side or the split view drifts.
+  if (el.base?.width) {
+    renderer.render([], adjBase(), el.base.width, el.base.height, state.fit, state.view);
+    el.base.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
+  }
+}
+
+function beginViewGesture(){
+  state.interacting = true;
+  if (lowQuality) return;
+  if (Math.min(devicePixelRatio || 1, 2) > 1) {
+    lowQuality = true;
+    sizeCanvases(1);
+    renderLive();
+  }
+}
+
+function endViewGesture(){
+  state.interacting = false;
+  el.app.classList.remove('panning');
+  if (lowQuality) { lowQuality = false; sizeCanvases(); }
+  drawBase();
+  renderDirect();
+}
+
+/** Let a wheel burst / repeated taps settle before the crisp redraw. */
+function settleView(ms = 170){
+  clearTimeout(viewSettleTimer);
+  const token = viewAnimToken;
+  viewSettleTimer = setTimeout(() => { if (token === viewAnimToken) endViewGesture(); }, ms);
+}
+
+/** Target view for zooming around a stage point, keeping that point fixed. */
+function zoomTarget(frac, targetZoom){
+  const rect = currentRect();
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const px = clamp01(rect.x + frac.x * rect.w);
+  const py = clamp01(rect.y + frac.y * rect.h);
+  const z = Math.max(1, Math.min(16, targetZoom));
+  const { w, h } = stageSize();
+  const next = computeViewRect(source.width, source.height, w, h, state.fit, { zoom: z, cx: 0.5, cy: 0.5 });
+  return { zoom: z, cx: px - (frac.x - 0.5) * next.w, cy: py - (frac.y - 0.5) * next.h };
+}
+
+function animateViewTo(target, ms = 240){
+  if (!source) return;
+  const token = ++viewAnimToken;
+  const from = { ...state.view };
+  const t0 = performance.now();
+  beginViewGesture();
+  const step = (now) => {
+    if (token !== viewAnimToken) return;
+    const k = Math.min(1, (now - t0) / ms);
+    const e = 1 - Math.pow(1 - k, 3);
+    setView(from.zoom + (target.zoom - from.zoom) * e,
+      from.cx + ((target.cx ?? 0.5) - from.cx) * e,
+      from.cy + ((target.cy ?? 0.5) - from.cy) * e);
+    if (k < 1) requestAnimationFrame(step);
+    else { setView(target.zoom, target.cx, target.cy); endViewGesture(); }
+  };
+  requestAnimationFrame(step);
+}
+
+function resetView(animate = true){
+  if (!source) return;
+  if (state.view.zoom <= 1.01) return;
+  clearTimeout(viewSettleTimer);
+  if (animate) animateViewTo({ zoom: 1, cx: 0.5, cy: 0.5 });
+  else { state.view = { zoom: 1, cx: 0.5, cy: 0.5 }; updateZoomUI(); drawBase(); renderDirect(); }
+}
+
+function toggleZoomAt(frac){
+  if (!source) return;
+  if (state.view.zoom > 1.02) animateViewTo({ zoom: 1, cx: 0.5, cy: 0.5 });
+  else animateViewTo(zoomTarget(frac, 2.5));
+}
+
+/** Reset the inspection view when a different photo is loaded. */
+function resetViewForPhoto(){
+  state.view = { zoom: 1, cx: 0.5, cy: 0.5 };
+  updateZoomUI();
 }
 
 /** RGB histogram of what the preview is actually showing. */
@@ -909,8 +1314,7 @@ function drawHistogram(){
   if (!vis || !vis.width) return;
   const s = document.createElement('canvas');
   s.width = 160; s.height = 100;
-  const sctx = s.getContext('2d', { willReadFrequently: true });
-  sctx.drawImage(vis, 0, 0, 160, 100);
+  const sctx = samplePhotoCanvas(s, vis);
   const d = sctx.getImageData(0, 0, 160, 100).data;
   const bins = [new Uint32Array(64), new Uint32Array(64), new Uint32Array(64)];
   for (let i = 0; i < d.length; i += 4) {
@@ -953,8 +1357,7 @@ function drawHistogram(){
 function sampleAccent(){
   const src = layers.find(l => !l.classList.contains('off')) || layers[0];
   const c = document.createElement('canvas'); c.width = 32; c.height = 20;
-  const ctx = c.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(src, 0, 0, 32, 20);
+  const ctx = samplePhotoCanvas(c, src);
   const d = ctx.getImageData(0, 0, 32, 20).data;
   let r = 0, g = 0, b = 0;
   for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; }
@@ -1117,47 +1520,62 @@ function parseCube(text){
 async function handleImport(files){
   let ok = 0;
   const problems = [];
-  for (const f of files) {
-    try {
-      const parsed = parseCube(await f.text());
-      const id = `mine-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-      const name = (parsed.title || f.name.replace(/\.cube$/i, '')).slice(0, 40);
-      // Vendor LOG LUTs (F-Log, V-Log…) only look right when the input is in
-      // that log curve, so switch the input profile automatically.
-      const probe = `${name} ${f.name}`.toLowerCase();
-      const detected = probe.includes('f-log2') || probe.includes('flog2') ? 2
-        : probe.includes('f-log') || probe.includes('flog') ? 1
-        : probe.includes('v-log') || probe.includes('vlog') || probe.includes('varicam') || probe.includes('s1h') ? 3 : 0;
-      if (detected) { state.logMode = detected; updateLogUI(); }
-      await saveLut({ id, name, size: parsed.size, data: parsed.data.buffer });
-      state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: parsed.size, data: parsed.data });
-      ok++;
-    } catch (err) {
-      console.warn('[lut import]', f.name, err);
-      const msg = err instanceof CubeError
-        ? t(state.lang, err.code).replace(/\{(\w+)\}/g, (_, k) => String(err.params[k] ?? ''))
-        : err.message;
-      problems.push(files.length > 1 ? `${f.name}：${msg}` : msg);
+  busyShow({
+    title: t(state.lang, 'busyImport'),
+    steps: [t(state.lang, 'busyRead'), t(state.lang, 'busyParse'), t(state.lang, 'busyStore')],
+    sub: files.length > 1 ? `${files.length} files` : (files[0]?.name || ''),
+    progress: files.length > 1 ? 0 : null,
+  });
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      try {
+        if (files.length > 1) busyUpdate({ progress: i / files.length, sub: `${i + 1} / ${files.length} · ${f.name}` });
+        busyUpdate({ step: 1 });
+        const parsed = parseCube(await f.text());
+        const id = `mine-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+        const name = (parsed.title || f.name.replace(/\.cube$/i, '')).slice(0, 40);
+        // Vendor LOG LUTs (F-Log, V-Log…) only look right when the input is in
+        // that log curve, so switch the input profile automatically.
+        const probe = `${name} ${f.name}`.toLowerCase();
+        const detected = probe.includes('f-log2') || probe.includes('flog2') ? 2
+          : probe.includes('f-log') || probe.includes('flog') ? 1
+          : probe.includes('v-log') || probe.includes('vlog') || probe.includes('varicam') || probe.includes('s1h') ? 3 : 0;
+        if (detected) { state.logMode = detected; updateLogUI(); }
+        busyUpdate({ step: 2 });
+        await saveLut({ id, name, size: parsed.size, data: parsed.data.buffer });
+        state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: parsed.size, data: parsed.data });
+        ok++;
+        busyUpdate({ step: 0, progress: files.length > 1 ? (i + 1) / files.length : null });
+      } catch (err) {
+        console.warn('[lut import]', f.name, err);
+        const msg = err instanceof CubeError
+          ? t(state.lang, err.code).replace(/\{(\w+)\}/g, (_, k) => String(err.params[k] ?? ''))
+          : err.message;
+        problems.push(files.length > 1 ? `${f.name}：${msg}` : msg);
+      }
     }
+    if (ok) {
+      el.importSheet.hidden = true;
+      buildFilm();
+      buildCats();
+      setCat('mine');
+      const last = state.imported[state.imported.length - 1];
+      if (last) selectLook(last.id, state.dual.enabled && state.activeSlot === 'B' ? 'B' : 'A');
+    }
+    // The sheet sits above the toast, so a failure has to be reported inside it —
+    // otherwise the click looks like it did nothing at all.
+    if (problems.length) {
+      el.importError.hidden = false;
+      el.importError.textContent = problems.join('　·　');
+    } else {
+      el.importError.hidden = true;
+      el.importError.textContent = '';
+    }
+    toast(ok ? t(state.lang, 'importOk').replace('{n}', String(ok)) : t(state.lang, 'importFail'), problems.length ? 6000 : 2400);
+  } finally {
+    busyHide();
   }
-  if (ok) {
-    el.importSheet.hidden = true;
-    buildFilm();
-    buildCats();
-    setCat('mine');
-    const last = state.imported[state.imported.length - 1];
-    if (last) selectLook(last.id, state.dual.enabled && state.activeSlot === 'B' ? 'B' : 'A');
-  }
-  // The sheet sits above the toast, so a failure has to be reported inside it —
-  // otherwise the click looks like it did nothing at all.
-  if (problems.length) {
-    el.importError.hidden = false;
-    el.importError.textContent = problems.join('　·　');
-  } else {
-    el.importError.hidden = true;
-    el.importError.textContent = '';
-  }
-  toast(ok ? t(state.lang, 'importOk').replace('{n}', String(ok)) : t(state.lang, 'importFail'), problems.length ? 6000 : 2400);
 }
 
 async function removeImported(id){
@@ -1181,7 +1599,7 @@ function buildFilm(){
   // choice: opening a photo lands here, and getting back to it is one click.
   const orig = document.createElement('button');
   orig.type = 'button';
-  orig.className = 'chip original';
+  orig.className = 'chip original loading';
   orig.dataset.id = '__none';
   orig.innerHTML = `<canvas width="156" height="104"></canvas><span class="n">00</span><span class="nm">${t(state.lang, 'original')}</span>`;
   orig.addEventListener('click', () => { if (state.dragged) return; selectOriginal(); });
@@ -1191,6 +1609,7 @@ function buildFilm(){
     b.className = 'chip' + (look.id === state.look ? ' on' : '') + (look.imported ? ' mine' : '');
     b.dataset.id = look.id;
     b.innerHTML = `<canvas width="156" height="104"></canvas><span class="n">${String(i+1).padStart(2,'0')}</span><span class="nm">${displayName(look, state.lang)}</span>` + (look.imported ? '<span class="del" title="删除">×</span>' : '');
+    b.classList.add('loading');
     b.addEventListener('click', (e) => {
       if (state.dragged) { e.preventDefault(); return; }
       if (e.target.closest('.del')) { removeImported(look.id); return; }
@@ -1233,6 +1652,7 @@ function drawFilmThumb(i, chips, all){
   if (look) renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], adjFor(), 156, 104, 'cover');
   else renderer.render([], adjFor(), 156, 104, 'cover');
   chip.querySelector('canvas').getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
+  chip.classList.remove('loading');
   thumbRendered.add(i);
 }
 
@@ -1531,21 +1951,27 @@ function togglePick(force) {
  * matrix so that pixel lands on its own luminance.
  */
 function pickWhite(e) {
-  if (!source || !el.base) return;
-  const box = el.field.getBoundingClientRect();
-  const fx = (e.clientX - box.left) / Math.max(1, box.width);
-  const fy = (e.clientY - box.top) / Math.max(1, box.height);
+  if (!source) return;
+  const r = fieldRect();
+  const fx = (e.clientX - r.left) / Math.max(1, r.width);
+  const fy = (e.clientY - r.top) / Math.max(1, r.height);
   if (fx < 0 || fx > 1 || fy < 0 || fy > 1) return;
-  const c = el.base;
+  const rect = currentRect();
+  const ix = rect.x + fx * rect.w;
+  const iy = rect.y + fy * rect.h;
+  if (ix < 0 || ix > 1 || iy < 0 || iy > 1) { toast(t(state.lang, 'pickTooDark')); return; }
+  const px = Math.min(source.width - 1, Math.max(0, Math.round(ix * source.width)));
+  const py = Math.min(source.height - 1, Math.max(0, Math.round(iy * source.height)));
+  const c = document.createElement('canvas');
+  c.width = 1; c.height = 1;
   const ctx = c.getContext('2d', { willReadFrequently: true });
-  const px = Math.min(c.width - 1, Math.max(0, Math.round(fx * c.width)));
-  const py = Math.min(c.height - 1, Math.max(0, Math.round(fy * c.height)));
-  const d = ctx.getImageData(px, py, 1, 1).data;
+  ctx.drawImage(source, px, py, 1, 1, 0, 0, 1, 1);
+  const d = ctx.getImageData(0, 0, 1, 1).data;
   const toLin = (s) => { s /= 255; return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
-  const r = toLin(d[0]), g = toLin(d[1]), b = toLin(d[2]);
-  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  if (lum < 1e-4 || r < 1e-4 || g < 1e-4 || b < 1e-4) { toast(t(state.lang, 'pickTooDark')); return; }
-  const lr = Math.log2(lum / r), lg = Math.log2(lum / g), lb = Math.log2(lum / b);
+  const rr = toLin(d[0]), gg = toLin(d[1]), bb = toLin(d[2]);
+  const lum = 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
+  if (lum < 1e-4 || rr < 1e-4 || gg < 1e-4 || bb < 1e-4) { toast(t(state.lang, 'pickTooDark')); return; }
+  const lr = Math.log2(lum / rr), lg = Math.log2(lum / gg), lb = Math.log2(lum / bb);
   const temp = Math.max(-100, Math.min(100, Math.round((lr - lb) / 1.20 * 100)));
   const tint = Math.max(-100, Math.min(100, Math.round(-lg / 0.34 * 100)));
   state.tone.temp = temp;
@@ -1559,6 +1985,8 @@ function pickWhite(e) {
 
 function setFit(fit){
   state.fit = fit;
+  localStorage.setItem('lut.fit', fit);
+  resetViewForPhoto();
   el.fitBtn.textContent = t(state.lang, fit === 'contain' ? 'fill' : 'fit');
   drawBase();
   render({ instant: true });
@@ -1573,6 +2001,7 @@ function applyLang(lang, { persist = true } = {}){
   updateDevLang();
   el.photoBtn.textContent = t(lang, 'photo');
   el.fitBtn.textContent = t(lang, state.fit === 'contain' ? 'fill' : 'fit');
+  updateZoomUI();
   el.exportBtn.textContent = `${t(lang, 'export')} ↗`;
   el.hint.textContent = t(lang, 'hint');
   el.importBtn.textContent = t(lang, 'importLut');
@@ -1617,50 +2046,70 @@ function selectQuality(q){
 
 async function exportImage(quality){
   if (!source) return;
-  toast(t(state.lang, 'exportDone') + '…');
   const stack = currentStack();
   const adj = adjFor();
   const scale = quality / 100;
   const w = Math.max(2, Math.round(source.width * scale));
   const h = Math.max(2, Math.round(source.height * scale));
-  const out = document.createElement('canvas'); out.width = w; out.height = h;
-  const ctx = out.getContext('2d', { alpha: false });
-  const max = renderer.maxTexture;
-  if (Math.max(w, h) <= max) {
-    renderer.render(stack, adj, w, h, 'cover');
-    ctx.drawImage(renderer.canvas, 0, 0);
-  } else {
-    // Larger than the GPU texture limit: grade the photo tile by tile at native
-    // resolution and stitch the tiles into the output canvas. The LUT is applied
-    // per pixel, so tile edges are seamless.
-    const T = Math.min(4096, max);
-    for (let ty = 0; ty < h; ty += T) {
-      for (let tx = 0; tx < w; tx += T) {
-        const tw = Math.min(T, w - tx), th = Math.min(T, h - ty);
-        const crop = document.createElement('canvas');
-        crop.width = tw; crop.height = th;
-        crop.getContext('2d', { alpha: false }).drawImage(
-          source,
-          tx / scale, ty / scale, tw / scale, th / scale,
-          0, 0, tw, th
-        );
-        renderer.setImage(crop);
-        renderer.render(stack, adj, tw, th, 'cover');
-        ctx.drawImage(renderer.canvas, tx, ty);
-        await new Promise(r => setTimeout(r, 0));
+  busyShow({
+    title: t(state.lang, 'busyExport'),
+    steps: [t(state.lang, 'busyRender'), t(state.lang, 'busyEncode')],
+    sub: `${w} × ${h} · ${quality}%`,
+    progress: 0,
+  });
+  try {
+    const out = document.createElement('canvas'); out.width = w; out.height = h;
+    const ctx = out.getContext('2d', { alpha: false });
+    const max = renderer.maxTexture;
+    if (Math.max(w, h) <= max) {
+      renderer.render(stack, adj, w, h, 'cover');
+      ctx.drawImage(renderer.canvas, 0, 0);
+      busyUpdate({ progress: 0.55 });
+    } else {
+      // Larger than the GPU texture limit: grade the photo tile by tile at native
+      // resolution and stitch the tiles into the output canvas. The LUT is applied
+      // per pixel, so tile edges are seamless.
+      const T = Math.min(4096, max);
+      const cols = Math.ceil(w / T), rows = Math.ceil(h / T);
+      const total = cols * rows;
+      let done = 0;
+      for (let ty = 0; ty < h; ty += T) {
+        for (let tx = 0; tx < w; tx += T) {
+          const tw = Math.min(T, w - tx), th = Math.min(T, h - ty);
+          const crop = document.createElement('canvas');
+          crop.width = tw; crop.height = th;
+          crop.getContext('2d', { alpha: false }).drawImage(
+            source,
+            tx / scale, ty / scale, tw / scale, th / scale,
+            0, 0, tw, th
+          );
+          renderer.setImage(crop);
+          renderer.render(stack, adj, tw, th, 'cover');
+          ctx.drawImage(renderer.canvas, tx, ty);
+          done++;
+          busyUpdate({ progress: done / total * 0.9 });
+          await new Promise(r => setTimeout(r, 0));
+        }
       }
+      renderer.setImage(source);
     }
-    renderer.setImage(source);
+    busyUpdate({ step: 1, progress: 0.94, sub: `${w} × ${h}` });
+    const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', quality >= 100 ? 0.98 : quality >= 75 ? 0.95 : 0.9));
+    busyUpdate({ progress: 1 });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const tag = state.noLook ? 'developed' : `${state.dual.enabled ? 'dual-' : ''}${state.look}`;
+    a.download = `lut-archive-${tag}-${quality}pct-${Date.now()}.jpg`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    toast(`${t(state.lang, 'exportDone')} ${w}×${h} · ${(blob.size / 1024 / 1024).toFixed(1)} MB`);
+    render({ instant: true });
+  } catch (err) {
+    console.warn('export failed', err);
+    toast(t(state.lang, 'exportFailed'));
+  } finally {
+    busyHide();
   }
-  const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', quality >= 100 ? 0.98 : quality >= 75 ? 0.95 : 0.9));
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  const tag = state.noLook ? 'developed' : `${state.dual.enabled ? 'dual-' : ''}${state.look}`;
-  a.download = `lut-archive-${tag}-${quality}pct-${Date.now()}.jpg`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
-  toast(`${t(state.lang, 'exportDone')} ${w}×${h} · ${(blob.size / 1024 / 1024).toFixed(1)} MB`);
-  render({ instant: true });
 }
 
 async function detectGeo(){
@@ -1733,6 +2182,136 @@ function bind(){
   el.fitBtn.addEventListener('click', () => setFit(state.fit === 'cover' ? 'contain' : 'cover'));
   el.langBtn.addEventListener('click', () => applyLang(state.lang === 'zh' ? 'en' : 'zh'));
 
+  // ---------- zoom / pan on the photo stage ----------
+  // Pinch and drag are pointer-event based, so the same code drives touch, pen
+  // and the trackpad. The shader samples the scene at full resolution, so the
+  // picture stays sharp while zoomed instead of being a stretched screenshot.
+  const pointers = new Map();
+  let pinch = null, pan = null, lastTap = null, lastTouchTapAt = 0;
+  const pDist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const pMid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  const zoomable = () => !!source && !state.picking;
+
+  const beginPinch = () => {
+    viewAnimToken++;
+    const [a, b] = [...pointers.values()];
+    pinch = { d0: Math.max(14, pDist(a, b)), z0: state.view.zoom, rect: currentRect(), frac0: clientFrac(pMid(a, b)) };
+    pan = null;
+    clearTimeout(pressTimer);
+    state.comparing = false;
+    el.app.classList.remove('comparing');
+    beginViewGesture();
+  };
+
+  el.field.addEventListener('pointerdown', (e) => {
+    if (!zoomable()) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    viewAnimToken++;
+    clearTimeout(viewSettleTimer);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { el.field.setPointerCapture(e.pointerId); } catch { /* older Safari */ }
+    if (pointers.size === 2) { beginPinch(); e.preventDefault(); return; }
+    if (pointers.size === 1 && !pinch) {
+      pan = { x: e.clientX, y: e.clientY, view: { ...state.view }, rect: currentRect(), moved: false };
+    }
+  });
+
+  el.field.addEventListener('pointermove', (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pointers.size >= 2) {
+      const [a, b] = [...pointers.values()];
+      const z = Math.max(1, Math.min(16, pinch.z0 * pDist(a, b) / pinch.d0));
+      const frac = clientFrac(pMid(a, b));
+      const { w, h } = stageSize();
+      const next = computeViewRect(source.width, source.height, w, h, state.fit, { zoom: z, cx: 0.5, cy: 0.5 });
+      const px = pinch.rect.x + pinch.frac0.x * pinch.rect.w;
+      const py = pinch.rect.y + pinch.frac0.y * pinch.rect.h;
+      setView(z, px - (frac.x - 0.5) * next.w, py - (frac.y - 0.5) * next.h);
+      e.preventDefault();
+      return;
+    }
+    if (!pan || pointers.size !== 1) return;
+    const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+    if (!pan.moved) {
+      if (state.view.zoom <= 1.01 || Math.hypot(dx, dy) < 3) return;
+      pan.moved = true;
+      clearTimeout(pressTimer);
+      el.app.classList.add('panning');
+      beginViewGesture();
+    }
+    const r = fieldRect();
+    setView(state.view.zoom,
+      pan.view.cx - dx / Math.max(1, r.width) * pan.rect.w,
+      pan.view.cy - dy / Math.max(1, r.height) * pan.rect.h);
+  });
+
+  const endPointer = (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    const hadPinch = !!pinch;
+    pointers.delete(e.pointerId);
+    try { el.field.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    if (e.pointerType !== 'mouse') lastTouchTapAt = performance.now();
+    if (hadPinch) {
+      if (pointers.size >= 2) return;
+      pinch = null;
+      if (pointers.size === 1) {
+        const p = [...pointers.values()][0];
+        pan = { x: p.x, y: p.y, view: { ...state.view }, rect: currentRect(), moved: true };
+      } else {
+        pan = null;
+        endViewGesture();
+      }
+      return;
+    }
+    if (pointers.size === 0) {
+      const moved = !!(pan && pan.moved);
+      pan = null;
+      if (moved) { endViewGesture(); return; }
+      if (e.pointerType !== 'mouse' && zoomable()) {
+        const now = performance.now();
+        if (lastTap && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 44) {
+          lastTap = null;
+          toggleZoomAt(clientFrac(e));
+        } else {
+          lastTap = { x: e.clientX, y: e.clientY, t: now };
+        }
+      }
+      return;
+    }
+    // another finger is still down: hand over to a fresh pan
+    const p = [...pointers.values()][0];
+    pan = { x: p.x, y: p.y, view: { ...state.view }, rect: currentRect(), moved: true };
+  };
+  el.field.addEventListener('pointerup', endPointer);
+  el.field.addEventListener('pointercancel', endPointer);
+  window.addEventListener('blur', () => { pointers.clear(); pinch = null; pan = null; });
+
+  // Wheel / trackpad: zoom around the cursor; a burst of events settles into a
+  // full-quality redraw once the wheel stops.
+  el.field.addEventListener('wheel', (e) => {
+    if (!zoomable()) return;
+    e.preventDefault();
+    viewAnimToken++;
+    const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.0032 : 0.0016));
+    const target = zoomTarget(clientFrac(e), state.view.zoom * factor);
+    beginViewGesture();
+    setView(target.zoom, target.cx, target.cy);
+    settleView(190);
+  }, { passive: false });
+
+  el.field.addEventListener('dblclick', (e) => {
+    if (!zoomable() || performance.now() - lastTouchTapAt < 500) return;
+    e.preventDefault();
+    toggleZoomAt(clientFrac(e));
+  });
+
+  el.zoomBtn.addEventListener('click', () => {
+    if (!source) return;
+    if (state.view.zoom > 1.01) resetView();
+    else animateViewTo(zoomTarget({ x: 0.5, y: 0.5 }, 2.5));
+  });
+
   // export
   el.exportClose.addEventListener('click', () => { el.exportSheet.hidden = true; });
   el.exportSheet.addEventListener('click', (e) => { if (e.target === el.exportSheet) el.exportSheet.hidden = true; });
@@ -1781,12 +2360,15 @@ function bind(){
   // long-press right side to see original
   el.app.addEventListener('pointerdown', (e) => {
     if (state.interacting) return;
-    if (e.target.closest('button, .strengths, .film, .quick, .topbar, .split-hit, .exportsheet, .develop')) return;
+    // Compare is a photo gesture: starting it from a slider, the filmstrip or a
+    // panel made the whole preview flash while editing.
+    if (!e.target.closest('#field')) return;
+    if (e.target.closest('.split-hit, .split-handle')) return;
     const s = splitStage();
     const splitX = s.left + state.split * s.width;
     if (e.clientX <= splitX) return;
     clearTimeout(pressTimer);
-    pressTimer = setTimeout(() => { state.comparing = true; el.app.classList.add('comparing'); }, 220);
+    pressTimer = setTimeout(() => { if (state.interacting) return; state.comparing = true; el.app.classList.add('comparing'); }, 220);
   });
   const endPress = () => { clearTimeout(pressTimer); state.comparing = false; el.app.classList.remove('comparing'); };
   window.addEventListener('pointerup', endPress);
@@ -1832,9 +2414,19 @@ function bind(){
 
   // keyboard
   addEventListener('keydown', (e) => {
+    const editing = e.target instanceof Element && e.target.matches('input, textarea, select, [contenteditable="true"]');
+    if (editing || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); stepLook(-1); }
     if (e.key === 'ArrowRight') { e.preventDefault(); stepLook(1); }
-    if (e.key.toLowerCase() === 'e' && !e.metaKey && !e.ctrlKey && !e.target.matches('input')) { e.preventDefault(); openExport(); }
+    if (e.key.toLowerCase() === 'e') { e.preventDefault(); openExport(); }
+    if (source && (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_' || e.key === '0')) {
+      e.preventDefault();
+      if (e.key === '0') { resetView(); return; }
+      const factor = e.key === '+' || e.key === '=' ? 1.35 : 1 / 1.35;
+      beginViewGesture();
+      setView(state.view.zoom * factor, state.view.cx, state.view.cy);
+      settleView(200);
+    }
   });
 
   // film drag with inertia
@@ -1904,7 +2496,7 @@ function bind(){
       raf2 = (Math.abs(tx - px) > 0.1 || Math.abs(ty - py) > 0.1) ? requestAnimationFrame(tick) : 0;
     };
     addEventListener('pointermove', (e) => {
-      if (state.interacting || state.comparing) return;
+      if (state.interacting || state.comparing || state.view.zoom > 1.01) return;
       tx = (e.clientX / innerWidth - 0.5) * -10;
       ty = (e.clientY / innerHeight - 0.5) * -8;
       if (!raf2) raf2 = requestAnimationFrame(tick);
@@ -1938,6 +2530,25 @@ function stepLook(dir){
 
 const RAW_EXT = /\.(nef|nrw|cr2|cr3|arw|srf|sr2|dng|raf|orf|rw2|pef|srw|3fr|erf|kdc|mos|iiq|x3f)$/i;
 
+/** Read a File into an ArrayBuffer, reporting progress for the busy overlay. */
+async function readFileBufferWithProgress(file, onProgress){
+  if (!file.stream || !file.size) return file.arrayBuffer();
+  const reader = file.stream().getReader();
+  const chunks = [];
+  let loaded = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    loaded += value.length;
+    onProgress?.(Math.min(1, loaded / file.size), loaded, file.size);
+  }
+  const out = new Uint8Array(loaded);
+  let offset = 0;
+  for (const chunk of chunks) { out.set(chunk, offset); offset += chunk.length; }
+  return out.buffer;
+}
+
 function applyImage(img, name, note){
   state.userPhoto = true;
   el.lqip?.remove();
@@ -1946,8 +2557,8 @@ function applyImage(img, name, note){
   sourceName = name.replace(/\.[^.]+$/, '').slice(0, 28) || 'Untitled';
   el.metaName.textContent = sourceName.toUpperCase();
   el.metaDims.textContent = `${source.width} × ${source.height}`;
-  state.fit = 'cover';
-  el.fitBtn.textContent = t(state.lang, 'fit');
+  resetViewForPhoto();
+  el.fitBtn.textContent = t(state.lang, state.fit === 'contain' ? 'fill' : 'fit');
   sizeCanvases();
   drawBase();
   render({ instant: true });
@@ -1963,14 +2574,36 @@ function applyImage(img, name, note){
 async function loadFile(file){
   if (/\.cube$/i.test(file.name)) { await handleImport([file]); return; }
   if (RAW_EXT.test(file.name)) { await loadRaw(file); return; }
+  busyShow({
+    title: t(state.lang, 'busyOpen'),
+    steps: [t(state.lang, 'busyRead'), t(state.lang, 'busyDecode')],
+    sub: `${file.name} · ${fmtBytes(file.size)}`,
+  });
   try {
-    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null);
-    const img = bitmap || await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+    // Stream big files so the bar moves; small ones decode in a frame anyway.
+    let blob = file;
+    if (file.size > 512 * 1024) {
+      const ab = await readFileBufferWithProgress(file, (p, loaded) => busyUpdate({
+        progress: p, sub: `${file.name} · ${fmtBytes(loaded)} / ${fmtBytes(file.size)}`,
+      }));
+      blob = new Blob([ab], { type: file.type || 'image/jpeg' });
+    }
+    busyUpdate({ step: 1, progress: null, sub: `${file.name} · ${fmtBytes(file.size)}` });
+    const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' }).catch(() => null);
+    const url = bitmap ? '' : URL.createObjectURL(blob);
+    const img = bitmap || await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = url;
+    });
+    if (url) URL.revokeObjectURL(url);
     state.rawMeta = null;
     beginPhoto(0);
     applyImage(img, file.name);
     setDevelop(true);
   } catch { toast(t(state.lang, 'formatError')); }
+  finally { busyHide(); }
 }
 
 // RAW goes through a real development pipeline first (LibRaw in WASM: demosaic,
@@ -1988,29 +2621,47 @@ function syncAutoBtn(){
 }
 
 async function loadRaw(file){
-  const buffer = await file.arrayBuffer();
-  toast(t(state.lang, 'rawDecoding'), 12000);
+  const size = fmtBytes(file.size);
+  busyShow({
+    title: t(state.lang, 'busyRaw'),
+    steps: [t(state.lang, 'busyRead'), t(state.lang, 'busyDecode'), t(state.lang, 'busyPreview')],
+    sub: `${file.name} · ${size}`,
+  });
+  let buffer = null;
+  let out = null;
   let reason = null;
   try {
-    const out = await developRaw(buffer);
-    const bits = `${out.width} × ${out.height}`;
-    const who = out.model ? ` · ${out.model}` : '';
-    state.rawMeta = { model: out.model || '', width: out.width, height: out.height };
-    beginPhoto(out.exposureEV || 0);
-    const ev = state.autoBright && state.rawExposure
-      ? ` · ${t(state.lang, 'autoBright')} ${state.rawExposure >= 0 ? '+' : ''}${state.rawExposure.toFixed(1)} EV`
-      : '';
-    applyImage(out.bitmap, file.name, `${t(state.lang, 'rawDeveloped')}${who} · ${bits}${ev} · ${(out.ms / 1000).toFixed(1)}s`);
-    // A RAW is something you develop, not a wallpaper: land in the develop panel
-    // with the camera's own render and no LUT in the way.
-    setDevelop(true);
-    return;
-  } catch (err) {
-    reason = err instanceof RawUnsupported ? err.reason : null;
-    if (!reason) console.warn('RAW development failed, falling back to the embedded preview', err);
-  }
-  toast(t(state.lang, 'rawExtracting'), 12000);
-  try {
+    try {
+      buffer = await readFileBufferWithProgress(file, (p, loaded) => busyUpdate({
+        progress: p, sub: `${file.name} · ${fmtBytes(loaded)} / ${size}`,
+      }));
+    } catch (err) {
+      console.warn('could not stream the RAW file, reading it in one go', err);
+      buffer = await file.arrayBuffer();
+    }
+    busyUpdate({ step: 1, progress: null, sub: `${file.name} · ${size}` });
+    try {
+      out = await developRaw(buffer);
+    } catch (err) {
+      reason = err instanceof RawUnsupported ? err.reason : null;
+      if (!reason) console.warn('RAW development failed, falling back to the embedded preview', err);
+    }
+    if (out) {
+      const bits = `${out.width} × ${out.height}`;
+      const who = out.model ? ` · ${out.model}` : '';
+      busyUpdate({ step: 2, progress: 1 });
+      state.rawMeta = { model: out.model || '', width: out.width, height: out.height };
+      beginPhoto(out.exposureEV || 0);
+      const ev = state.autoBright && state.rawExposure
+        ? ` · ${t(state.lang, 'autoBright')} ${state.rawExposure >= 0 ? '+' : ''}${state.rawExposure.toFixed(1)} EV`
+        : '';
+      applyImage(out.bitmap, file.name, `${t(state.lang, 'rawDeveloped')}${who} · ${bits}${ev} · ${(out.ms / 1000).toFixed(1)}s`);
+      // A RAW is something you develop, not a wallpaper: land in the develop panel
+      // with the camera's own render and no LUT in the way.
+      setDevelop(true);
+      return;
+    }
+    busyUpdate({ title: t(state.lang, 'busyExtract'), step: 2, progress: null, sub: `${file.name} · ${size}` });
     const preview = await extractRawPreview(buffer);
     if (!preview) { toast(t(state.lang, 'rawUnsupported')); return; }
     state.rawMeta = { model: '', width: preview.width, height: preview.height };
@@ -2019,6 +2670,8 @@ async function loadRaw(file){
     setDevelop(true);
   } catch {
     toast(t(state.lang, 'rawUnsupported'));
+  } finally {
+    busyHide();
   }
 }
 

@@ -2,9 +2,10 @@
 
 A darkroom-style photo editor that runs entirely in your browser: open a RAW,
 develop it with a Lightroom-style panel (white balance, tone, presence,
-histogram, before/after), then stack one of 44 generated looks on top. Full-bleed
-image, split-view compare, dual-LUT stacking, `.cube` import and full-resolution
-JPEG export — no accounts, no uploads, no server-side rendering.
+histogram, before/after), then stack one of 44 generated looks on top. Fit-to-frame
+preview with pinch/wheel zoom and drag-to-pan at full resolution, split-view
+compare, dual-LUT stacking, `.cube` import and full-resolution JPEG export — no
+accounts, no uploads, no server-side rendering.
 
 **Live demo:** <https://lut.openanthropic.com>
 
@@ -20,18 +21,36 @@ Develop panel — a RAW opens neutral, no LUT in the way:
 
 ![Develop](docs/screens/develop-desktop.jpg)
 
+Inspect at 250% — zoom and pan sample the full-resolution frame, not a scaled
+screenshot:
+
+![Zoom](docs/screens/zoom.jpg)
+
 ## Features
 
 - **44 original LUT looks** — cinema, film, B&W, Leica, Hasselblad and more,
   all generated from the recipes in `scripts/looks.mjs` and bundled as a single
   ~850 KB binary. The same looks ship as standard `.cube` files in `luts-src/`
   for use in Resolve, Premiere, Photoshop, etc.
+- **Inspect at pixel level** — pinch, wheel or double-click to zoom (up to 1600%)
+  and drag to pan. The zoom is a rectangle of the full-resolution texture passed
+  to the shader, so a zoomed preview shows real sensor pixels rather than an
+  upscaled screenshot, and the split line stays aligned while you pan. The
+  `100%` badge (or `0`) resets; `+`/`-` step the zoom.
+- **Waiting states that explain themselves** — the intro holds a short caption
+  while the app boots; a blurred inline placeholder shimmers until the demo frame
+  arrives; filmstrip chips show animated skeletons until the LUT pack is unpacked;
+  a progress pill (percentage, ETA, and a “slow network” note) tracks the
+  background downloads; opening a photo, developing a RAW and exporting all show
+  a stage overlay with named steps and a live clock instead of a frozen screen.
 - **Split compare** — drag the vertical line; long-press the right side to see
   the original, release to restore. Fit/fill state is never touched.
 - **Dual LUT stacking** — apply two looks at once with independent strength
   rails. Useful for a base grade plus a subtle skin-tone or highlight tweak.
-- **Fit / fill**, drag-and-drop upload, EXIF orientation handled, full-resolution
-  rendering.
+- **Fit by default (remembered)** — a photo opens showing the whole frame instead
+  of being cropped to fill the window; the toolbar toggles Fit / Fill and the
+  choice is stored. Drag-and-drop upload, EXIF orientation handled,
+  full-resolution rendering.
 - **Export** — JPEG at 50 / 75 / 100% of the source long edge, full resolution
   even past the GPU texture limit (rendered in tiles and stitched), quality
   0.90 / 0.95 / 0.98.
@@ -95,6 +114,18 @@ Develop panel — a RAW opens neutral, no LUT in the way:
 - **Nothing leaves the device** — decoding, grading and encoding all happen in
   the browser. The only network calls are for static assets and a country code.
 
+## Viewer controls
+
+| Action | Desktop | Phone / tablet |
+| --- | --- | --- |
+| Zoom | wheel / trackpad pinch over the photo | pinch |
+| Zoom in / out | `+` / `-` | double-tap (250% / fit) |
+| Reset to fit | `0` or click the `100%` badge | double-tap or the badge |
+| Pan | drag while zoomed | drag while zoomed |
+| Next / previous look | `←` / `→` | filmstrip |
+| See the original | long-press the right half | long-press the right half |
+| Export | `E` | 导出 |
+
 ## How it works
 
 The editor is plain ES modules and WebGL2 — no framework, no build step for the
@@ -108,8 +139,10 @@ app itself.
   `buildToneCurve()`, see the references below) → vibrance / saturation around
   luma → optional LOG encode → 1–3 stacked LUTs. Noise reduction runs first (a
   3×3 bilateral on luma plus a wider chroma ring, both edge-aware), driven by
-  the measured noise floor. Also handles `cover`/`contain` fit and UV flipping.
-  One `adjFor()` object feeds the preview, the thumbnails and the export.
+  the measured noise floor. The framing is a single image-space rectangle
+  (`computeViewRect`): `cover`/`contain` choose it at zoom 1, and the interactive
+  view shrinks/moves it, so zoom and pan are exact texture lookups with clamped
+  bounds. One `adjFor()` object feeds the preview, the thumbnails and the export.
 - **Tone model references** — the log-exposure domain with explicit black/white
   points, latitude and toe/shoulder follows [darktable's filmic
   RGB](https://github.com/darktable-org/darktable/blob/master/src/iop/filmicrgb.c);
