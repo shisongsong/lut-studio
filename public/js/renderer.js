@@ -22,6 +22,34 @@ export const TONE_EV_MAX = 10.0;
 export const TONE_LUT_SIZE = 1024;
 const GREY = 0.18;
 
+/**
+ * Calibration of the Basic-panel tone sliders.
+ *
+ * The bands follow Adobe's own histogram ranges for the Lightroom Basic panel
+ * (Shadows 10–30 %, Highlights 70–90 %, Whites 90–100 %, Blacks 0–10 % of the
+ * displayed tonal range). Highlights and shadows are amplitude-limited
+ * exposure changes applied through a blurred luminance guide (a local tone
+ * map, the way Lightroom's adaptive sliders behave); whites and blacks are
+ * endpoint moves with a soft shoulder/toe.
+ *
+ * These numbers are injected into the shader too, so the browser render and
+ * `scripts/test-tone-model.mjs` share one calibration.
+ */
+const glf = (n) => Number(n).toFixed(4);
+
+export const TONE_MODEL = {
+  // Highlights / shadows: a logistic band in log2 luminance around a pivot.
+  // A tone control turned all the way up is `stops` stops inside its band.
+  // The logistic shape keeps the *guide* mapping monotone (slope ≈
+  // 1 − stops / (4·width) > 0.5), so no plateau or fold can appear — the old
+  // smoothstep masks could invert and got repaired into a flat grey band.
+  shadow: { stops: 1.9, pivotEv: -1.9, widthEv: 1.0 },
+  highlight: { stops: 0.55, pivotEv: 1.5, widthEv: 0.75 },
+  // Whites / blacks: display-space endpoint curves, monotone by construction.
+  whites: { knee: 0.42, boost: 0.55, recover: 0.9 },
+  blacks: { lift: 0.10, toe: 0.35, crush: 0.85 },
+};
+
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const smoothstep = (a, b, x) => {
   const t = clamp01((x - a) / (b - a));
@@ -49,35 +77,18 @@ const smoothstep = (a, b, x) => {
  */
 export function buildToneCurve(tone = {}) {
   const pick = (v) => Math.max(-100, Math.min(100, Number(v) || 0)) / 100;
-  const contrast = pick(tone.contrast);
-  const shadows = pick(tone.shadows);
-  const highlights = pick(tone.highlights);
-  const whites = pick(tone.whites);
-  const blacks = pick(tone.blacks);
-
-  const slope = 1 + 0.35 * contrast;   // ±35% slope around mid grey
-  const shAmp = 2.4 * shadows;         // stops, deepest shadows
-  const hiAmp = 2.0 * highlights;      // stops, upper range
-  const whAmp = 2.8 * whites;          // stops, top end only
-  const blAmp = 1.0 * blacks;          // stops, toe shaping
+  // The tone sliders are no longer baked into this 1D curve: highlights,
+  // shadows, whites and blacks need either a spatial guide or an endpoint move
+  // in display space, so they run in the fragment shader (see FRAG below).
+  // What remains here is contrast: a slope around mid grey in the log exposure
+  // domain, applied as a luminance ratio so hue survives.
+  const slope = 1 + 0.32 * pick(tone.contrast);
   const out = new Float32Array(TONE_LUT_SIZE);
-
   for (let i = 0; i < TONE_LUT_SIZE; i++) {
     const ev = TONE_EV_MIN + (TONE_EV_MAX - TONE_EV_MIN) * (i / (TONE_LUT_SIZE - 1));
-    let x = ev * slope;
-    x += shAmp * (1 - smoothstep(-4.2, -0.2, x));
-    x += hiAmp * smoothstep(0.3, 3.2, x);
-    x += whAmp * smoothstep(1.2, 4.5, x);
-    x += blAmp * (1 - smoothstep(-9.0, -5.5, x));
-    let y = GREY * Math.pow(2, x);
-    if (blacks > 0) y += 0.0065 * blacks * (1 - smoothstep(0.004, 0.05, y));
-    else if (blacks < 0) y -= 0.0080 * -blacks * (1 - smoothstep(0.002, 0.03, y));
-    y = Math.max(y, 1e-8);
-    out[i] = Math.log2(y / GREY);
-  }
-  // Strictly non-decreasing: no tone inversion at any setting combination.
-  for (let i = 1; i < TONE_LUT_SIZE; i++) {
-    if (out[i] < out[i - 1]) out[i] = out[i - 1];
+    // Bounded only for float sanity: a hard clamp at the bottom would flatten
+    // the deepest shadows into a plateau at high contrast.
+    out[i] = Math.max(TONE_EV_MIN - 8, Math.min(TONE_EV_MAX + 4, ev * slope));
   }
   return out;
 }
@@ -171,8 +182,18 @@ uniform float uTemp;
 uniform float uTint;
 uniform float uVibrance;
 uniform float uSaturation;
+// Basic-panel tone sliders in -100..100. Highlights/shadows are adaptive (they
+// read a blurred luminance guide); whites/blacks are endpoint moves.
+uniform float uShadows;
+uniform float uHighlights;
+uniform float uWhites;
+uniform float uBlacks;
 // 1D tone LUT in log2 luminance (R16F, TONE_LUT_SIZE samples).
 uniform sampler2D uTone;
+// Low-frequency luminance guide: R8, log2(luma/0.18) mapped from -10..6 EV.
+uniform sampler2D uGuide;
+uniform int uHasGuide;
+uniform vec4 uGuideRect;
 const float TONE_EV_MIN = -12.0;
 const float TONE_EV_MAX = 10.0;
 // Noise reduction (auto strength comes from a measured noise floor).
@@ -198,6 +219,16 @@ vec3 srgbToLinear(vec3 c) {
 vec3 linearToSrgb(vec3 c) {
   c = max(c, 0.0);
   return mix(1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, 12.92 * c, step(c, vec3(0.0031308)));
+}
+
+float srgbToLinear1(float c) {
+  c = clamp(c, 0.0, 1.0);
+  return mix(pow((c + 0.055) / 1.055, 2.4), c / 12.92, step(c, 0.04045));
+}
+
+float linearToSrgb1(float c) {
+  c = max(c, 0.0);
+  return mix(1.055 * pow(c, 1.0 / 2.4) - 0.055, 12.92 * c, step(c, 0.0031308));
 }
 
 // Published transfer functions: Fujifilm F-Log / F-Log2, Panasonic V-Log.
@@ -291,13 +322,57 @@ void main() {
     exp2(-wt * 0.60 + tn * 0.14)
   );
 
-  // Tone: a single monotone curve in log2 luminance, applied as a luminance
-  // ratio so hue and saturation survive. The LUT is built so no combination of
-  // blacks/whites/highlights/shadows can fold the curve.
+  // Tone, in the same order as the Basic panel: contrast → highlights/shadows
+  // (adaptive) → whites/blacks (endpoints). Everything ends up as a luminance
+  // ratio, so hue and saturation survive.
   float Y = max(dot(lin, vec3(0.2126, 0.7152, 0.0722)), 1e-7);
   float ev = clamp(log2(Y / 0.18), TONE_EV_MIN, TONE_EV_MAX);
   float tu = (ev - TONE_EV_MIN) / (TONE_EV_MAX - TONE_EV_MIN);
-  float Yt = 0.18 * exp2(texture(uTone, vec2(tu, 0.5)).r);
+
+  // 1) Contrast: the only thing left in the 1D LUT.
+  float evC = texture(uTone, vec2(tu, 0.5)).r;
+  float Yc = 0.18 * exp2(evC);
+
+  // 2) Highlights / shadows: an exposure change weighted by a *blurred*
+  //    luminance guide, so the weight is constant across a neighbourhood and
+  //    micro-contrast inside the lifted region survives. The band is a logistic
+  //    in log2 luminance: it falls off smoothly instead of ending on a hard
+  //    mask edge, which keeps the whole mapping monotone (no flat spot — the
+  //    artifact that used to turn skies into grey mush). Without a guide it
+  //    degrades gracefully to a global curve.
+  float gEv = ev;
+  if (uHasGuide == 1) {
+    vec2 gu = uGuideRect.xy + uv * uGuideRect.zw;
+    gEv = clamp(texture(uGuide, gu).r * 16.0 - 10.0 + uExposure, -12.0, 10.0);
+  }
+  float shadowW = 1.0 / (1.0 + exp((gEv - ${glf(TONE_MODEL.shadow.pivotEv)}) / ${glf(TONE_MODEL.shadow.widthEv)}));
+  float highlightW = 1.0 / (1.0 + exp(-(gEv - ${glf(TONE_MODEL.highlight.pivotEv)}) / ${glf(TONE_MODEL.highlight.widthEv)}));
+  float gain = exp2(uShadows * ${(TONE_MODEL.shadow.stops / 100).toFixed(3)} * shadowW
+                  + uHighlights * ${(TONE_MODEL.highlight.stops / 100).toFixed(3)} * highlightW);
+  float Yl = Yc * gain;
+
+  // 3) Whites / blacks: white-point / black-point moves in display space, the
+  //    way the Basic panel behaves. Positive whites stretches the top of the
+  //    range into clipping; negative whites recovers it. Positive blacks lifts
+  //    the black point (matte), negative blacks crushes the toe. Both are
+  //    monotone by construction — verified by scripts/test-tone-model.mjs.
+  float dDisp = linearToSrgb1(min(Yl, 1.0));
+  float whites = clamp(uWhites, -100.0, 100.0) * 0.01;
+  float blacks = clamp(uBlacks, -100.0, 100.0) * 0.01;
+  float whMask = smoothstep(${glf(TONE_MODEL.whites.knee)}, 1.0, dDisp);
+  if (whites > 0.0) dDisp += ${glf(TONE_MODEL.whites.boost)} * whites * dDisp * whMask;
+  else if (whites < 0.0) dDisp -= ${glf(TONE_MODEL.whites.recover)} * -whites * (1.0 - dDisp) * whMask;
+  dDisp = clamp(dDisp, 0.0, 1.0);
+
+  if (blacks > 0.0) {
+    dDisp += ${glf(TONE_MODEL.blacks.lift)} * blacks * (1.0 - smoothstep(0.0, 0.5, dDisp));
+  } else if (blacks < 0.0) {
+    dDisp *= 1.0 - ${glf(TONE_MODEL.blacks.crush)} * -blacks
+             * (1.0 - smoothstep(0.0, ${glf(TONE_MODEL.blacks.toe)}, dDisp));
+  }
+  dDisp = clamp(dDisp, 0.0, 1.0);
+
+  float Yt = srgbToLinear1(dDisp);
   vec3 graded = lin * (Yt / Y);
   // Desaturate only what is about to clip, so pushed whites roll to white
   // instead of turning a sunset magenta.
@@ -349,7 +424,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLogMode', 'uTone', 'uNr', 'uNrColor', 'uTexel']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uShadows', 'uHighlights', 'uWhites', 'uBlacks', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uNr', 'uNrColor', 'uTexel']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -382,7 +457,19 @@ export class LookRenderer {
     gl.bindTexture(gl.TEXTURE_3D, this.dummyLut);
     gl.activeTexture(gl.TEXTURE3);
     gl.bindTexture(gl.TEXTURE_3D, this.dummyLut);
+    // Adaptive-tone guide texture (unit 5): 1x1 placeholder until a photo sets one.
+    this.guideTex = gl.createTexture();
+    this.hasGuide = false;
+    gl.activeTexture(gl.TEXTURE5);
+    gl.bindTexture(gl.TEXTURE_2D, this.guideTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array([0]));
     gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(this.uniform.uGuide, 5);
   }
 
   /**
@@ -421,6 +508,23 @@ export class LookRenderer {
     this.texH = upload.height;
   }
 
+  /**
+   * Upload the adaptive-tone guide: a small, blurred log-luminance map of the
+   * source. The highlights/shadows sliders read it to decide *where* they apply,
+   * so their effect is a local exposure change rather than a global curve.
+   * @param {{w:number, h:number, data:Uint8Array}|null} guide
+   */
+  setGuide(guide) {
+    const gl = this.gl;
+    if (!guide || !guide.data || !guide.w || !guide.h) { this.hasGuide = false; return; }
+    gl.activeTexture(gl.TEXTURE5);
+    gl.bindTexture(gl.TEXTURE_2D, this.guideTex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, guide.w, guide.h, 0, gl.RED, gl.UNSIGNED_BYTE, guide.data);
+    gl.activeTexture(gl.TEXTURE0);
+    this.hasGuide = true;
+  }
+
   _lutTexture(id, parsed) {
     let tex = this.lutTex.get(id);
     if (tex) return tex;
@@ -439,10 +543,10 @@ export class LookRenderer {
     return tex;
   }
 
-  /** Rebuild + upload the tone LUT only when one of the five tone controls moved. */
+  /** Rebuild + upload the tone LUT only when contrast moved. */
   _syncToneCurve(adjust) {
     const tone = adjust || {};
-    const sig = `${tone.contrast | 0}|${tone.highlights | 0}|${tone.shadows | 0}|${tone.whites | 0}|${tone.blacks | 0}`;
+    const sig = `${tone.contrast | 0}`;
     if (sig === this.toneSig) return;
     this.toneSig = sig;
     const gl = this.gl;
@@ -463,8 +567,10 @@ export class LookRenderer {
    *          shadows:number, whites:number, blacks:number, logMode:number}} adjust
    * @param {{zoom:number, cx:number, cy:number}|null} view interactive zoom/pan
    *        around the fit framing; omitted for exports and thumbnails.
+   * @param {{x:number, y:number, w:number, h:number}|null} guideRect where the
+   *        current image texture sits inside the full photo, for tiled exports.
    */
-  render(luts, adjust, w, h, fit = 'cover', view = null) {
+  render(luts, adjust, w, h, fit = 'cover', view = null, guideRect = null) {
     const gl = this.gl;
     if (!this.imageTex) return this.canvas;
     const max = this.maxTexture;
@@ -494,6 +600,13 @@ export class LookRenderer {
 
     const rect = computeViewRect(this.imgW, this.imgH, w, h, fit, view);
     gl.uniform4f(this.uniform.uRect, rect.x, rect.y, rect.w, rect.h);
+    gl.uniform1f(this.uniform.uShadows, adjust?.shadows || 0);
+    gl.uniform1f(this.uniform.uHighlights, adjust?.highlights || 0);
+    gl.uniform1f(this.uniform.uWhites, adjust?.whites || 0);
+    gl.uniform1f(this.uniform.uBlacks, adjust?.blacks || 0);
+    gl.uniform1i(this.uniform.uHasGuide, this.hasGuide ? 1 : 0);
+    const gr = guideRect;
+    gl.uniform4f(this.uniform.uGuideRect, gr ? gr.x : 0, gr ? gr.y : 0, gr ? gr.w : 1, gr ? gr.h : 1);
     gl.uniform1f(this.uniform.uExposure, adjust?.exposure || 0);
     gl.uniform1f(this.uniform.uTemp, adjust?.temp || 0);
     gl.uniform1f(this.uniform.uTint, adjust?.tint || 0);
@@ -514,6 +627,7 @@ export class LookRenderer {
     const gl = this.gl;
     if (this.imageTex) gl.deleteTexture(this.imageTex);
     if (this.toneTex) gl.deleteTexture(this.toneTex);
+    if (this.guideTex) gl.deleteTexture(this.guideTex);
     for (const tex of this.lutTex.values()) gl.deleteTexture(tex);
     this.lutTex.clear();
   }

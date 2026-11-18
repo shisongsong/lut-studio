@@ -878,6 +878,7 @@ async function loadDemoImage(){
     if (state.userPhoto) return;          // the user already opened their own photo
     source = makeSource(img);
     renderer.setImage(source);
+    updateToneGuide(source);
     el.lqip?.remove();
     state.demoLoaded = true;
     resetViewForPhoto();
@@ -1033,6 +1034,86 @@ function makeSource(img){
   c.height = img.naturalHeight || img.height;
   c.getContext('2d', { alpha: false }).drawImage(img, 0, 0);
   return c;
+}
+
+/**
+ * Build the guide the adaptive highlights/shadows sliders read.
+ *
+ * It is a small (long edge 320 px), *cross-bilateral blurred* map of log2
+ * luminance. Blurring it is what makes the sliders local: the weight applied to
+ * a pixel is constant over its neighbourhood, so lifting a shadow region is an
+ * exposure change there and the detail inside keeps its contrast. The bilateral
+ * weight stops strong edges (a dark roof against a bright sky) from bleeding
+ * into each other, which is what would otherwise show up as halos.
+ */
+function buildToneGuide(src){
+  const LONG_EDGE = 320;
+  const k = Math.min(1, LONG_EDGE / Math.max(1, src.width, src.height));
+  const gw = Math.max(8, Math.round(src.width * k));
+  const gh = Math.max(8, Math.round(src.height * k));
+  const c = document.createElement('canvas');
+  c.width = gw; c.height = gh;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(src, 0, 0, gw, gh);
+  const px = ctx.getImageData(0, 0, gw, gh).data;
+
+  const linTab = new Float32Array(256);
+  for (let i = 0; i < 256; i++) {
+    const v = i / 255;
+    linTab[i] = v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  }
+  const ev = new Float32Array(gw * gh);
+  for (let i = 0; i < ev.length; i++) {
+    const Y = 0.2126 * linTab[px[i * 4]] + 0.7152 * linTab[px[i * 4 + 1]] + 0.0722 * linTab[px[i * 4 + 2]];
+    ev[i] = Math.max(-10, Math.min(6, Math.log2(Math.max(Y, 1e-6) / 0.18)));
+  }
+
+  // Separable cross-bilateral blur. Weights are quantised by the EV difference
+  // so the pass stays a lookup instead of an exp() per neighbour.
+  const radius = Math.max(2, Math.round(Math.min(gw, gh) * 0.035));
+  const SIGMA = 0.65;
+  const QUANT = 256;
+  const wts = new Float32Array(QUANT + 1);
+  for (let i = 0; i <= QUANT; i++) {
+    const diff = (i / QUANT) * 5.0;
+    wts[i] = Math.exp(-(diff * diff) / (2 * SIGMA * SIGMA));
+  }
+  const tmp = new Float32Array(ev.length);
+  const pass = (srcArr, dstArr, horizontal) => {
+    for (let y = 0; y < gh; y++) {
+      for (let x = 0; x < gw; x++) {
+        const ci = y * gw + x;
+        const cv = srcArr[ci];
+        let sum = 0, wsum = 0;
+        const from = horizontal ? Math.max(0, x - radius) : Math.max(0, y - radius);
+        const to = horizontal ? Math.min(gw - 1, x + radius) : Math.min(gh - 1, y + radius);
+        for (let n = from; n <= to; n++) {
+          const ni = horizontal ? y * gw + n : n * gw + x;
+          const q = Math.min(QUANT, Math.round(Math.abs(srcArr[ni] - cv) / 5.0 * QUANT));
+          const w = wts[q];
+          sum += srcArr[ni] * w;
+          wsum += w;
+        }
+        dstArr[ci] = wsum > 0 ? sum / wsum : cv;
+      }
+    }
+  };
+  pass(ev, tmp, true);
+  pass(tmp, ev, false);
+
+  const data = new Uint8Array(gw * gh);
+  for (let i = 0; i < data.length; i++) data[i] = Math.round(((ev[i] + 10) / 16) * 255);
+  return { w: gw, h: gh, data };
+}
+
+function updateToneGuide(src){
+  if (!renderer) return;
+  try {
+    renderer.setGuide(buildToneGuide(src));
+  } catch (err) {
+    console.warn('[tone guide] could not be built', err);
+    renderer.setGuide(null);
+  }
 }
 
 function allLooks(){
@@ -2084,7 +2165,8 @@ async function exportImage(quality){
             0, 0, tw, th
           );
           renderer.setImage(crop);
-          renderer.render(stack, adj, tw, th, 'cover');
+          renderer.render(stack, adj, tw, th, 'cover', null,
+            { x: tx / w, y: ty / h, w: tw / w, h: th / h });
           ctx.drawImage(renderer.canvas, tx, ty);
           done++;
           busyUpdate({ progress: done / total * 0.9 });
@@ -2554,6 +2636,7 @@ function applyImage(img, name, note){
   el.lqip?.remove();
   source = makeSource(img);
   renderer.setImage(source);
+  updateToneGuide(source);
   sourceName = name.replace(/\.[^.]+$/, '').slice(0, 28) || 'Untitled';
   el.metaName.textContent = sourceName.toUpperCase();
   el.metaDims.textContent = `${source.width} × ${source.height}`;

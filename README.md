@@ -101,14 +101,28 @@ screenshot:
   stays untouched (NR 0), a high-ISO interior gets smoothed. The `细节 / Detail`
   group shows the auto value and lets you override it; both the preview and the
   export share it.
-- **Tone controls that behave like a darkroom tool** — the five tone sliders are
-  one monotone curve sampled in log2 luminance, not gamma-space offsets:
-  `shadows` / `highlights` are exposure corrections confined to their own band
-  (lifting shadows cannot grey out the midtones), `whites` moves only the top of
-  the range so it acts as a white point, and `blacks` moves a real additive black
-  point (a gain can never lift a true black). The curve is applied as a luminance
-  ratio in linear light, which keeps hue; `npm run test:tone` proves it is
-  monotone for 3,125 setting combinations and checks the band separation.
+- **Lightroom-shaped tone controls** — the Basic-panel sliders are not four
+  gamma-space offsets:
+  - `contrast` is the only 1D curve (log2-luminance slope around mid grey).
+  - `highlights` / `shadows` are **adaptive**: a small, bilateral-blurred
+    luminance guide decides where they act, and the correction is a local
+    exposure change in that region. Because the weight is constant across a
+    neighbourhood, detail inside a lifted shadow keeps its contrast instead of
+    being flattened by one global curve. The bands follow Adobe's own histogram
+    ranges (shadows 10–30 %, highlights 70–90 %) and the falloff is a logistic in
+    EV, which keeps the mapping monotone — no flat spot, the artifact that used
+    to turn skies into grey mush.
+  - `whites` is a white-point move in display space (stretch the top into
+    clipping, or pull it back for recovery); `blacks` is a black-point toe
+    (positive lifts a matte floor, negative crushes it to true black).
+  Everything is applied as a luminance ratio, so hue survives; `npm run test:tone`
+  proves the curve and the model are monotone for every slider extreme, checks
+  band isolation, that a shadow lift is multiplicative (local contrast
+  preserved), that highlights depend on the neighbourhood (adaptive), and that
+  no slider can produce a plateau. One caveat: the RAW decoder hands back 8-bit
+  sRGB, so highlights that were already clipped at decode cannot be recovered
+  the way Lightroom recovers them from linear sensor data — the sliders shape
+  the headroom that is actually there.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in
@@ -134,24 +148,37 @@ app itself.
 - `public/js/renderer.js` — `LookRenderer`: uploads the LUT binary as a 3D
   texture (17³ RGBA, trilinear filtering) and grades the photo in a fragment
   shader. The pipeline is exposure and white balance in linear light (channel
-  gains, so highlights do not clip channel-by-channel) → a tone curve sampled in
-  log2 luminance from a 1024-entry R16F LUT (built on the CPU by
-  `buildToneCurve()`, see the references below) → vibrance / saturation around
-  luma → optional LOG encode → 1–3 stacked LUTs. Noise reduction runs first (a
+  gains, so highlights do not clip channel-by-channel) → contrast curve sampled
+  in log2 luminance from a 1024-entry R16F LUT → adaptive highlights/shadows
+  from a blurred luminance guide (`buildToneGuide()` in the app, sampled as an
+  R8 texture) → whites/blacks endpoint curves in display space → vibrance /
+  saturation around luma → optional LOG encode → 1–3 stacked LUTs. Noise reduction runs first (a
   3×3 bilateral on luma plus a wider chroma ring, both edge-aware), driven by
   the measured noise floor. The framing is a single image-space rectangle
   (`computeViewRect`): `cover`/`contain` choose it at zoom 1, and the interactive
   view shrinks/moves it, so zoom and pan are exact texture lookups with clamped
   bounds. One `adjFor()` object feeds the preview, the thumbnails and the export.
-- **Tone model references** — the log-exposure domain with explicit black/white
-  points, latitude and toe/shoulder follows [darktable's filmic
-  RGB](https://github.com/darktable-org/darktable/blob/master/src/iop/filmicrgb.c);
-  the per-zone masked exposure corrections follow [darktable's tone
-  equalizer](https://github.com/darktable-org/darktable/blob/master/src/iop/toneequal.c);
-  [RawTherapee's Shadows/Highlights](https://github.com/RawTherapee/RawTherapee/blob/dev/rtengine/ipshadowshighlights.cc)
-  is the reference for keeping chroma stable when shadows are lifted. Both are
-  GPL, so only the maths was studied — no source code is copied, and this
-  implementation is an independent WebGL/JS one (MIT).
+- **Tone model references** — Lightroom's Highlights/Shadows are adaptive, and
+  Adobe has said the mechanism is local adaptation; Sam Hasinoff and colleagues
+  trace it to their [local Laplacian
+  filters](https://people.csail.mit.edu/sparis/publi/2011/siggraph/) (SIGGRAPH
+  2011), which Adobe shipped in the 2012 process version. A full Laplacian
+  pyramid is more than a browser preview needs, so this implementation uses the
+  band-mask approximation: a guide-based local exposure map in the spirit of
+  [darktable's tone
+  equalizer](https://github.com/darktable-org/darktable/blob/master/src/iop/toneequal.c)
+  (GPL — only the idea was studied, no code copied). The band percentages come
+  from Adobe's [tone-control
+  reference](https://helpx.adobe.com/lightroom-classic/help/tone-control-adjustment.html);
+  the slider magnitudes were sanity-checked against the measured Lightroom
+  values collected in [RapidRAW issue
+  #2061](https://github.com/CyberTimon/RapidRAW/issues/2061). Contrast and the
+  whites/blacks endpoints follow the log-exposure / filmic modelling of
+  [darktable filmic
+  RGB](https://github.com/darktable-org/darktable/blob/master/src/iop/filmicrgb.c)
+  and [RawTherapee's
+  Shadows/Highlights](https://github.com/RawTherapee/RawTherapee/blob/dev/rtengine/ipshadowshighlights.cc).
+  This is an independent WebGL/JS implementation (MIT).
 - `public/js/looks.js` — the manifest: id, display names, category, filmstrip
   ordering.
 - `public/luts.bin` — 44 × 17³ RGBA blocks, in manifest order (~850 KB).
@@ -166,7 +193,7 @@ app itself.
 ```bash
 npm install
 npm run dev        # wrangler dev → http://localhost:8787
-npm run test:tone  # tone-curve invariants (identity, monotone, band separation)
+npm run test:tone  # tone curve + tone model invariants (monotone, bands, no plateau)
 ```
 
 Any static file server works too (`python3 -m http.server -d public`), except

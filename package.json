@@ -15,7 +15,7 @@
     "deploy": "wrangler deploy",
     "build:luts": "node scripts/build-luts.mjs",
     "export:cubes": "node scripts/export-cubes.mjs",
-    "test:tone": "node scripts/test-tone-curve.mjs",
+    "test:tone": "node scripts/test-tone-curve.mjs && node scripts/test-tone-model.mjs",
     "predeploy": "npm run build:luts && npm run build:gz",
     "build:gz": "node scripts/compress-assets.mjs"
   },
