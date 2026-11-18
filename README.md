@@ -98,7 +98,10 @@ screenshot:
   re-decode — and the preview, the filmstrip thumbnails and the export all go
   through the same `adjFor()`, so what you judge is what you get. A live RGB
   histogram sits above the sliders, `自动色调 / Auto tone` places the whole tone
-  group from the histogram, and the split line keeps working as before/after
+  group from the histogram (calibrated against Lightroom Mobile's Auto: it also
+  applies the automatic exposure even when the AUTO toggle is off, and the
+  highlights/shadows/whites/blacks targets match LR Auto on the reference night
+  frame), and the split line keeps working as before/after
   against the untouched camera render. The 44 looks stay one click away on the
   filmstrip and stack on top of the develop settings.
 - **Auto noise reduction, only where it is needed** — the frame's noise floor is

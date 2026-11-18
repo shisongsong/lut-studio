@@ -2078,8 +2078,19 @@ function measureTone() {
   c.width = 240;
   c.height = Math.max(2, Math.round(240 * source.height / source.width));
   const ctx = c.getContext('2d', { willReadFrequently: true });
-  if (stage) ctx.drawImage(stage, 0, 0, c.width, c.height);
-  else if (source.kind === 'linear') return null;
+  if (stage) {
+    // Draw only the photo itself: with the default Fit view the stage canvas has
+    // black letterbox bars, and letting those into the histogram made AUTO tone
+    // believe every frame was much darker than it is.
+    const rect = source
+      ? computeViewRect(source.width, source.height, stage.width, stage.height, state.fit, state.view)
+      : { x: 0, y: 0, w: 1, h: 1 };
+    const fx0 = Math.max(0, (0 - rect.x) / rect.w), fx1 = Math.min(1, (1 - rect.x) / rect.w);
+    const fy0 = Math.max(0, (0 - rect.y) / rect.h), fy1 = Math.min(1, (1 - rect.y) / rect.h);
+    if (fx1 <= fx0 || fy1 <= fy0) return null;
+    ctx.drawImage(stage, fx0 * stage.width, fy0 * stage.height,
+      (fx1 - fx0) * stage.width, (fy1 - fy0) * stage.height, 0, 0, c.width, c.height);
+  } else if (source.kind === 'linear') return null;
   else ctx.drawImage(source.canvas, 0, 0, c.width, c.height);
   const d = ctx.getImageData(0, 0, c.width, c.height).data;
   const hist = new Uint32Array(256);
@@ -2098,19 +2109,23 @@ function measureTone() {
 }
 
 function applyAutoTone() {
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const tn = state.tone;
+  // Lightroom's Auto places the exposure as well; do that first so the
+  // histogram this measures is the frame Auto is actually shaping.
+  tn.exposure = state.autoEV || 0;
+  drawBase();
   const m = measureTone();
   if (!m) return;
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const spread = (m.p75 - m.p25) / 255;
-  const tn = state.tone;
-  tn.exposure = state.autoBright ? (state.autoEV || 0) : 0;
-  // Small, Lightroom-like moves: the curve does the shaping, AUTO only picks
-  // where the frame sits inside it.
-  tn.contrast = Math.round(clamp((0.26 - spread) * 160 + 4, -8, 30));
-  tn.highlights = m.p995 >= 250 ? -42 : m.p995 >= 238 ? -22 : m.p995 >= 226 ? -10 : 0;
-  tn.shadows = m.p5 <= 6 ? 35 : m.p5 <= 14 ? 26 : m.p5 <= 30 ? 14 : 0;
-  tn.whites = Math.round(clamp((246 - m.p995) * 0.9, -22, 22));
-  tn.blacks = m.p1 >= 24 ? -16 : m.p1 >= 12 ? -9 : m.p1 >= 4 ? -3 : 0;
+  // Values calibrated against Lightroom Mobile's Auto on the night reference
+  // frame: highlights place the top of the histogram, shadows open the frame,
+  // whites/blacks finish the end points.
+  tn.contrast = Math.round(clamp((0.25 - spread) * 100, -10, 15));
+  tn.highlights = -Math.round(clamp((m.p95 - 140) * 0.8, 20, 80));
+  tn.shadows = Math.round(clamp((32 - m.p5) * 1.2 + 6, 0, 55));
+  tn.whites = Math.round(clamp((m.p95 - 205) * 0.8 + 9, -20, 30));
+  tn.blacks = Math.round(clamp((m.p1 - 4) * -5.5, -30, 8));
   recalcNr();
   syncDevUI();
   drawBase();
