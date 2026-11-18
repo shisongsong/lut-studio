@@ -119,9 +119,18 @@ screenshot:
     ranges (shadows 10–30 %, highlights 70–90 %) and the falloff is a logistic in
     EV, which keeps the mapping monotone — no flat spot, the artifact that used
     to turn skies into grey mush.
-  - `whites` is a white-point move in display space (stretch the top into
-    clipping, or pull it back for recovery); `blacks` is a black-point toe
-    (positive lifts a matte floor, negative crushes it to true black).
+  - `whites` is a display-space white-point move: positive stretches the top of
+    the range strongly (the calibrated LR Mobile response reaches the same
+    display levels), negative only recovers the very top; `blacks` is a display
+    black-point move — negative is a real levels move (calibrated so a mid-grey
+    drops like it does in Lightroom), positive lifts the whole shadow range with
+    a gamma toe.
+  The slider amplitudes and band shapes were calibrated against pixel
+  measurements of Lightroom Mobile (Adobe Color) on the reference night frame
+  in `testdata/lr-calibration/` (a NEF plus LR `±100` captures): highlights use
+  a logistic EV ramp with extra compression for scene-linear headroom, shadows
+  have separate positive/negative bands, and the display-space whites/blacks
+  curves are fitted to the measured responses.
   Everything is applied as a luminance ratio, so hue survives; `npm run test:tone`
   proves the curve and the model are monotone for every slider extreme, checks
   band isolation, that a shadow lift is multiplicative (local contrast

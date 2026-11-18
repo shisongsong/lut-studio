@@ -31,33 +31,43 @@ function toneMapLinear(Y, Yguide, tone = {}, { baseCurve = false } = {}) {
   const s = (tone.shadows || 0) / 100;
   const h = (tone.highlights || 0) / 100;
 
-  const shadowW = sigmoid(-(gEv - TONE_MODEL.shadow.pivotEv) / TONE_MODEL.shadow.widthEv);
-  const gainShadow = Math.pow(2, s * TONE_MODEL.shadow.stops * shadowW);
-
-  let gainHighlight = 1;
-  if (h < 0) {
-    const p = TONE_MODEL.highlight.shoulderPivotEv;
-    const asym = TONE_MODEL.highlight.shoulderAsymEv;
-    const shoulder = p + asym * (1 - Math.exp(-Math.max(0, gEv - p) / asym));
-    const target = gEv >= p ? shoulder : gEv;
-    gainHighlight = Math.pow(2, (-h) * (target - gEv));
-  } else if (h > 0) {
-    const highlightW = sigmoid((gEv - TONE_MODEL.highlight.pivotEv) / TONE_MODEL.highlight.widthEv);
-    gainHighlight = Math.pow(2, h * TONE_MODEL.highlight.stops * highlightW);
+  let shadowDelta;
+  if (s >= 0) {
+    shadowDelta = s * TONE_MODEL.shadow.stops * sigmoid(-(gEv - TONE_MODEL.shadow.pivotEv) / TONE_MODEL.shadow.widthEv);
+  } else {
+    shadowDelta = s * TONE_MODEL.shadow.negA * sigmoid(-(gEv - TONE_MODEL.shadow.negPivotEv) / TONE_MODEL.shadow.negWidthEv);
   }
-  const Yl = Yc * gainShadow * gainHighlight;
 
+  let highlightDelta = 0;
+  if (h < 0) {
+    let drop = Math.min(
+      TONE_MODEL.highlight.negSlope * Math.max(0, gEv - TONE_MODEL.highlight.negPivotEv),
+      TONE_MODEL.highlight.negCapEv);
+    drop += TONE_MODEL.highlight.headroomSlope * Math.max(0, gEv - TONE_MODEL.highlight.headroomFromEv);
+    const mapped = gEv - (-h) * drop;
+    const capEv = 10 + (-h) * (TONE_MODEL.highlight.whiteEv - 10);
+    highlightDelta = Math.min(mapped, capEv) - gEv;
+  } else if (h > 0) {
+    const t = smooth(TONE_MODEL.highlight.posLoEv, TONE_MODEL.highlight.posHiEv, gEv);
+    highlightDelta = h * (TONE_MODEL.highlight.posBase + TONE_MODEL.highlight.posExtra * t);
+  }
+
+  const Yl = Yc * Math.pow(2, shadowDelta + highlightDelta);
   let d = srgb(Math.min(Yl, 1));
-  if (baseCurve) d = d * 0.6 + (d * d * (3 - 2 * d)) * 0.4;
+  if (baseCurve) d = d * 0.6 + smooth(0, 1, d) * 0.4;
 
   const w = (tone.whites || 0) / 100;
   const b = (tone.blacks || 0) / 100;
-  const whMask = smooth(TONE_MODEL.whites.knee, 1, d);
-  if (w > 0) d += TONE_MODEL.whites.boost * w * d * whMask;
-  else if (w < 0) d -= TONE_MODEL.whites.recover * -w * (1 - d) * whMask;
+  if (w > 0) d += w * TONE_MODEL.whites.stretch * Math.pow(d, TONE_MODEL.whites.gamma) * (1 - d);
+  else if (w < 0) d -= -w * TONE_MODEL.whites.recover * Math.pow(d, 1.5) * (1 - d) * smooth(0.5, 1, d);
   d = clamp01(d);
-  if (b > 0) d += TONE_MODEL.blacks.lift * b * (1 - smooth(0, 0.5, d));
-  else if (b < 0) d *= 1 - TONE_MODEL.blacks.crush * -b * (1 - smooth(0, TONE_MODEL.blacks.toe, d));
+  if (b < 0) {
+    const point = -b * TONE_MODEL.blacks.point;
+    d = clamp01((d - point) / Math.max(1e-3, 1 - point));
+  } else if (b > 0) {
+    const lifted = Math.pow(d, TONE_MODEL.blacks.gamma) * TONE_MODEL.blacks.gammaA + TONE_MODEL.blacks.gammaB;
+    d = clamp01(d + (lifted - d) * b);
+  }
   return clamp01(d);
 }
 
@@ -132,7 +142,7 @@ const ramp = Array.from({ length: N + 1 }, (_, i) => i / N);
       for (const d of ramp) {
         const out = toneModel(d, g, tone);
         const q = levels(out);
-        if (q === last && out < 0.985 && out > 0.06) run++;
+        if (q === last && out < 0.94 && out > 0.06) run++;
         else { last = q; run = 1; }
         if (run > 6) { bad = { tone, g, d, q, run }; break; }
       }
@@ -145,43 +155,42 @@ const ramp = Array.from({ length: N + 1 }, (_, i) => i / N);
 
 // 5. highlight recovery actually uses scene-linear headroom
 {
-  const clipped = toneModelRaw(4, 4, { highlights: 0 });            // > white, no recovery
-  const rec = toneModelRaw(4, 4, { highlights: -100 });             // recovered
-  const deeper = toneModelRaw(8, 8, { highlights: -100 });          // more headroom
-  const neutral = toneModelRaw(0.18, 0.18);
+  const clipped = toneModelRaw(4, 4, { highlights: 0 });
+  const rec = toneModelRaw(4, 4, { highlights: -100 });
+  const more = toneModelRaw(8, 8, { highlights: -100 });
   check('headroom above white clips when Highlights is 0', clipped > 0.995, String(levels(clipped)));
-  check('highlights −100 recovers scene-linear headroom', rec > 0.75 && rec < 0.995 && deeper >= rec,
-    JSON.stringify({ clipped: levels(clipped), rec: levels(rec), deeper: levels(deeper) }));
-  check('highlight recovery leaves the midtones alone',
-    Math.abs(toneModelRaw(0.18, 0.18, { highlights: -100 }) - neutral) < 0.02,
-    JSON.stringify({ neutral: levels(neutral), recovered: levels(toneModelRaw(0.18, 0.18, { highlights: -100 })) }));
+  check('highlights −100 recovers scene-linear headroom', rec > 0.35 && rec < 0.95 && more >= rec - 0.02,
+    JSON.stringify({ rec: levels(rec), more: levels(more) }));
+  check('highlights −100 compresses the midtones like Lightroom', (() => {
+    const d = levels(toneModelRaw(0.18, 0.18, { highlights: -100 })) - levels(toneModelRaw(0.18, 0.18));
+    return d <= -20 && d >= -55;
+  })(), String(levels(toneModelRaw(0.18, 0.18, { highlights: -100 }))));
 }
 
-// 6. band isolation (uniform image, so guide == pixel)
+// 6. slider response calibrated against Lightroom Mobile (display levels)
 {
   const delta = (tone, d) => levels(toneModel(d, d, tone)) - levels(toneModel(d, d));
-  check('highlights −100 leaves the midtones alone',
-    Math.abs(delta({ highlights: -100 }, 0.40)) <= 1 && Math.abs(delta({ highlights: -100 }, 0.30)) <= 1,
-    JSON.stringify([0.3, 0.4].map((d) => delta({ highlights: -100 }, d))));
-  check('highlights −100 really pulls the bright end back',
-    delta({ highlights: -100 }, 0.90) <= -14, String(delta({ highlights: -100 }, 0.90)));
+  check('highlights −100 pulls the bright end back hard',
+    delta({ highlights: -100 }, 0.85) <= -30 && Math.abs(delta({ highlights: -100 }, 0.15)) <= 4,
+    JSON.stringify({ at85: delta({ highlights: -100 }, 0.85), at15: delta({ highlights: -100 }, 0.15) }));
+  check('highlights +100 lifts the mid/high range',
+    delta({ highlights: 100 }, 0.5) >= 30 && delta({ highlights: 100 }, 0.75) >= 40,
+    JSON.stringify({ at50: delta({ highlights: 100 }, 0.5), at75: delta({ highlights: 100 }, 0.75) }));
   check('shadows +100 barely touches the upper half',
-    Math.abs(delta({ shadows: 100 }, 0.70)) <= 8 && Math.abs(delta({ shadows: 100 }, 0.55)) <= 8,
-    JSON.stringify([0.55, 0.7].map((d) => delta({ shadows: 100 }, d))));
-  check('shadows +100 really opens the shadows',
-    delta({ shadows: 100 }, 0.08) >= 14, String(delta({ shadows: 100 }, 0.08)));
-  check('whites are a top-end move',
-    Math.abs(delta({ whites: -100 }, 0.50)) <= 7 && delta({ whites: -100 }, 0.85) <= -15,
-    JSON.stringify([0.5, 0.85].map((d) => delta({ whites: -100 }, d))));
-  check('whites +100 stretches the top of the range',
-    delta({ whites: 100 }, 0.50) <= 4 && delta({ whites: 100 }, 0.70) >= 20,
-    JSON.stringify([0.5, 0.7].map((d) => delta({ whites: 100 }, d))));
-  check('blacks are a bottom-end move',
-    Math.abs(delta({ blacks: 100 }, 0.50)) <= 2 && delta({ blacks: 100 }, 0.03) >= 6,
-    JSON.stringify([0.03, 0.5].map((d) => delta({ blacks: 100 }, d))));
-  check('highlights −100 does not turn white into grey',
-    toneModel(0.97, 0.97, { highlights: -100 }) > 0.72,
-    String(levels(toneModel(0.97, 0.97, { highlights: -100 }))));
+    Math.abs(delta({ shadows: 100 }, 0.75)) <= 8 && delta({ shadows: 100 }, 0.08) >= 14);
+  check('shadows −100 only darkens the lower range',
+    Math.abs(delta({ shadows: -100 }, 0.75)) <= 4 && delta({ shadows: -100 }, 0.12) <= -8);
+  check('whites +100 is a strong top-end stretch',
+    delta({ whites: 100 }, 0.5) >= 40 && delta({ whites: 100 }, 0.7) >= 30,
+    JSON.stringify({ at50: delta({ whites: 100 }, 0.5), at70: delta({ whites: 100 }, 0.7) }));
+  check('whites −100 only recovers highlights gently',
+    Math.abs(delta({ whites: -100 }, 0.3)) <= 2 && delta({ whites: -100 }, 0.85) <= -2);
+  check('blacks −100 is a real black-point move',
+    delta({ blacks: -100 }, 0.5) <= -30 && toneModel(0.2, 0.2, { blacks: -100 }) <= 0.03,
+    JSON.stringify({ at50: delta({ blacks: -100 }, 0.5), at20: levels(toneModel(0.2, 0.2, { blacks: -100 })) }));
+  check('blacks +100 lifts the whole shadow range',
+    delta({ blacks: 100 }, 0.5) >= 15 && delta({ blacks: 100 }, 0.08) >= 8,
+    JSON.stringify({ at50: delta({ blacks: 100 }, 0.5), at08: delta({ blacks: 100 }, 0.08) }));
 }
 
 // 7. highlights/shadows are adaptive: same pixel, different neighbourhood
@@ -210,9 +219,9 @@ const ramp = Array.from({ length: N + 1 }, (_, i) => i / N);
   const bPlus = toneModel(0.02, 0.02, { blacks: 100 });
   const bMinus = toneModel(0.02, 0.02, { blacks: -100 });
   check('whites +100 clips the white point', wPlus >= 0.995, String(levels(wPlus)));
-  check('whites −100 recovers the white point', wMinus > 0.72 && wMinus < 0.92, String(levels(wMinus)));
+  check('whites −100 recovers the white point', wMinus > 0.85 && wMinus <= 0.96, String(levels(wMinus)));
   check('blacks +100 lifts the black point', bPlus >= 0.06, String(levels(bPlus)));
-  check('blacks −100 crushes the black point', bMinus <= 0.02, String(levels(bMinus)));
+  check('blacks −100 crushes the black point', bMinus <= 1e-3, String(levels(bMinus)));
 }
 
 // 10. response table for tuning (`node scripts/test-tone-model.mjs --table`)

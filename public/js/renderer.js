@@ -38,21 +38,26 @@ const GREY = 0.18;
 const glf = (n) => Number(n).toFixed(4);
 
 export const TONE_MODEL = {
-  // Highlights / shadows: a logistic band in log2 luminance around a pivot.
-  // A tone control turned all the way up is `stops` stops inside its band.
-  // The logistic shape keeps the *guide* mapping monotone (slope ≈
-  // 1 − stops / (4·width) > 0.5), so no plateau or fold can appear — the old
-  // smoothstep masks could invert and got repaired into a flat grey band.
-  shadow: { stops: 1.9, pivotEv: -1.9, widthEv: 1.0 },
-  // Positive highlights brighten the band; negative highlights *compress the
-  // guide's highlight range into display* with an exponential shoulder whose
-  // asymptote sits just under white. With scene-linear input this turns sensor
-  // headroom (values > 1.0) back into visible highlight gradation instead of
-  // clipping it — the actual point of a linear raw pipeline.
-  highlight: { stops: 0.55, pivotEv: 1.5, widthEv: 0.75, shoulderPivotEv: 1.0, shoulderAsymEv: 1.0 },
-  // Whites / blacks: display-space endpoint curves, monotone by construction.
-  whites: { knee: 0.42, boost: 0.55, recover: 0.9 },
-  blacks: { lift: 0.10, toe: 0.35, crush: 0.85 },
+  // Calibrated from Lightroom Mobile (Adobe Color) on the night test frame:
+  // highlights are a logistic EV compression (negative) / lift (positive),
+  // shadows are the adaptive logistic band, whites/blacks are the display-space
+  // endpoint curves LR actually exhibits (see testdata/lr-calibration).
+  shadow: {
+    stops: 1.9, pivotEv: -1.9, widthEv: 0.8,
+    negA: 1.35, negPivotEv: -2.6, negWidthEv: 0.7,
+  },
+  highlight: {
+    // negative: EV drop that grows with luminance, capped, then compressed into
+    // white for scene-linear headroom (linear RAW path)
+    negSlope: 0.40, negPivotEv: -2.7, negCapEv: 2.0,
+    headroomSlope: 0.7, headroomFromEv: 2.4, whiteEv: 2.45,
+    // positive: EV lift, stronger in the mid/high range
+    posBase: 0.5, posExtra: 0.5, posLoEv: -3.5, posHiEv: 0.5,
+  },
+  // display-space white point stretch (positive) / gentle recovery (negative)
+  whites: { stretch: 1.5, gamma: 2.0, recover: 0.35 },
+  // display-space black point: negative = levels move, positive = gamma lift
+  blacks: { point: 0.216, gamma: 0.75, gammaA: 0.967, gammaB: 0.0157 },
 };
 
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
@@ -401,58 +406,44 @@ void main() {
     vec2 gu = uGuideRect.xy + uv * uGuideRect.zw;
     gEv = clamp(texture(uGuide, gu).r * 18.0 - 10.0 + uExposure, -12.0, 10.0);
   }
-  // Shadows: an exposure lift weighted by the logistic band (the band shape
-  // keeps the guide mapping monotone, so no flat spot can appear).
-  float shadowW = 1.0 / (1.0 + exp((gEv - ${glf(TONE_MODEL.shadow.pivotEv)}) / ${glf(TONE_MODEL.shadow.widthEv)}));
-  float gainShadow = exp2(uShadows * ${(TONE_MODEL.shadow.stops / 100).toFixed(3)} * shadowW);
+  // Shadows: an exposure lift / drop weighted by a logistic band, calibrated
+  // against Lightroom Mobile (positive and negative behave differently).
+  float shadowN = clamp(uShadows, -100.0, 100.0) * 0.01;
+  float shadowDelta = 0.0;
+  if (shadowN >= 0.0) {
+    float band = 1.0 / (1.0 + exp((gEv - ${glf(TONE_MODEL.shadow.pivotEv)}) / ${glf(TONE_MODEL.shadow.widthEv)}));
+    shadowDelta = shadowN * ${glf(TONE_MODEL.shadow.stops)} * band;
+  } else {
+    float negBand = 1.0 / (1.0 + exp((gEv - ${glf(TONE_MODEL.shadow.negPivotEv)}) / ${glf(TONE_MODEL.shadow.negWidthEv)}));
+    shadowDelta = shadowN * ${glf(TONE_MODEL.shadow.negA)} * negBand;
+  }
 
-  // Highlights: negative values compress the guide's highlight range into the
-  // display with an exponential shoulder whose asymptote is just under white.
-  // On the linear RAW path this is what recovers detail from above-white sensor
-  // data; the detail inside the region is preserved because the pixel keeps its
-  // ratio to the guide.
+  // Highlights, calibrated against Lightroom Mobile: negative is a ramp-shaped
+  // EV drop that saturates and then compresses real above-white headroom into
+  // near-white; positive is an EV lift that is stronger in the mid/high range.
   float hN = clamp(uHighlights, -100.0, 100.0) * 0.01;
-  float mappedEv = gEv;
+  float highlightDelta = 0.0;
   if (hN < 0.0) {
-    float p = ${glf(TONE_MODEL.highlight.shoulderPivotEv)};
-    float asym = ${glf(TONE_MODEL.highlight.shoulderAsymEv)};
-    float shoulder = p + asym * (1.0 - exp(-max(0.0, gEv - p) / asym));
-    float target = mix(gEv, shoulder, step(p, gEv));
-    mappedEv = gEv + (-hN) * (target - gEv);
+    float drop = min(
+      ${glf(TONE_MODEL.highlight.negSlope)} * max(0.0, gEv - ${glf(TONE_MODEL.highlight.negPivotEv)}),
+      ${glf(TONE_MODEL.highlight.negCapEv)});
+    // above white the real sensor headroom needs a stronger, linear compression
+    drop += ${glf(TONE_MODEL.highlight.headroomSlope)}
+      * max(0.0, gEv - ${glf(TONE_MODEL.highlight.headroomFromEv)});
+    float mappedEv = gEv - (-hN) * drop;
+    float capEv = mix(10.0, ${glf(TONE_MODEL.highlight.whiteEv)}, -hN);
+    highlightDelta = min(mappedEv, capEv) - gEv;
   } else if (hN > 0.0) {
-    float highlightW = 1.0 / (1.0 + exp(-(gEv - ${glf(TONE_MODEL.highlight.pivotEv)}) / ${glf(TONE_MODEL.highlight.widthEv)}));
-    mappedEv = gEv + hN * ${glf(TONE_MODEL.highlight.stops)} * highlightW;
+    float liftT = smoothstep(${glf(TONE_MODEL.highlight.posLoEv)}, ${glf(TONE_MODEL.highlight.posHiEv)}, gEv);
+    highlightDelta = hN * (${glf(TONE_MODEL.highlight.posBase)} + ${glf(TONE_MODEL.highlight.posExtra)} * liftT);
   }
-  float gainHighlight = exp2(mappedEv - gEv);
-  float Yl = Yc * gainShadow * gainHighlight;
-
-  // 3) Whites / blacks: white-point / black-point moves in display space, the
-  //    way the Basic panel behaves. Positive whites stretches the top of the
-  //    range into clipping; negative whites recovers it. Positive blacks lifts
-  //    the black point (matte), negative blacks crushes the toe. Both are
-  //    monotone by construction — verified by scripts/test-tone-model.mjs.
-  float dDisp = linearToSrgb1(min(Yl, 1.0));
-  float whites = clamp(uWhites, -100.0, 100.0) * 0.01;
-  float blacks = clamp(uBlacks, -100.0, 100.0) * 0.01;
-  float whMask = smoothstep(${glf(TONE_MODEL.whites.knee)}, 1.0, dDisp);
-  if (whites > 0.0) dDisp += ${glf(TONE_MODEL.whites.boost)} * whites * dDisp * whMask;
-  else if (whites < 0.0) dDisp -= ${glf(TONE_MODEL.whites.recover)} * -whites * (1.0 - dDisp) * whMask;
-  dDisp = clamp(dDisp, 0.0, 1.0);
-
-  if (blacks > 0.0) {
-    dDisp += ${glf(TONE_MODEL.blacks.lift)} * blacks * (1.0 - smoothstep(0.0, 0.5, dDisp));
-  } else if (blacks < 0.0) {
-    dDisp *= 1.0 - ${glf(TONE_MODEL.blacks.crush)} * -blacks
-             * (1.0 - smoothstep(0.0, ${glf(TONE_MODEL.blacks.toe)}, dDisp));
-  }
-  dDisp = clamp(dDisp, 0.0, 1.0);
-
-  float Yt = srgbToLinear1(dDisp);
-  vec3 graded = lin * (Yt / Y);
+  float Yl = Yc * exp2(shadowDelta + highlightDelta);
+  vec3 graded = lin * (Yl / Y);
   // Desaturate only what is about to clip, so pushed whites roll to white
   // instead of turning a sunset magenta.
   float mx = max(graded.r, max(graded.g, graded.b));
   if (mx > 1.0) graded = mix(graded, vec3(1.0), clamp((mx - 1.0) / mx, 0.0, 1.0) * 0.65);
+
   vec3 c = clamp(linearToSrgb(graded), 0.0, 1.0);
   // The linear RAW path replaces the old 8-bit worker S-curve with the same
   // curve in display space, so RAW thumbnails/previews keep their familiar
@@ -460,6 +451,25 @@ void main() {
   if (uLinearInput == 1) {
     vec3 soft = c * c * (3.0 - 2.0 * c);
     c = clamp(c * 0.6 + soft * 0.4, 0.0, 1.0);
+  }
+
+  // Whites / blacks, calibrated in display space against LR Mobile:
+  // whites is a top-end stretch/recovery, blacks is a black-point move.
+  float wN = clamp(uWhites, -100.0, 100.0) * 0.01;
+  float bN = clamp(uBlacks, -100.0, 100.0) * 0.01;
+  if (wN > 0.0) {
+    c += wN * ${glf(TONE_MODEL.whites.stretch)} * pow(c, vec3(${glf(TONE_MODEL.whites.gamma)})) * (1.0 - c);
+  } else if (wN < 0.0) {
+    vec3 top = smoothstep(vec3(0.5), vec3(1.0), c);
+    c -= -wN * ${glf(TONE_MODEL.whites.recover)} * pow(c, vec3(1.5)) * (1.0 - c) * top;
+  }
+  c = clamp(c, 0.0, 1.0);
+  if (bN < 0.0) {
+    float point = -bN * ${glf(TONE_MODEL.blacks.point)};
+    c = clamp((c - point) / max(1e-3, 1.0 - point), 0.0, 1.0);
+  } else if (bN > 0.0) {
+    vec3 lifted = pow(c, vec3(${glf(TONE_MODEL.blacks.gamma)})) * ${glf(TONE_MODEL.blacks.gammaA)} + ${glf(TONE_MODEL.blacks.gammaB)};
+    c = clamp(mix(c, lifted, bN), 0.0, 1.0);
   }
 
   // Presence: saturation is a flat scale around luma; vibrance leans on the

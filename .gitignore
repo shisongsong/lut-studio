@@ -6,3 +6,6 @@ node_modules/
 # Local design research and working prototypes (not part of the published app)
 design/
 docs/reference/
+
+# Local calibration material (RAWs, LR exports) — not part of the app
+testdata/
