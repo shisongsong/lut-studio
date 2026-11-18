@@ -2121,9 +2121,9 @@ function applyAutoTone() {
   // Values calibrated against Lightroom Mobile's Auto on the night reference
   // frame: highlights place the top of the histogram, shadows open the frame,
   // whites/blacks finish the end points.
-  tn.contrast = Math.round(clamp((0.25 - spread) * 100, -10, 15));
+  tn.contrast = Math.round(clamp((0.31 - spread) * 100, -10, 15));
   tn.highlights = -Math.round(clamp((m.p95 - 140) * 0.8, 20, 80));
-  tn.shadows = Math.round(clamp((32 - m.p5) * 1.2 + 6, 0, 55));
+  tn.shadows = Math.round(clamp((28.5 - m.p5) * 1.2 + 6, 0, 55));
   tn.whites = Math.round(clamp((m.p95 - 205) * 0.8 + 9, -20, 30));
   tn.blacks = Math.round(clamp((m.p1 - 4) * -5.5, -30, 8));
   recalcNr();
