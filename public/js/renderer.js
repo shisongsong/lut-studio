@@ -44,7 +44,12 @@ export const TONE_MODEL = {
   // 1 − stops / (4·width) > 0.5), so no plateau or fold can appear — the old
   // smoothstep masks could invert and got repaired into a flat grey band.
   shadow: { stops: 1.9, pivotEv: -1.9, widthEv: 1.0 },
-  highlight: { stops: 0.55, pivotEv: 1.5, widthEv: 0.75 },
+  // Positive highlights brighten the band; negative highlights *compress the
+  // guide's highlight range into display* with an exponential shoulder whose
+  // asymptote sits just under white. With scene-linear input this turns sensor
+  // headroom (values > 1.0) back into visible highlight gradation instead of
+  // clipping it — the actual point of a linear raw pipeline.
+  highlight: { stops: 0.55, pivotEv: 1.5, widthEv: 0.75, shoulderPivotEv: 1.0, shoulderAsymEv: 1.0 },
   // Whites / blacks: display-space endpoint curves, monotone by construction.
   whites: { knee: 0.42, boost: 0.55, recover: 0.9 },
   blacks: { lift: 0.10, toe: 0.35, crush: 0.85 },
@@ -182,6 +187,9 @@ uniform float uTemp;
 uniform float uTint;
 uniform float uVibrance;
 uniform float uSaturation;
+// 1 = the image texture holds scene-linear half floats (RAW path, headroom
+// above 1.0 possible); 0 = plain sRGB RGBA8 (JPEG / demo / embedded preview).
+uniform int uLinearInput;
 // Basic-panel tone sliders in -100..100. Highlights/shadows are adaptive (they
 // read a blurred luminance guide); whites/blacks are endpoint moves.
 uniform float uShadows;
@@ -298,6 +306,47 @@ vec3 denoise(vec3 c, vec2 uv) {
   return vec3(Ys) + chromaOut;
 }
 
+/**
+ * Denoise for the linear RAW path. The same edge-aware idea as denoise(), but
+ * the thresholds scale with the local luminance so they stay perceptual across
+ * the scene-linear range (a fixed sigma would smooth highlights and leave the
+ * shadows untouched).
+ */
+vec3 denoiseLinear(vec3 c, vec2 uv) {
+  float Y0 = lumaOf(c);
+  float sig = mix(0.10, 0.55, uNr) * max(Y0, 1e-4);
+  vec3 acc = c;
+  float wsum = 1.0;
+  for (int i = -1; i <= 1; i++) {
+    for (int j = -1; j <= 1; j++) {
+      if (i == 0 && j == 0) continue;
+      vec3 s = texture(uImage, uv + vec2(float(i), float(j)) * uTexel).rgb;
+      float d = lumaOf(s) - Y0;
+      float w = exp(-(d * d) / (2.0 * sig * sig));
+      acc += s * w;
+      wsum += w;
+    }
+  }
+  vec3 avg = acc / wsum;
+
+  float csig = mix(0.30, 0.90, uNrColor) * max(Y0, 1e-4);
+  vec3 chroma = c - vec3(Y0);
+  vec3 chromaSum = vec3(0.0);
+  float cw = 0.0;
+  for (int k = 0; k < 8; k++) {
+    float ang = float(k) * 0.7853982;
+    vec2 off = vec2(cos(ang), sin(ang)) * uTexel * 2.5;
+    vec3 s = texture(uImage, uv + off).rgb;
+    float d = lumaOf(s) - Y0;
+    float w = exp(-(d * d) / (2.0 * csig * csig));
+    chromaSum += (s - vec3(lumaOf(s))) * w;
+    cw += w;
+  }
+  vec3 chromaOut = mix(chroma, chromaSum / max(cw, 1e-4), uNrColor);
+  float Ys = mix(Y0, lumaOf(avg), uNr);
+  return vec3(Ys) + chromaOut;
+}
+
 void main() {
   // image-space uv: (0,0) = top-left of the source, independent of the
   // browser's flipY handling for Image vs ImageBitmap uploads.
@@ -308,12 +357,19 @@ void main() {
     return;
   }
 
-  vec3 c = texture(uImage, uv).rgb;
-  if (uNr > 0.0 || uNrColor > 0.0) c = denoise(c, uv);
+  vec3 tex = texture(uImage, uv).rgb;
+  vec3 lin;
+  if (uLinearInput == 1) {
+    // Scene-linear half floats: values above 1.0 are real highlight headroom.
+    lin = (uNr > 0.0 || uNrColor > 0.0) ? denoiseLinear(tex, uv) : tex;
+  } else {
+    vec3 c = (uNr > 0.0 || uNrColor > 0.0) ? denoise(tex, uv) : tex;
+    lin = srgbToLinear(c);
+  }
   // Exposure and white balance are multiplicative in linear light, which is the
   // whole point of a RAW processor: channel gains must not clip independently in
   // the encoded curve. +temp = warmer (more red, less blue), +tint = magenta.
-  vec3 lin = srgbToLinear(c) * exp2(uExposure);
+  lin *= exp2(uExposure);
   float wt = uTemp * 0.01;
   float tn = uTint * 0.01;
   lin *= vec3(
@@ -343,13 +399,32 @@ void main() {
   float gEv = ev;
   if (uHasGuide == 1) {
     vec2 gu = uGuideRect.xy + uv * uGuideRect.zw;
-    gEv = clamp(texture(uGuide, gu).r * 16.0 - 10.0 + uExposure, -12.0, 10.0);
+    gEv = clamp(texture(uGuide, gu).r * 18.0 - 10.0 + uExposure, -12.0, 10.0);
   }
+  // Shadows: an exposure lift weighted by the logistic band (the band shape
+  // keeps the guide mapping monotone, so no flat spot can appear).
   float shadowW = 1.0 / (1.0 + exp((gEv - ${glf(TONE_MODEL.shadow.pivotEv)}) / ${glf(TONE_MODEL.shadow.widthEv)}));
-  float highlightW = 1.0 / (1.0 + exp(-(gEv - ${glf(TONE_MODEL.highlight.pivotEv)}) / ${glf(TONE_MODEL.highlight.widthEv)}));
-  float gain = exp2(uShadows * ${(TONE_MODEL.shadow.stops / 100).toFixed(3)} * shadowW
-                  + uHighlights * ${(TONE_MODEL.highlight.stops / 100).toFixed(3)} * highlightW);
-  float Yl = Yc * gain;
+  float gainShadow = exp2(uShadows * ${(TONE_MODEL.shadow.stops / 100).toFixed(3)} * shadowW);
+
+  // Highlights: negative values compress the guide's highlight range into the
+  // display with an exponential shoulder whose asymptote is just under white.
+  // On the linear RAW path this is what recovers detail from above-white sensor
+  // data; the detail inside the region is preserved because the pixel keeps its
+  // ratio to the guide.
+  float hN = clamp(uHighlights, -100.0, 100.0) * 0.01;
+  float mappedEv = gEv;
+  if (hN < 0.0) {
+    float p = ${glf(TONE_MODEL.highlight.shoulderPivotEv)};
+    float asym = ${glf(TONE_MODEL.highlight.shoulderAsymEv)};
+    float shoulder = p + asym * (1.0 - exp(-max(0.0, gEv - p) / asym));
+    float target = mix(gEv, shoulder, step(p, gEv));
+    mappedEv = gEv + (-hN) * (target - gEv);
+  } else if (hN > 0.0) {
+    float highlightW = 1.0 / (1.0 + exp(-(gEv - ${glf(TONE_MODEL.highlight.pivotEv)}) / ${glf(TONE_MODEL.highlight.widthEv)}));
+    mappedEv = gEv + hN * ${glf(TONE_MODEL.highlight.stops)} * highlightW;
+  }
+  float gainHighlight = exp2(mappedEv - gEv);
+  float Yl = Yc * gainShadow * gainHighlight;
 
   // 3) Whites / blacks: white-point / black-point moves in display space, the
   //    way the Basic panel behaves. Positive whites stretches the top of the
@@ -378,7 +453,14 @@ void main() {
   // instead of turning a sunset magenta.
   float mx = max(graded.r, max(graded.g, graded.b));
   if (mx > 1.0) graded = mix(graded, vec3(1.0), clamp((mx - 1.0) / mx, 0.0, 1.0) * 0.65);
-  c = clamp(linearToSrgb(graded), 0.0, 1.0);
+  vec3 c = clamp(linearToSrgb(graded), 0.0, 1.0);
+  // The linear RAW path replaces the old 8-bit worker S-curve with the same
+  // curve in display space, so RAW thumbnails/previews keep their familiar
+  // rendering while the data below stays linear (and recoverable).
+  if (uLinearInput == 1) {
+    vec3 soft = c * c * (3.0 - 2.0 * c);
+    c = clamp(c * 0.6 + soft * 0.4, 0.0, 1.0);
+  }
 
   // Presence: saturation is a flat scale around luma; vibrance leans on the
   // pixels that have room left, so skin does not go orange when the sky deepens.
@@ -424,7 +506,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uShadows', 'uHighlights', 'uWhites', 'uBlacks', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uNr', 'uNrColor', 'uTexel']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLinearInput', 'uShadows', 'uHighlights', 'uWhites', 'uBlacks', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uNr', 'uNrColor', 'uTexel']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -477,8 +559,24 @@ export class LookRenderer {
    * Images larger than MAX_TEXTURE_SIZE are downscaled for the GPU preview;
    * full-resolution export re-uploads crops instead (see exportImage()).
    */
+  /**
+   * Upload whatever the app handed over: an sRGB canvas, or a linear RAW source
+   * ({ data, width, height, preview }) whose full-resolution frame stays on the
+   * CPU for exports while the (possibly downscaled) preview goes to the GPU.
+   */
+  setSource(source) {
+    if (!source) return;
+    if (source.kind === 'linear') {
+      const preview = source.preview || { data: source.data, w: source.width, h: source.height };
+      this.setLinearPreview(preview, source.width, source.height);
+    } else {
+      this.setImage(source.canvas || source);
+    }
+  }
+
   setImage(source) {
     const gl = this.gl;
+    this.linear = false;
     const w = source.naturalWidth || source.width;
     const h = source.naturalHeight || source.height;
     if (!w || !h) throw new Error('图片尺寸无效');
@@ -506,6 +604,44 @@ export class LookRenderer {
     gl.bindTexture(gl.TEXTURE_2D, null);
     this.texW = upload.width;
     this.texH = upload.height;
+    this.linear = false;
+  }
+
+  /**
+   * Upload a scene-linear image as a filterable RGB16F texture. `fullW/fullH`
+   * describe the whole photo even when `preview` is a downscaled copy, so uv
+   * maths, zoom and the guide still line up with the full-resolution frame.
+   */
+  setLinearPreview(preview, fullW, fullH) {
+    this._uploadLinear(preview.data, preview.w, preview.h);
+    this.imgW = fullW;
+    this.imgH = fullH;
+    this.linear = true;
+  }
+
+  /** Upload one native-resolution tile of scene-linear half floats (export). */
+  setLinearTile(data, w, h) {
+    this._uploadLinear(data, w, h);
+    this.imgW = w;
+    this.imgH = h;
+    this.linear = true;
+  }
+
+  _uploadLinear(data, w, h) {
+    const gl = this.gl;
+    if (this.imageTex) gl.deleteTexture(this.imageTex);
+    this.imageTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, w, h, 0, gl.RGB, gl.HALF_FLOAT, data);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    this.texW = w;
+    this.texH = h;
+    this.linear = true;
   }
 
   /**
@@ -600,6 +736,7 @@ export class LookRenderer {
 
     const rect = computeViewRect(this.imgW, this.imgH, w, h, fit, view);
     gl.uniform4f(this.uniform.uRect, rect.x, rect.y, rect.w, rect.h);
+    gl.uniform1i(this.uniform.uLinearInput, this.linear ? 1 : 0);
     gl.uniform1f(this.uniform.uShadows, adjust?.shadows || 0);
     gl.uniform1f(this.uniform.uHighlights, adjust?.highlights || 0);
     gl.uniform1f(this.uniform.uWhites, adjust?.whites || 0);

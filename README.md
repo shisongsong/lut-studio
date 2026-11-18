@@ -70,11 +70,18 @@ screenshot:
 - **RAW uploads are really developed** — NEF/CR2/CR3/ARW/DNG/RAF… go through
   [flashraw](https://github.com/ybouane/flashraw) compiled to WebAssembly (vendored
   under `public/vendor/flashraw`, ~3.4 MB, fetched only when a RAW is actually
-  opened). Unpacking, AHD demosaicing, camera white balance, the camera colour
-  matrix and the sRGB encode all run in a Web Worker on your machine: a 26 MP Nikon
-  Z50 II NEF becomes a full-resolution 5568×3712 frame in ~1 s, and 100% export is
-  100% of that. This includes Nikon's **HE/HE\*** (TicoRAW) compression, which most
-  open-source RAW tools still cannot read. If a file cannot be unpacked at all, the
+  opened). Unpacking, AHD demosaicing, camera white balance and the camera colour
+  matrix run in a Web Worker on your machine, and the result is decoded **at 16
+  bit with an extended white point** (4 stops of scene headroom) and re-encoded
+  as scene-linear half floats for the GPU. That headroom is what makes the
+  Highlights slider behave like a raw processor instead of a JPEG editor: the
+  shader compresses real above-white sensor data back into visible gradation
+  instead of clipping it. The worker also builds the GPU preview (4096 px long
+  edge), the adaptive-tone guide and the auto exposure from the linear frame; the
+  full-resolution frame stays in memory so a 100% export is rendered from real
+  sensor data, tile by tile. A 26 MP Nikon Z50 II NEF becomes a 5568×3712 linear
+  frame in ~1.2 s. This includes Nikon's **HE/HE\*** (TicoRAW) compression, which
+  most open-source RAW tools still cannot read. If a file cannot be unpacked at all, the
   app falls back to the camera JPEG embedded in it — including 45 MP-class frames
   that the current decoder returns truncated, which are detected and swapped for
   the full-resolution JPEG inside the RAW instead of showing a half-black photo.
@@ -119,10 +126,11 @@ screenshot:
   proves the curve and the model are monotone for every slider extreme, checks
   band isolation, that a shadow lift is multiplicative (local contrast
   preserved), that highlights depend on the neighbourhood (adaptive), and that
-  no slider can produce a plateau. One caveat: the RAW decoder hands back 8-bit
-  sRGB, so highlights that were already clipped at decode cannot be recovered
-  the way Lightroom recovers them from linear sensor data — the sliders shape
-  the headroom that is actually there.
+  no slider can produce a plateau. On the linear RAW path, negative highlights is
+  a real **highlight recovery**: the guide's highlight range is mapped through an
+  exponential shoulder whose asymptote sits just under white, so sensor values
+  above 1.0 are compressed back into visible gradation while the detail inside the
+  region survives through the guide/pixel ratio.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in
@@ -147,12 +155,18 @@ app itself.
 
 - `public/js/renderer.js` — `LookRenderer`: uploads the LUT binary as a 3D
   texture (17³ RGBA, trilinear filtering) and grades the photo in a fragment
-  shader. The pipeline is exposure and white balance in linear light (channel
-  gains, so highlights do not clip channel-by-channel) → contrast curve sampled
-  in log2 luminance from a 1024-entry R16F LUT → adaptive highlights/shadows
-  from a blurred luminance guide (`buildToneGuide()` in the app, sampled as an
-  R8 texture) → whites/blacks endpoint curves in display space → vibrance /
-  saturation around luma → optional LOG encode → 1–3 stacked LUTs. Noise reduction runs first (a
+  shader. RAW frames arrive as a filterable **RGB16F scene-linear texture** (the
+  linear path; JPEG/demo photos stay RGBA8 sRGB and are linearised in the shader)
+  and the pipeline is exposure and white balance in linear light (channel gains,
+  so highlights do not clip channel-by-channel) → contrast curve sampled in log2
+  luminance from a 1024-entry R16F LUT → adaptive highlights/shadows from a
+  blurred luminance guide (built from the linear frame in the worker for RAW,
+  from the canvas for JPEG; sampled as an R8 texture over −10…+8 EV) →
+  whites/blacks endpoint curves in display space → sRGB encode → the RAW display
+  base curve → vibrance / saturation around luma → optional LOG encode → 1–3
+  stacked LUTs. Highlight recovery is a shoulder in the guide's log-luminance
+  domain, so above-white scene data becomes gradation instead of a clipped flat
+  area. Noise reduction runs first (a
   3×3 bilateral on luma plus a wider chroma ring, both edge-aware), driven by
   the measured noise floor. The framing is a single image-space rectangle
   (`computeViewRect`): `cover`/`contain` choose it at zoom 1, and the interactive
@@ -276,6 +290,7 @@ and import instructions.
 ```
 public/            # the whole app (no build step)
   index.html       # UI + inline CSS + app logic
+  js/raw-worker.js # flashraw decode (16-bit linear), preview, guide, auto EV
   js/renderer.js   # WebGL2 LUT renderer
   js/looks.js      # LUT manifest
   js/i18n.js       # zh/en strings

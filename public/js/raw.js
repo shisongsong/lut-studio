@@ -102,10 +102,18 @@ function getWorker() {
 }
 
 /**
- * Develop a RAW file into a full-resolution RGB image, in a worker.
+ * Develop a RAW file, in a worker.
+ *
+ * The normal result is scene-linear 16-bit data with highlight headroom:
+ * `{ linear: true, data: Uint16Array (half-float scene linear), preview,
+ * guide, width, height, ... }` for the GPU path. If the linear decode cannot
+ * run on this file/browser, the worker falls back to a display-ready 8-bit
+ * `bitmap` so the photo still opens.
  *
  * @param {ArrayBuffer} buffer raw file bytes (kept intact — a copy goes to the worker)
- * @returns {Promise<{bitmap: ImageBitmap, width: number, height: number, model: string, exposureEV: number, ms: number}>}
+ * @returns {Promise<{linear:boolean, data?:Uint16Array, preview?:object, guide?:object,
+ *   bitmap?:ImageBitmap, width:number, height:number, model:string,
+ *   exposureEV:number, ms:number}>}
  */
 export function developRaw(buffer) {
   const started = performance.now();
@@ -114,7 +122,11 @@ export function developRaw(buffer) {
   return new Promise((resolve, reject) => {
     pending.set(id, {
       resolve: (data) => resolve({
-        bitmap: data.bitmap,
+        linear: !!data.linear,
+        data: data.full || null,
+        preview: data.preview || null,
+        guide: data.guide || null,
+        bitmap: data.bitmap || null,
         width: data.width,
         height: data.height,
         model: data.model,

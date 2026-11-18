@@ -876,8 +876,9 @@ async function loadDemoImage(){
     if (!img) img = await loadImageWithTimeout(url);
     setLoadTask('demo', null);
     if (state.userPhoto) return;          // the user already opened their own photo
-    source = makeSource(img);
-    renderer.setImage(source);
+    releaseSource(source);
+    source = makeCanvasSource(img);
+    renderer.setSource(source);
     updateToneGuide(source);
     el.lqip?.remove();
     state.demoLoaded = true;
@@ -945,7 +946,12 @@ function prewarmRawDecoder(){
  * texture into a noise sigma. The flattest third of the patches is used, because
  * edges and detail can only add energy — a busy frame must not look noisy.
  */
-function estimateNoise(img, ev = 0) {
+function estimateNoise(src, ev = 0) {
+  if (!src || !src.width || !src.height) return 0;
+  return src.kind === 'linear' ? estimateNoiseLinear(src, ev) : estimateNoiseCanvas(src.canvas || src, ev);
+}
+
+function estimateNoiseCanvas(img, ev = 0) {
   if (!img || !img.width || !img.height) return 0;
   const W = img.width, H = img.height, P = 160;
   const gain = Math.pow(2, ev);
@@ -972,6 +978,48 @@ function estimateNoise(img, ev = 0) {
       for (let i = 0; i < luma.length; i++) {
         const lin = (0.2126 * toLin[d[i * 4]] + 0.7152 * toLin[d[i * 4 + 1]] + 0.0722 * toLin[d[i * 4 + 2]]) * gain;
         luma[i] = encode(lin);
+      }
+      const res = [];
+      for (let y = 1; y < P - 1; y++) {
+        for (let x = 1; x < P - 1; x++) {
+          const i = y * P + x;
+          res.push(Math.abs(luma[i] - (luma[i - 1] + luma[i + 1] + luma[i - P] + luma[i + P]) / 4));
+        }
+      }
+      res.sort((a, b) => a - b);
+      scores.push(res[res.length >> 1] || 0);
+    }
+  }
+  scores.sort((a, b) => a - b);
+  const q = scores[Math.floor(scores.length / 3)] || 0;
+  return q / 0.754;
+}
+
+/**
+ * Noise floor for a scene-linear RAW frame. Patches are read at native
+ * resolution, brought to the displayed exposure, encoded to display sRGB and
+ * then run through the same robust high-pass median as the canvas path — so the
+ * auto NR number means the same thing for RAW and JPEG files.
+ */
+function estimateNoiseLinear(src, ev = 0) {
+  const W = src.width, H = src.height, P = 160;
+  const gain = Math.pow(2, ev);
+  const scores = [];
+  for (let gy = 0; gy < 3; gy++) {
+    for (let gx = 0; gx < 3; gx++) {
+      const sx = Math.max(0, Math.min(W - P, Math.round(W * (0.1 + 0.8 * gx / 2) - P / 2)));
+      const sy = Math.max(0, Math.min(H - P, Math.round(H * (0.1 + 0.8 * gy / 2) - P / 2)));
+      const luma = new Float32Array(P * P);
+      for (let y = 0; y < P; y++) {
+        for (let x = 0; x < P; x++) {
+          const i = ((sy + y) * W + (sx + x)) * 3;
+          const lin = (
+            0.2126 * halfToFloat(src.data[i]) +
+            0.7152 * halfToFloat(src.data[i + 1]) +
+            0.0722 * halfToFloat(src.data[i + 2])
+          ) * gain;
+          luma[y * P + x] = srgbEncode8(lin);
+        }
       }
       const res = [];
       for (let y = 1; y < P - 1; y++) {
@@ -1026,14 +1074,58 @@ function updateNrBadge() {
   badge.classList.toggle('manual', state.detail.manual);
 }
 
-function makeSource(img){
-  // a canvas is already a usable source (RAW development hands one over)
-  if (img instanceof HTMLCanvasElement) return img;
-  const c = document.createElement('canvas');
-  c.width = img.naturalWidth || img.width;
-  c.height = img.naturalHeight || img.height;
-  c.getContext('2d', { alpha: false }).drawImage(img, 0, 0);
-  return c;
+/**
+ * The app deals with two kinds of source:
+ *  - `srgb`: an ordinary canvas (JPEG, PNG, demo photo, embedded RAW preview);
+ *  - `linear`: the RAW development result — scene-linear half floats with
+ *    highlight headroom, plus a GPU preview and the tone guide built in the
+ *    worker. Keeping the full-resolution linear frame on the main thread is what
+ *    lets a 100% export be rendered from real scene data.
+ */
+function makeCanvasSource(img){
+  let canvas = img;
+  if (!(img instanceof HTMLCanvasElement)) {
+    canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    canvas.getContext('2d', { alpha: false }).drawImage(img, 0, 0);
+  }
+  return { kind: 'srgb', canvas, width: canvas.width, height: canvas.height };
+}
+
+function releaseSource(src){
+  if (src && src.kind === 'linear' && src.data) src.data = null;  // let 100+ MB go
+}
+
+/* half-float → float table, for reading the linear RAW frame on the CPU */
+let halfTable = null;
+function halfToFloat(bits){
+  if (!halfTable) {
+    halfTable = new Float32Array(65536);
+    for (let h = 0; h < 65536; h++) {
+      const sgn = (h & 0x8000) ? -1 : 1, e = (h >> 10) & 0x1f, m = h & 0x3ff;
+      halfTable[h] = e === 0 ? sgn * Math.pow(2, -14) * (m / 1024)
+        : e === 31 ? (m ? NaN : sgn * Infinity)
+          : sgn * Math.pow(2, e - 15) * (1 + m / 1024);
+    }
+  }
+  return halfTable[bits];
+}
+
+const srgbEncode8 = (v) => {
+  v = Math.max(0, v);
+  return Math.round((v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055) * 255);
+};
+
+/** One scene-linear pixel of a linear source, as 8-bit display sRGB. */
+function linearPixelDisplay(src, x, y, ev = 0){
+  const i = (y * src.width + x) * 3;
+  const gain = Math.pow(2, ev);
+  return [
+    srgbEncode8(halfToFloat(src.data[i]) * gain),
+    srgbEncode8(halfToFloat(src.data[i + 1]) * gain),
+    srgbEncode8(halfToFloat(src.data[i + 2]) * gain),
+  ];
 }
 
 /**
@@ -1046,15 +1138,15 @@ function makeSource(img){
  * weight stops strong edges (a dark roof against a bright sky) from bleeding
  * into each other, which is what would otherwise show up as halos.
  */
-function buildToneGuide(src){
+function buildToneGuide(canvas){
   const LONG_EDGE = 320;
-  const k = Math.min(1, LONG_EDGE / Math.max(1, src.width, src.height));
-  const gw = Math.max(8, Math.round(src.width * k));
-  const gh = Math.max(8, Math.round(src.height * k));
+  const k = Math.min(1, LONG_EDGE / Math.max(1, canvas.width, canvas.height));
+  const gw = Math.max(8, Math.round(canvas.width * k));
+  const gh = Math.max(8, Math.round(canvas.height * k));
   const c = document.createElement('canvas');
   c.width = gw; c.height = gh;
   const ctx = c.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(src, 0, 0, gw, gh);
+  ctx.drawImage(canvas, 0, 0, gw, gh);
   const px = ctx.getImageData(0, 0, gw, gh).data;
 
   const linTab = new Float32Array(256);
@@ -1065,7 +1157,7 @@ function buildToneGuide(src){
   const ev = new Float32Array(gw * gh);
   for (let i = 0; i < ev.length; i++) {
     const Y = 0.2126 * linTab[px[i * 4]] + 0.7152 * linTab[px[i * 4 + 1]] + 0.0722 * linTab[px[i * 4 + 2]];
-    ev[i] = Math.max(-10, Math.min(6, Math.log2(Math.max(Y, 1e-6) / 0.18)));
+    ev[i] = Math.max(-10, Math.min(8, Math.log2(Math.max(Y, 1e-6) / 0.18)));
   }
 
   // Separable cross-bilateral blur. Weights are quantised by the EV difference
@@ -1102,14 +1194,20 @@ function buildToneGuide(src){
   pass(tmp, ev, false);
 
   const data = new Uint8Array(gw * gh);
-  for (let i = 0; i < data.length; i++) data[i] = Math.round(((ev[i] + 10) / 16) * 255);
+  for (let i = 0; i < data.length; i++) data[i] = Math.round(((ev[i] + 10) / 18) * 255);
   return { w: gw, h: gh, data };
 }
 
 function updateToneGuide(src){
   if (!renderer) return;
+  // Linear RAW frames come with a guide built in the worker (from the actual
+  // scene-linear data, headroom included); JPEG/demo sources build one here.
+  if (src && src.kind === 'linear') {
+    renderer.setGuide(src.guide || null);
+    return;
+  }
   try {
-    renderer.setGuide(buildToneGuide(src));
+    renderer.setGuide(buildToneGuide(src.canvas || src));
   } catch (err) {
     console.warn('[tone guide] could not be built', err);
     renderer.setGuide(null);
@@ -1981,7 +2079,8 @@ function measureTone() {
   c.height = Math.max(2, Math.round(240 * source.height / source.width));
   const ctx = c.getContext('2d', { willReadFrequently: true });
   if (stage) ctx.drawImage(stage, 0, 0, c.width, c.height);
-  else ctx.drawImage(source, 0, 0, c.width, c.height);
+  else if (source.kind === 'linear') return null;
+  else ctx.drawImage(source.canvas, 0, 0, c.width, c.height);
   const d = ctx.getImageData(0, 0, c.width, c.height).data;
   const hist = new Uint32Array(256);
   let n = 0;
@@ -2043,11 +2142,18 @@ function pickWhite(e) {
   if (ix < 0 || ix > 1 || iy < 0 || iy > 1) { toast(t(state.lang, 'pickTooDark')); return; }
   const px = Math.min(source.width - 1, Math.max(0, Math.round(ix * source.width)));
   const py = Math.min(source.height - 1, Math.max(0, Math.round(iy * source.height)));
-  const c = document.createElement('canvas');
-  c.width = 1; c.height = 1;
-  const ctx = c.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(source, px, py, 1, 1, 0, 0, 1, 1);
-  const d = ctx.getImageData(0, 0, 1, 1).data;
+  let d;
+  if (source.kind === 'linear') {
+    // Scene-linear sample → display sRGB, so the same neutral-reference maths
+    // works for RAW and JPEG (exposure cancels in the channel ratios).
+    d = linearPixelDisplay(source, px, py, 0);
+  } else {
+    const c = document.createElement('canvas');
+    c.width = 1; c.height = 1;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(source.canvas, px, py, 1, 1, 0, 0, 1, 1);
+    d = ctx.getImageData(0, 0, 1, 1).data;
+  }
   const toLin = (s) => { s /= 255; return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
   const rr = toLin(d[0]), gg = toLin(d[1]), bb = toLin(d[2]);
   const lum = 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
@@ -2132,6 +2238,7 @@ async function exportImage(quality){
   const scale = quality / 100;
   const w = Math.max(2, Math.round(source.width * scale));
   const h = Math.max(2, Math.round(source.height * scale));
+  const linear = source.kind === 'linear';
   busyShow({
     title: t(state.lang, 'busyExport'),
     steps: [t(state.lang, 'busyRender'), t(state.lang, 'busyEncode')],
@@ -2141,40 +2248,50 @@ async function exportImage(quality){
   try {
     const out = document.createElement('canvas'); out.width = w; out.height = h;
     const ctx = out.getContext('2d', { alpha: false });
-    const max = renderer.maxTexture;
-    if (Math.max(w, h) <= max) {
-      renderer.render(stack, adj, w, h, 'cover');
-      ctx.drawImage(renderer.canvas, 0, 0);
-      busyUpdate({ progress: 0.55 });
-    } else {
-      // Larger than the GPU texture limit: grade the photo tile by tile at native
-      // resolution and stitch the tiles into the output canvas. The LUT is applied
-      // per pixel, so tile edges are seamless.
-      const T = Math.min(4096, max);
-      const cols = Math.ceil(w / T), rows = Math.ceil(h / T);
-      const total = cols * rows;
-      let done = 0;
-      for (let ty = 0; ty < h; ty += T) {
-        for (let tx = 0; tx < w; tx += T) {
-          const tw = Math.min(T, w - tx), th = Math.min(T, h - ty);
+    // A linear tile is RGB16F (6 bytes/px): 2048² keeps each upload at 25 MB.
+    const T = Math.min(linear ? 2048 : 4096, renderer.maxTexture);
+    const cols = Math.ceil(w / T), rows = Math.ceil(h / T);
+    const total = Math.max(1, cols * rows);
+    let done = 0;
+    for (let ty = 0; ty < h; ty += T) {
+      for (let tx = 0; tx < w; tx += T) {
+        const tw = Math.min(T, w - tx), th = Math.min(T, h - ty);
+        if (linear) {
+          // Crop the native-resolution scene-linear frame: the shader then maps
+          // the tile's display pixels straight into real sensor data, so a 100%
+          // export keeps every bit of the decoded resolution.
+          const cw = Math.max(1, Math.min(source.width, Math.round(tw / scale)));
+          const ch = Math.max(1, Math.min(source.height, Math.round(th / scale)));
+          const sx = Math.min(source.width - cw, Math.max(0, Math.round(tx / scale)));
+          const sy = Math.min(source.height - ch, Math.max(0, Math.round(ty / scale)));
+          const tile = new Uint16Array(cw * ch * 3);
+          const srcData = source.data;
+          for (let row = 0; row < ch; row++) {
+            const from = ((sy + row) * source.width + sx) * 3;
+            tile.set(srcData.subarray(from, from + cw * 3), row * cw * 3);
+          }
+          renderer.setLinearTile(tile, cw, ch);
+          renderer.render(stack, adj, tw, th, 'cover', null,
+            { x: sx / source.width, y: sy / source.height, w: cw / source.width, h: ch / source.height });
+        } else {
           const crop = document.createElement('canvas');
           crop.width = tw; crop.height = th;
           crop.getContext('2d', { alpha: false }).drawImage(
-            source,
+            source.canvas,
             tx / scale, ty / scale, tw / scale, th / scale,
             0, 0, tw, th
           );
-          renderer.setImage(crop);
+          renderer.setSource({ kind: 'srgb', canvas: crop, width: tw, height: th });
           renderer.render(stack, adj, tw, th, 'cover', null,
             { x: tx / w, y: ty / h, w: tw / w, h: th / h });
-          ctx.drawImage(renderer.canvas, tx, ty);
-          done++;
-          busyUpdate({ progress: done / total * 0.9 });
-          await new Promise(r => setTimeout(r, 0));
         }
+        ctx.drawImage(renderer.canvas, tx, ty);
+        done++;
+        busyUpdate({ progress: done / total * 0.9 });
+        await new Promise(r => setTimeout(r, 0));
       }
-      renderer.setImage(source);
     }
+    renderer.setSource(source);
     busyUpdate({ step: 1, progress: 0.94, sub: `${w} × ${h}` });
     const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', quality >= 100 ? 0.98 : quality >= 75 ? 0.95 : 0.9));
     busyUpdate({ progress: 1 });
@@ -2631,12 +2748,7 @@ async function readFileBufferWithProgress(file, onProgress){
   return out.buffer;
 }
 
-function applyImage(img, name, note){
-  state.userPhoto = true;
-  el.lqip?.remove();
-  source = makeSource(img);
-  renderer.setImage(source);
-  updateToneGuide(source);
+function afterSourceChanged(name){
   sourceName = name.replace(/\.[^.]+$/, '').slice(0, 28) || 'Untitled';
   el.metaName.textContent = sourceName.toUpperCase();
   el.metaDims.textContent = `${source.width} × ${source.height}`;
@@ -2651,6 +2763,39 @@ function applyImage(img, name, note){
   updateQualityDims();
   recalcNr(true);
   render({ instant: true });
+}
+
+function applyCanvasImage(img, name, note){
+  state.userPhoto = true;
+  el.lqip?.remove();
+  releaseSource(source);
+  source = makeCanvasSource(img);
+  renderer.setSource(source);
+  updateToneGuide(source);
+  afterSourceChanged(name);
+  toast(note || t(state.lang, 'photoLoaded'));
+}
+
+/**
+ * Hand a developed RAW to the viewer. The worker decoded scene-linear half
+ * floats (highlight headroom intact), a GPU preview and the adaptive-tone guide;
+ * the full-resolution frame stays on the main thread for 100% exports.
+ */
+function applyLinearRaw(out, name, note){
+  state.userPhoto = true;
+  el.lqip?.remove();
+  releaseSource(source);
+  source = {
+    kind: 'linear',
+    data: out.data,
+    width: out.width,
+    height: out.height,
+    guide: out.guide,
+    preview: out.preview,
+  };
+  renderer.setSource(source);
+  renderer.setGuide(out.guide);
+  afterSourceChanged(name);
   toast(note || t(state.lang, 'photoLoaded'));
 }
 
@@ -2683,7 +2828,7 @@ async function loadFile(file){
     if (url) URL.revokeObjectURL(url);
     state.rawMeta = null;
     beginPhoto(0);
-    applyImage(img, file.name);
+    applyCanvasImage(img, file.name);
     setDevelop(true);
   } catch { toast(t(state.lang, 'formatError')); }
   finally { busyHide(); }
@@ -2738,7 +2883,10 @@ async function loadRaw(file){
       const ev = state.autoBright && state.rawExposure
         ? ` · ${t(state.lang, 'autoBright')} ${state.rawExposure >= 0 ? '+' : ''}${state.rawExposure.toFixed(1)} EV`
         : '';
-      applyImage(out.bitmap, file.name, `${t(state.lang, 'rawDeveloped')}${who} · ${bits}${ev} · ${(out.ms / 1000).toFixed(1)}s`);
+      const tag = out.linear ? ` · ${t(state.lang, 'rawLinear')}` : '';
+      const note = `${t(state.lang, 'rawDeveloped')}${who} · ${bits}${ev}${tag} · ${(out.ms / 1000).toFixed(1)}s`;
+      if (out.linear) applyLinearRaw(out, file.name, note);
+      else applyCanvasImage(out.bitmap, file.name, note);
       // A RAW is something you develop, not a wallpaper: land in the develop panel
       // with the camera's own render and no LUT in the way.
       setDevelop(true);
@@ -2749,7 +2897,7 @@ async function loadRaw(file){
     if (!preview) { toast(t(state.lang, 'rawUnsupported')); return; }
     state.rawMeta = { model: '', width: preview.width, height: preview.height };
     beginPhoto(0);
-    applyImage(preview.bitmap, file.name, `${t(state.lang, 'rawPreview')} · ${preview.width} × ${preview.height}`);
+    applyCanvasImage(preview.bitmap, file.name, `${t(state.lang, 'rawPreview')} · ${preview.width} × ${preview.height}`);
     setDevelop(true);
   } catch {
     toast(t(state.lang, 'rawUnsupported'));
