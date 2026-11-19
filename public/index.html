@@ -1252,6 +1252,7 @@ function drawBase(){
   // Drawn through the renderer (no LUTs, no LOG, baseline exposure only) so the
   // BEFORE side can never drift out of alignment with AFTER.
   if (!el.base.width) sizeCanvases();
+  ensureNativeTile();
   renderer.render([], adjBase(), el.base.width, el.base.height, state.fit, state.view);
   el.base.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
 }
@@ -1261,6 +1262,10 @@ function drawBase(){
 function adjFor(){
   const t = state.tone;
   return {
+    // AUTO tone measures the frame without the local detail stage: a local
+    // operator changes the histogram, and feeding that back into Auto turned
+    // into a loop (more detail -> more contrast -> more detail).
+    noDetail: !!state.measuring,
     exposure: t.exposure,
     contrast: t.contrast,
     temp: t.temp,
@@ -1286,10 +1291,103 @@ function adjBase(){
   };
 }
 
+/**
+ * Zoomed inspection uses native sensor pixels.
+ *
+ * The GPU preview is capped at 4096 px on the long edge, so past ~110 % zoom the
+ * screen would be showing an upscaled preview — which is why a 570 % view looked
+ * soft next to Lightroom's 1:1. When the visible area needs more resolution than
+ * the preview has, crop that area out of the full-resolution linear frame (it is
+ * already in RAM for the export), upload it as a tile and render it at 1:1. The
+ * crop carries a margin so small pans do not re-upload, and it is capped so a
+ * phone never allocates a huge texture.
+ */
+let nativeTileKey = '';
+let nativeTileSrc = null;
+let nativeTileData = null;   // cached crop, so a thumbnail pass can hand the texture back
+// Read-only introspection used by the viewer tests and by hand when diagnosing
+// zoom quality: what the renderer is actually sampling right now.
+window.__ltView = () => ({
+  tile: nativeTileKey || 'preview',
+  tileRect: renderer && renderer.tileRect,
+  imgW: renderer && renderer.imgW,
+  imgH: renderer && renderer.imgH,
+  texW: renderer && renderer.texW,
+  texH: renderer && renderer.texH,
+  zoom: state.view.zoom,
+  layerW: layers[0] && layers[0].width,
+  layerH: layers[0] && layers[0].height,
+  previewW: source && source.preview ? source.preview.w : null,
+  sourceW: source && source.width,
+  sourceH: source && source.height,
+  diag: (() => {
+    if (!source || !renderer) return null;
+    const st = stageSize();
+    const r = computeViewRect(source.width, source.height, st.w, st.h, state.fit, state.view);
+    const pv = source.preview || { w: source.width };
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    return { rectW: r.w, previewTexels: r.w * pv.w, needPx: st.w * dpr * 0.95, needed: r.w * pv.w < st.w * dpr * 0.95 };
+  })(),
+});
+function restorePreviewTexture(){
+  if (!nativeTileKey) return;
+  nativeTileKey = '';
+  if (!source || source.kind !== 'linear' || !renderer) return;
+  const pv = source.preview || { data: source.data, w: source.width, h: source.height };
+  renderer.setLinearPreview(pv, source.width, source.height);
+}
+
+function ensureNativeTile(){
+  if (!renderer || !source) return;
+  if (source !== nativeTileSrc) { nativeTileSrc = source; nativeTileKey = ''; }
+  if (source.kind !== 'linear') return;
+  const { w, h } = stageSize();
+  const rect = computeViewRect(source.width, source.height, w, h, state.fit, state.view);
+  const pv = source.preview || { w: source.width, h: source.height };
+  // Compare against *device* pixels: the layer canvases are CSS size x DPR, so
+  // comparing with the CSS width would miss the upscaling on retina screens.
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const needed = rect.w * pv.w < w * dpr * 0.95;
+  if (!needed) { restorePreviewTexture(); return; }
+  const cap = Math.min(renderer.maxTexture, 2560);
+  let cw = Math.ceil(rect.w * source.width * 1.30);
+  let ch = Math.ceil(rect.h * source.height * 1.30);
+  const k = Math.min(1, cap / Math.max(cw, ch));
+  cw = Math.max(16, Math.min(source.width, Math.round(cw * k)));
+  ch = Math.max(16, Math.min(source.height, Math.round(ch * k)));
+  const cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2;
+  const sx = Math.max(0, Math.min(source.width - cw, Math.round(cx * source.width - cw / 2)));
+  const sy = Math.max(0, Math.min(source.height - ch, Math.round(cy * source.height - ch / 2)));
+  const key = `${sx},${sy},${cw}x${ch}`;
+  if (key === nativeTileKey) return;
+  const tile = new Uint16Array(cw * ch * 3);
+  const src = source.data;
+  for (let row = 0; row < ch; row++) {
+    const from = ((sy + row) * source.width + sx) * 3;
+    tile.set(src.subarray(from, from + cw * 3), row * cw * 3);
+  }
+  const tileMeta = {
+    fullW: source.width, fullH: source.height,
+    x: sx / source.width, y: sy / source.height, w: cw / source.width, h: ch / source.height,
+  };
+  renderer.setLinearTile(tile, cw, ch, tileMeta);
+  nativeTileData = { data: tile, cw, ch, rect: tileMeta, key };
+  nativeTileKey = key;
+}
+
+/** Hand the native crop back to the GPU after something else borrowed it. */
+function reapplyNativeTile(){
+  if (!nativeTileData) return;
+  const t = nativeTileData;
+  renderer.setLinearTile(t.data, t.cw, t.ch, t.rect);
+  nativeTileKey = t.key;
+}
+
 function render({ instant = false } = {}){
   if (!renderer || !source) return;
   const target = layers[active ^ 1], prev = layers[active];
   if (!target.width) sizeCanvases();
+  ensureNativeTile();
   renderer.render(currentStack(), adjFor(), target.width, target.height, state.fit, state.view);
   target.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   if (instant) {
@@ -1308,6 +1406,7 @@ function render({ instant = false } = {}){
 function renderDirect(){
   if (!renderer || !source) return;
   const visible = layers.find(l => !l.classList.contains('off')) || layers[0];
+  ensureNativeTile();
   renderer.render(currentStack(), adjFor(), visible.width, visible.height, state.fit, state.view);
   visible.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   sampleAccent();
@@ -1400,6 +1499,9 @@ function renderLive(){
   if (!renderer || !source) return;
   const target = layers.find(l => !l.classList.contains('off')) || layers[0];
   if (!target || !target.width) sizeCanvases(lowQuality ? 1 : 2);
+  // Gestures render from the preview: it is one texture, so panning stays
+  // cheap. The settled pass swaps in the native-resolution tile.
+  restorePreviewTexture();
   renderer.render(currentStack(), adjFor(), target.width, target.height, state.fit, state.view);
   target.getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   // The BEFORE side has to move with the AFTER side or the split view drifts.
@@ -1828,11 +1930,14 @@ function drawFilmThumb(i, chips, all){
   const chip = chips[i];
   if (!state.lutsReady || !chip || thumbRendered.has(i)) return;
   const look = i === 0 ? null : all[i - 1];
+  const hadTile = !!nativeTileKey;
+  restorePreviewTexture();
   if (look) renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], adjFor(), 156, 104, 'cover');
   else renderer.render([], adjFor(), 156, 104, 'cover');
   chip.querySelector('canvas').getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   chip.classList.remove('loading');
   thumbRendered.add(i);
+  if (hadTile) reapplyNativeTile();
 }
 
 /** Refresh the look thumbnails after the photo or the develop settings change. */
@@ -2114,8 +2219,10 @@ function applyAutoTone() {
   // Lightroom's Auto places the exposure as well; do that first so the
   // histogram this measures is the frame Auto is actually shaping.
   tn.exposure = state.autoEV || 0;
+  state.measuring = true;
   drawBase();
   const m = measureTone();
+  state.measuring = false;
   if (!m) return;
   const spread = (m.p75 - m.p25) / 255;
   // Values calibrated against Lightroom Mobile's Auto on the night reference

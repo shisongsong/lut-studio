@@ -37,6 +37,8 @@ const GREY = 0.18;
  * `scripts/test-tone-model.mjs` share one calibration.
  */
 const glf = (n) => Number(n).toFixed(4);
+// How much chroma to restore after the per-channel display transform.
+export const CHROMA_RESTORE = 0.80;
 
 export const TONE_MODEL = {
   // Calibrated from Lightroom Mobile (Adobe Color) on the night test frame:
@@ -90,39 +92,38 @@ export const SIGMOID = {
 };
 
 /**
- * Detail recovery (the Lightroom Detail panel's job).
+ * Detail recovery (the Lightroom Detail panel's job), as a local-Laplacian
+ * remap (Paris/Hasinoff/Kautz 2011).
  *
  * A global tone curve cannot tell a bright window from a bright patch of wall:
- * whatever it compresses, it compresses uniformly, so local contrast — the
- * thing the eye reads as "crisp" — gets flattened, and most of it is flattened
- * where the curve is steepest (the highlights and the shadow toe). This stage
- * puts a fraction of it back as a local, multiplicative exposure gain in the
- * log domain, at two scales:
+ * whatever it compresses, it compresses uniformly, so local contrast — what the
+ * eye reads as "crisp" — gets flattened, worst where the curve is steepest (the
+ * highlight shoulder and the shadow toe). The remap compares each pixel with its
+ * blurred neighbourhood and, for deviations *below* sigma, replaces |i-g| with
+ * sigma·(|i-g|/sigma)^alpha. With alpha < 1 that amplifies texture while staying
+ * monotone and continuous; beyond sigma the mapping is the identity, so a real
+ * edge (neon tube against a dark wall) is left exactly untouched. That identity
+ * branch is what makes the stage halo-free by construction — any scheme whose
+ * gain keeps growing with the deviation paints a white rim around every light,
+ * which is exactly the "white ghosting" artifact this replaced.
  *
- *   - `detail` — ~1 texel (acutance; what you see at 100%)
- *   - `localContrast` — ~8 texels (the scale that survives downscaling, i.e.
- *     what you see when the photo is fitted to the screen)
- *
- * It is edge-aware by construction: the gain is the pixel's own deviation from
- * its blurred neighbourhood, so gradients keep their shape (no halos, since the
- * deviation is clamped and applied as a ratio), and it is gated by the local
- * luminance so shadow noise is not amplified.
+ * Two scales run in one pass: rho ~ 1 px (acutance) and rho ~ 8 px (the local
+ * contrast that survives fitting the photo to the screen). Deviations under
+ * `deadband` are sensor noise and get nothing; the whole stage fades out below
+ * the measured noise floor in luminance.
  */
 export const DETAIL = {
-  amount: 0.72,
-  localAmount: 0.55,
+  // Two scales of the same local-Laplacian remap.
+  sigma1: 0.22, alpha1: 0.60, weight1: 1.10,
+  sigma2: 0.50, alpha2: 0.60, weight2: 1.30,
   localRadius: 8,
-  // Deviation clamp: max ±0.5 in log2-relative terms before the gain applies.
-  clamp: 0.5,
-  // Noise gate: scene-linear luminance (this pipeline's units, where 1.0 is
-  // sensor white) below which detail is faded out entirely.
+  // Deviations below this (log2 units, ~1.4% of luminance) are sensor noise,
+  // not texture.
+  deadband: 0.016,
+  // Noise gate on the scene-linear luminance (this pipeline's units, where 1.0
+  // is sensor white) below which detail is faded out entirely.
   gateLo: 0.0060,
   gateHi: 0.0200,
-  // Structure mask (Lightroom's "masking"): the fine-detail gain only applies
-  // where the coarse scale shows real structure, so flat areas (sky, shadow
-  // walls) keep their smooth gradient instead of gaining amplified noise.
-  maskLo: 0.055,
-  maskHi: 0.16,
 };
 
 /**
@@ -295,6 +296,9 @@ uniform sampler2D uTone;
 uniform sampler2D uGuide;
 uniform int uHasGuide;
 uniform vec4 uGuideRect;
+// When the visible area is rendered from a native-resolution crop instead of
+// the (downscaled) preview, uTile maps the crop's local uv back to image uv.
+uniform vec4 uTile;
 const float TONE_EV_MIN = -12.0;
 const float TONE_EV_MAX = 10.0;
 // Noise reduction (auto strength comes from a measured noise floor).
@@ -312,17 +316,20 @@ uniform float uSigQ;
 uniform float uSigPe;
 uniform float uSigFog;
 uniform float uSigW;
+uniform float uSigB;
 uniform float uSigHue;
 // Detail recovery (lightroom-style): relative local-contrast gain at two
 // scales, gated by luminance so shadow noise stays put.
-uniform float uDetail;
-uniform float uLocalContrast;
-uniform float uDetailClamp;
+uniform float uSig1;
+uniform float uAlpha1;
+uniform float uWeight1;
+uniform float uSig2;
+uniform float uAlpha2;
+uniform float uWeight2;
+uniform float uDetailDead;
 uniform float uLocalRadius;
 uniform float uDetGateLo;
 uniform float uDetGateHi;
-uniform float uMaskLo;
-uniform float uMaskHi;
 in vec2 vUv;
 out vec4 outColor;
 
@@ -385,6 +392,14 @@ float lumaOf(vec3 c) {
  * ratio, which keeps gradients intact (no halos), and gated by luminance so the
  * noise floor is not amplified.
  */
+float llDelta(float d, float sigma, float alpha) {
+  float ad = abs(d);
+  if (ad <= 0.0 || ad >= sigma) return 0.0;   // identity at and beyond sigma
+  // Symmetric: a pixel darker than its neighbourhood goes darker, a brighter
+  // one goes brighter. Boosting only one sign silently brightens the frame.
+  return sign(d) * (sigma * pow(ad / sigma, alpha) - ad);
+}
+
 vec3 applyDetail(vec3 disp, vec2 uv, vec3 gains) {
   vec3 Lw = vec3(0.2126, 0.7152, 0.0722);
   float Yc = max(dot(texture(uImage, uv).rgb * gains, Lw), 1e-7);
@@ -401,16 +416,16 @@ vec3 applyDetail(vec3 disp, vec2 uv, vec3 gains) {
            + dot(texture(uImage, uv - vec2(0.0, t2.y)).rgb * gains, Lw);
   y2 *= 0.25;
   float gate = smoothstep(uDetGateLo, uDetGateHi, min(Yc, min(y1, y2)));
-  float d2 = clamp(log2(Yc / max(y2, 1e-7)), -uDetailClamp, uDetailClamp);
-  // Structure mask (Lightroom's "masking"): both scales only act where the
-  // coarse deviation says there is real structure, so flat areas (sky, shadow
-  // walls) keep their smooth gradient instead of gaining amplified noise.
-  float mask = smoothstep(uMaskLo, uMaskHi, abs(d2));
-  float d1 = clamp(log2(Yc / max(y1, 1e-7)), -uDetailClamp, uDetailClamp) * uDetail * mask;
-  // Fade the boost out as the pixel approaches display white, so recovered
-  // micro-contrast turns into gradation instead of pushing highlights over 1.0.
-  float att = 1.0 - smoothstep(0.86, 0.995, max(disp.r, max(disp.g, disp.b)));
-  return disp * exp2((d1 + d2 * uLocalContrast * mask) * gate * att);
+  float d1 = log2(Yc / max(y1, 1e-7));
+  float d2 = log2(Yc / max(y2, 1e-7));
+  float act1 = smoothstep(uDetailDead, uDetailDead * 2.5, abs(d1));
+  float act2 = smoothstep(uDetailDead * 0.5, uDetailDead * 2.0, abs(d2));
+  float delta = (llDelta(d1, uSig1, uAlpha1) * uWeight1 * act1
+               + llDelta(d2, uSig2, uAlpha2) * uWeight2 * act2) * gate;
+  // Never let the recovered micro-contrast push a channel past white.
+  float mx = max(disp.r, max(disp.g, disp.b));
+  delta = min(delta, log2(1.0 / max(mx, 1e-6)) * 0.9);
+  return disp * exp2(max(delta, -1.2));
 }
 
 /**
@@ -426,6 +441,39 @@ float sigCurve(float x) {
   float u = pow(uSigFog + max(x, 0.0), uSigP);
   float y = uSigW * pow(u / (uSigPe + u), uSigQ);
   return isnan(y) ? uSigW : y;
+}
+
+/**
+ * Sigmoid colour handling in rgb-ratio mode: the curve runs on the mean of the
+ * three channels and the ratios are preserved, so a saturated neon keeps its
+ * spectral colour instead of being pulled towards white — which is what the
+ * per-channel mode does to bright saturated pixels (measured on the reference
+ * frame: bright-band saturation 0.23 vs Lightroom's 0.41).
+ *
+ * The scaling can push a channel outside [black, white], so a hyperbolic gamut
+ * compression shrinks the colour along the achromatic axis instead of clipping
+ * it (the same construction darktable uses in this mode).
+ */
+vec3 sigmoidRgbRatio(vec3 v) {
+  float avg = max((v.r + v.g + v.b) / 3.0, 0.0);
+  float mn = min(v.r, min(v.g, v.b));
+  float sf = mn < 0.0 ? -avg / (mn - avg) : 1.0;
+  vec3 in3 = avg + sf * (v - avg);
+  float luma = (in3.r + in3.g + in3.b) / 3.0;
+  float mapped = sigCurve(luma);
+  vec3 pre = luma > 1e-9 ? (mapped / luma) * in3 : vec3(mapped);
+  float eps = 1e-6;
+  float pmin = min(pre.r, min(pre.g, pre.b));
+  float pmax = max(pre.r, max(pre.g, pre.b));
+  float dbw = (uSigW - mapped) / (pmax - mapped + eps);
+  float dbb = (uSigB - mapped) / (pmin - mapped - eps);
+  float dbc = min(dbw, dbb);
+  float cvm = (mapped - pmin) / (mapped + eps);
+  float adj = 1.0 / (cvm * dbc + eps);
+  float hc = 2.0 * cvm / (1.0 - cvm * cvm + eps) * adj;
+  float hz = sqrt(hc * hc + 1.0);
+  float cf = hc / (1.0 + hz) * dbc;
+  return mapped + cf * (pre - mapped);
 }
 
 vec3 sigmoidPerChannel(vec3 v) {
@@ -570,8 +618,10 @@ void main() {
   // image-space uv: (0,0) = top-left of the source, independent of the
   // browser's flipY handling for Image vs ImageBitmap uploads.
   vec2 uv = uRect.xy + vec2(vUv.x, 1.0 - vUv.y) * uRect.zw;
+  // Image-space uv (the crop may be a sub-rectangle of the photo).
+  vec2 imUv = uv * uTile.zw + uTile.xy;
   // Outside the photo: black letterbox when fitting, nothing when cropping.
-  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+  if (imUv.x < 0.0 || imUv.x > 1.0 || imUv.y < 0.0 || imUv.y > 1.0) {
     outColor = vec4(0.0, 0.0, 0.0, 1.0);
     return;
   }
@@ -617,7 +667,7 @@ void main() {
   //    degrades gracefully to a global curve.
   float gEv = ev;
   if (uHasGuide == 1) {
-    vec2 gu = uGuideRect.xy + uv * uGuideRect.zw;
+    vec2 gu = uGuideRect.xy + imUv * uGuideRect.zw;
     gEv = clamp(texture(uGuide, gu).r * 18.0 - 10.0 + uExposure, -12.0, 10.0);
   }
   // Shadows: an exposure lift / drop weighted by a logistic band, calibrated
@@ -659,7 +709,14 @@ void main() {
   vec3 c;
   if (uLinearInput == 1) {
     vec3 disp = sigmoidPerChannel(graded);
-    if (uDetail > 0.0 || uLocalContrast > 0.0) disp = applyDetail(disp, uv, gains);
+    // Per-channel curves compress every channel towards the white point, so a
+    // saturated light source converges on white (measured: bright-band
+    // saturation 0.23 against Lightroom's 0.41 — the neon signs went pale).
+    // Put chroma back proportionally, weighted towards the bright end.
+    float Ld = dot(disp, vec3(0.2126, 0.7152, 0.0722));
+    float chromaB = 1.0 + ${glf(CHROMA_RESTORE)} * smoothstep(0.12, 0.55, Ld);
+    disp = clamp(vec3(Ld) + (disp - vec3(Ld)) * chromaB, 0.0, 1.0);
+    if (uWeight1 > 0.0 || uWeight2 > 0.0) disp = applyDetail(disp, uv, gains);
     c = clamp(linearToSrgb(disp), 0.0, 1.0);
   } else {
     float mx = max(graded.r, max(graded.g, graded.b));
@@ -730,13 +787,14 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLinearInput', 'uShadows', 'uHighlights', 'uWhites', 'uBlacks', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uNr', 'uNrColor', 'uTexel', 'uSigP', 'uSigQ', 'uSigPe', 'uSigFog', 'uSigW', 'uSigHue', 'uDetail', 'uLocalContrast', 'uDetailClamp', 'uLocalRadius', 'uDetGateLo', 'uDetGateHi', 'uMaskLo', 'uMaskHi']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLinearInput', 'uShadows', 'uHighlights', 'uWhites', 'uBlacks', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uTile', 'uNr', 'uNrColor', 'uTexel', 'uSigP', 'uSigQ', 'uSigPe', 'uSigFog', 'uSigW', 'uSigB', 'uSigHue', 'uSig1', 'uAlpha1', 'uWeight1', 'uSig2', 'uAlpha2', 'uWeight2', 'uDetailDead', 'uLocalRadius', 'uDetGateLo', 'uDetGateHi']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
     this.imageTex = null;
     this.imgW = 0;
     this.imgH = 0;
+    this.tileRect = null;
     this.lutTex = new Map();
     this.dummyLut = createDummyLut(gl);
     // Tone LUT: one row of half-float log2-luminance values, rebuilt only when
@@ -838,16 +896,28 @@ export class LookRenderer {
    */
   setLinearPreview(preview, fullW, fullH) {
     this._uploadLinear(preview.data, preview.w, preview.h);
+    this.tileRect = null;
     this.imgW = fullW;
     this.imgH = fullH;
     this.linear = true;
   }
 
-  /** Upload one native-resolution tile of scene-linear half floats (export). */
-  setLinearTile(data, w, h) {
+  /**
+   * Upload one native-resolution tile of scene-linear half floats (export, or
+   * the zoomed inspection view). `tile` describes where the crop sits inside
+   * the full photo, so uv maths and the guide stay in image space.
+   */
+  setLinearTile(data, w, h, tile = null) {
     this._uploadLinear(data, w, h);
-    this.imgW = w;
-    this.imgH = h;
+    if (tile) {
+      this.tileRect = { x: tile.x, y: tile.y, w: tile.w, h: tile.h };
+      this.imgW = tile.fullW || w;
+      this.imgH = tile.fullH || h;
+    } else {
+      this.tileRect = null;
+      this.imgW = w;
+      this.imgH = h;
+    }
     this.linear = true;
   }
 
@@ -959,7 +1029,23 @@ export class LookRenderer {
     gl.activeTexture(gl.TEXTURE0);
 
     const rect = computeViewRect(this.imgW, this.imgH, w, h, fit, view);
-    gl.uniform4f(this.uniform.uRect, rect.x, rect.y, rect.w, rect.h);
+    // A native crop only covers part of the photo: express the visible
+    // rectangle in the crop's own uv space, and tell the shader how to get
+    // back to image space (guide lookups, letterbox test).
+    let urect = rect;
+    const T = this.tileRect;
+    if (T) {
+      urect = {
+        x: (rect.x - T.x) / T.w,
+        y: (rect.y - T.y) / T.h,
+        w: rect.w / T.w,
+        h: rect.h / T.h,
+      };
+      gl.uniform4f(this.uniform.uTile, T.x, T.y, T.w, T.h);
+    } else {
+      gl.uniform4f(this.uniform.uTile, 0, 0, 1, 1);
+    }
+    gl.uniform4f(this.uniform.uRect, urect.x, urect.y, urect.w, urect.h);
     gl.uniform1i(this.uniform.uLinearInput, this.linear ? 1 : 0);
     gl.uniform1f(this.uniform.uShadows, adjust?.shadows || 0);
     gl.uniform1f(this.uniform.uHighlights, adjust?.highlights || 0);
@@ -989,18 +1075,21 @@ export class LookRenderer {
     gl.uniform1f(this.uniform.uSigPe, sig.pe);
     gl.uniform1f(this.uniform.uSigFog, sig.fog);
     gl.uniform1f(this.uniform.uSigW, sig.w);
+    gl.uniform1f(this.uniform.uSigB, sig.b);
     gl.uniform1f(this.uniform.uSigHue, SIGMOID.hue);
     // Detail recovery runs only on the linear RAW path (a JPEG has already been
     // sharpened by the camera); the export can turn it off at tile borders.
     const detailOn = this.linear && !adjust?.noDetail;
-    gl.uniform1f(this.uniform.uDetail, detailOn ? DETAIL.amount : 0);
-    gl.uniform1f(this.uniform.uLocalContrast, detailOn ? DETAIL.localAmount : 0);
-    gl.uniform1f(this.uniform.uDetailClamp, DETAIL.clamp);
+    gl.uniform1f(this.uniform.uSig1, detailOn ? DETAIL.sigma1 : 0);
+    gl.uniform1f(this.uniform.uAlpha1, DETAIL.alpha1);
+    gl.uniform1f(this.uniform.uWeight1, detailOn ? DETAIL.weight1 : 0);
+    gl.uniform1f(this.uniform.uSig2, detailOn ? DETAIL.sigma2 : 0);
+    gl.uniform1f(this.uniform.uAlpha2, DETAIL.alpha2);
+    gl.uniform1f(this.uniform.uWeight2, detailOn ? DETAIL.weight2 : 0);
+    gl.uniform1f(this.uniform.uDetailDead, DETAIL.deadband);
     gl.uniform1f(this.uniform.uLocalRadius, DETAIL.localRadius);
     gl.uniform1f(this.uniform.uDetGateLo, DETAIL.gateLo);
     gl.uniform1f(this.uniform.uDetGateHi, DETAIL.gateHi);
-    gl.uniform1f(this.uniform.uMaskLo, DETAIL.maskLo);
-    gl.uniform1f(this.uniform.uMaskHi, DETAIL.maskHi);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     return this.canvas;

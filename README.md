@@ -123,79 +123,30 @@ screenshot:
 - **Detail recovery** — a global tone curve cannot tell a bright window from a
   bright patch of wall, so whatever it compresses it compresses uniformly and the
   picture reads flat, worst where the curve is steepest (the highlight shoulder
-  and the shadow toe). After the display transform the shader measures each
-  pixel's deviation from its blurred neighbourhood in the scene-linear domain and
-  puts a fraction of it back as a multiplicative gain at two scales: ~1 px
-  (acutance) and ~8 px (the scale that survives fitting the photo to the screen).
-  The deviation is clamped and applied as a ratio, so gradients keep their shape;
-  a luminance gate skips the noise floor, and a structure mask (Lightroom's
-  "masking") keeps flat areas smooth. Measured against Lightroom's Auto export on
-  the reference frame, per-band local detail went from 3.4 to 5.0 in the
-  midtones and from 4.7 to 7.3 in the highlights (LR: 6.0 and 8.5) while crushed
-  blacks and clipped highlights stayed at 1.2 % / 0.1 % (LR: 1.2 % / 0.0 %).
-  Export tiles are cropped with a 14 px margin so the neighbourhood reads real
-  pixels across tile borders instead of breaking into seams.
-- **Develop panel, Lightroom-style** — opening any photo lands in a Develop rail
-  (a bottom sheet on phones) with the camera's own render and **no LUT applied**,
-  so you are looking at your RAW, not at somebody's look. White balance
-  (temp / tint plus an eyedropper that samples a neutral from the frame), the full
-  Light panel (exposure, contrast, highlights, shadows, whites, blacks), and
-  Presence (vibrance, saturation). Every slider is applied in the shader — no
-  re-decode — and the preview, the filmstrip thumbnails and the export all go
-  through the same `adjFor()`, so what you judge is what you get. A live RGB
-  histogram sits above the sliders, `自动色调 / Auto tone` places the whole tone
-  group from the histogram, and the split line keeps working as before/after
-  against the untouched camera render. Auto tone is calibrated against
-  Lightroom Mobile's Auto on the reference night frame and fitted on 100 %
-  exports: it also applies the automatic exposure even when the AUTO toggle is
-  off, and the exported render lands within ±3 display levels of LR's own Auto
-  export on every percentile (mean 57.9 vs 58.2, p50 45 vs 47, p90 118 vs 117,
-  p95 165 vs 166, p99 240 vs 237). The 44 looks stay one click away on the
-  filmstrip and stack on top of the develop settings.
-- **Auto noise reduction, only where it is needed** — the frame's noise floor is
-  measured (robust high-pass on native-resolution patches, evaluated at the
-  displayed exposure), and an edge-aware bilateral / chroma filter is applied
-  through the shader in proportion to that measurement. A clean daylight frame
-  stays untouched (NR 0), a high-ISO interior gets smoothed. The `细节 / Detail`
-  group shows the auto value and lets you override it; both the preview and the
-  export share it.
-- **Lightroom-shaped tone controls** — the Basic-panel sliders are not four
-  gamma-space offsets:
-  - `contrast` drives the sigmoid's mid-grey slope on the RAW path (see the
-    display-transform bullet above); for JPEG/demo input it stays a 1D
-    log2-luminance slope curve around mid grey.
-  - `highlights` / `shadows` are **adaptive**: a small, bilateral-blurred
-    luminance guide decides where they act, and the correction is a local
-    exposure change in that region. Because the weight is constant across a
-    neighbourhood, detail inside a lifted shadow keeps its contrast instead of
-    being flattened by one global curve. The bands follow Adobe's own histogram
-    ranges (shadows 10–30 %, highlights 70–90 %) and the falloff is a logistic in
-    EV, which keeps the mapping monotone — no flat spot, the artifact that used
-    to turn skies into grey mush.
-  - `whites` is a display-space white-point move: positive stretches the top of
-    the range strongly (the calibrated LR Mobile response reaches the same
-    display levels), negative only recovers the very top; `blacks` is a display
-    black-point move — negative is a real levels move (calibrated so a mid-grey
-    drops like it does in Lightroom), positive lifts the whole shadow range with
-    a gamma toe.
-  The slider amplitudes and band shapes were calibrated against pixel
-  measurements of Lightroom Mobile (Adobe Color) on the reference night frame
-  in `testdata/lr-calibration/` (a NEF plus LR `±100` captures): highlights use
-  a logistic EV ramp with extra compression for scene-linear headroom, shadows
-  have separate positive/negative bands, and the display-space whites/blacks
-  curves are fitted to the measured responses.
-  Everything is applied as a luminance ratio, so hue survives; `npm run test:tone`
-  proves the curve and the model are monotone for every slider extreme, checks
-  band isolation, that a shadow lift is multiplicative (local contrast
-  preserved), that highlights depend on the neighbourhood (adaptive), and that
-  no slider can produce a plateau. It also pins the sigmoid display transform to
-  darktable's verified EV→display table and to its anchors (`f(0)` = the black
-  target, `f(0.1845)` = middle grey), so a regression in tone mapping fails the
-  build instead of quietly shifting every photo. On the linear RAW path, negative
-  highlights is a real **highlight recovery**: the guide's highlight range is
-  mapped through an exponential shoulder whose asymptote sits just under white, so
-  sensor values above 1.0 are compressed back into visible gradation while the
-  detail inside the region survives through the guide/pixel ratio.
+  and the shadow toe). After the display transform the shader runs the remap
+  from [local Laplacian filters](https://people.csail.mit.edu/sparis/publi/2011/siggraph/)
+  (Paris / Hasinoff / Kautz, SIGGRAPH 2011) at two scales — ρ ≈ 1 px (acutance)
+  and ρ ≈ 8 px (the local contrast that survives fitting the photo to the
+  screen): `|i-g|` below σ becomes `σ·(|i-g|/σ)^α` with α < 1, which amplifies
+  texture while staying monotone, and **beyond σ the mapping is the identity**,
+  so a real edge (a neon tube against a dark wall) is left exactly untouched.
+  That identity branch is what makes it halo-free by construction — an earlier
+  version of this stage kept adding gain as the deviation grew and painted a
+  white rim around every light. Deviations under the noise deadband get nothing,
+  and the stage fades out below the measured noise floor.
+- **Chroma restore** — per-channel display curves compress every channel towards
+  the white point, so a saturated light source converges on white (measured on
+  the reference frame: bright-band saturation 0.23 where Lightroom keeps 0.41 —
+  the neon signs went pale). The shader puts that chroma back proportionally,
+  weighted towards the bright end.
+- **Native-resolution zoom** — the GPU preview is capped at 4096 px on the long
+  edge, so past ~110 % zoom the screen would be showing an upscaled preview,
+  which is what made a 570 % view look soft next to Lightroom. When the visible
+  area needs more resolution than the preview has, the viewer crops that area out
+  of the full-resolution linear frame (already in RAM for the export), uploads it
+  as a tile and renders it at 1:1. The crop carries a margin so small pans do not
+  re-upload, it is capped so a phone never allocates a huge texture, and the
+  filmstrip hands the texture back when it borrows the renderer.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in
