@@ -278,6 +278,22 @@ a.tbtn{text-decoration:none}
 /* no look: the strength rail has nothing to drive, and the big title only
    competes with the develop panel. */
 .app.nolook .strengths{display:none}
+/* The before/after divider only means something once a look is applied: on the
+   original both halves are the same frame, so it was a line across the photo. */
+.app.nolook .split,.app.nolook .tag{display:none}
+/* Clean view: the photo and one exit pill, nothing else. */
+.app.clean .topbar,.app.clean .bottom,.app.clean .split,.app.clean .tag,
+.app.clean .strengths,.app.clean .devpanel{display:none!important}
+/* Hiding the divider is not enough: the graded layer is still clipped at the
+   split position, so the photo carried a hard vertical seam. Clean view shows
+   the full after-side. */
+.app.clean .field .layer{clip-path:none!important}
+.clean-exit{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:30;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(242,241,236,.82);background:rgba(9,9,10,.55);border:1px solid rgba(255,255,255,.22);padding:9px 13px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:.5;transition:opacity .2s,background .2s,border-color .2s}
+.clean-exit:hover{opacity:1;background:rgba(9,9,10,.85);border-color:rgba(255,255,255,.5)}
+.clean-exit[hidden]{display:none!important}
+.tbtn.icon{display:grid;place-items:center;width:18px;height:18px;padding:0;border-bottom:0}
+.tbtn.icon svg{display:block}
+@media(max-width:560px){.top-actions a.tbtn.sub{display:none}}
 .app.develop .look-line{display:none}
 
 /* long-press compare */
@@ -430,8 +446,9 @@ a.tbtn{text-decoration:none}
     <div class="brand"><span class="dot" id="accentDot"></span>LUT ARCHIVE</div>
     <div class="top-actions">
       <a class="tbtn" href="/guides/">指南</a>
-      <a class="tbtn" href="/looks">LUT 目录</a>
+      <a class="tbtn sub" href="/looks">LUT 目录</a>
       <a class="tbtn" href="https://github.com/shisongsong/lut-studio" id="githubLink" target="_blank" rel="noopener">GitHub</a>
+      <button class="tbtn icon" id="cleanBtn" title="纯净模式（H，Esc 退出） / Clean view" aria-label="纯净模式"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><path d="M1 4.5V1h3.5M8.5 1H12v3.5M12 8.5V12H8.5M4.5 12H1V8.5"/></svg></button>
       <button class="tbtn" id="langBtn">EN</button>
     </div>
   </header>
@@ -445,7 +462,7 @@ a.tbtn{text-decoration:none}
           <span class="en"><span class="cat" id="lookCat">CINEMA</span> · <span id="lookEn">CINEMA TEAL</span></span>
         </div>
       </div>
-      <div class="hint" id="hint">DRAG THE LINE · LONG-PRESS RIGHT TO SEE ORIGINAL</div>
+      <div class="hint" id="hint">DRAG THE LINE · LONG-PRESS RIGHT TO SEE ORIGINAL · H CLEAN VIEW</div>
     </div>
     <div class="strengths" id="strengths">
       <div class="strength" id="strengthA">
@@ -569,6 +586,7 @@ a.tbtn{text-decoration:none}
   </div>
 </div>
 
+<button class="clean-exit" id="cleanExit" hidden>退出纯净模式</button>
 <input type="file" id="fileInput" accept="image/*,.jpg,.jpeg,.png,.webp,.avif,.heic,.heif,.tif,.tiff,.nef,.nrw,.cr2,.cr3,.arw,.srf,.sr2,.dng,.raf,.orf,.rw2,.pef,.srw,.3fr,.erf,.kdc,.mos,.iiq,.x3f" hidden>
 <input type="file" id="importInput" multiple hidden>
 <div class="busy" id="busy" hidden aria-live="polite" aria-busy="true">
@@ -610,6 +628,7 @@ const el = {
   loadPillFill: $('#loadPillFill'), loadPillPct: $('#loadPillPct'),
   devPanel: $('#devPanel'), devTitle: $('#devTitle'), devSub: $('#devSub'), devBody: $('#devBody'), devAuto: $('#devAuto'), devReset: $('#devReset'), devClose: $('#devClose'), devPick: $('#devPick'), devHint: $('#devHint'), devHist: $('#devHist'), lqip: $('#lqip'), loadPill: $('#loadPill'), loadPillText: $('#loadPillText'),
   importSheet: $('#importSheet'), importClose: $('#importClose'), importPick: $('#importPick'),
+  cleanBtn: $('#cleanBtn'), cleanExit: $('#cleanExit'),
   profileSheet: $('#profileSheet'), profileTitle: $('#profileTitle'), profileStatus: $('#profileStatus'), profileList: $('#profileList'), profileNote: $('#profileNote'), profileClose: $('#profileClose'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
   q50Dims: $('#q50Dims'), q75Dims: $('#q75Dims'), q100Dims: $('#q100Dims'),
@@ -630,6 +649,8 @@ const state = {
   // true when the input curve was chosen by hand in the profile sheet instead
   // of being derived from the imported LUT that is currently applied.
   logManual: false,
+  // Presentation mode: all chrome hidden, one small exit pill left on screen.
+  clean: false,
   // RAW auto-brightness: brightness only, computed at decode time, applied as a
   // linear exposure in the shader so the toggle is instant and export matches.
   autoBright: localStorage.getItem('lut.autoBright') !== '0',
@@ -2552,6 +2573,23 @@ function updateDevLang() {
   updateDevSub();
 }
 
+/**
+ * Clean view. Everything that is not the photo disappears, including the
+ * before/after divider; a single dim pill stays in the corner so the state is
+ * not a trap. Esc leaves, H toggles.
+ */
+function setClean(on){
+  state.clean = !!on;
+  el.app.classList.toggle('clean', state.clean);
+  el.cleanBtn.classList.toggle('on', state.clean);
+  el.cleanExit.hidden = !state.clean;
+  if (state.clean) {
+    if (state.develop) setDevelop(false);
+    if (el.profileSheet && !el.profileSheet.hidden) el.profileSheet.hidden = true;
+    toast(t(state.lang, 'cleanHint'), 2800);
+  }
+}
+
 function setDevelop(open) {
   if (state.develop === open && el.devPanel.hidden === !open) return;
   state.develop = open;
@@ -2747,6 +2785,7 @@ function applyLang(lang, { persist = true } = {}){
   el.importBtn.textContent = t(lang, 'importLut');
   if (el.mergeBtn) el.mergeBtn.textContent = t(lang, 'mergeLut');
   updateLogUI();
+  if (el.cleanExit) el.cleanExit.textContent = t(lang, 'cleanExit');
   if (el.profileSheet && !el.profileSheet.hidden) renderProfileSheet();
   el.dualBtn.childNodes[0].nodeValue = `${t(lang, state.dual.enabled ? 'dualOn' : 'dual')} `;
   el.exportSheet.querySelector('header span').textContent = t(lang, 'exportTitle');
@@ -2958,6 +2997,8 @@ function bind(){
   el.photoBtn.addEventListener('click', () => el.fileInput.click());
   el.fileInput.addEventListener('change', () => { const f = el.fileInput.files?.[0]; if (f) loadFile(f); el.fileInput.value = ''; });
   el.exportBtn.addEventListener('click', openExport);
+  el.cleanBtn.addEventListener('click', () => setClean(!state.clean));
+  el.cleanExit.addEventListener('click', () => setClean(false));
   el.logBtn.addEventListener('click', () => {
     el.profileSheet.hidden = false;
     renderProfileSheet();
@@ -3249,7 +3290,17 @@ function bind(){
   // keyboard
   addEventListener('keydown', (e) => {
     const editing = e.target instanceof Element && e.target.matches('input, textarea, select, [contenteditable="true"]');
-    if (editing || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // Esc backs out of whatever is on top; H is the clean-view toggle (the
+    // convention every photo app shares).
+    if (e.key === 'Escape') {
+      const sheet = [el.profileSheet, el.importSheet, el.exportSheet].find(s => s && !s.hidden);
+      if (sheet) { e.preventDefault(); sheet.hidden = true; return; }
+      if (state.clean) { e.preventDefault(); setClean(false); return; }
+    }
+    const textEditing = e.target instanceof Element && e.target.matches('input:not([type=range]), textarea, select, [contenteditable="true"]');
+    if (e.key.toLowerCase() === 'h' && !textEditing && !e.repeat) { e.preventDefault(); setClean(!state.clean); return; }
+    if (editing) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); stepLook(-1); }
     if (e.key === 'ArrowRight') { e.preventDefault(); stepLook(1); }
     if (e.key.toLowerCase() === 'e') { e.preventDefault(); openExport(); }

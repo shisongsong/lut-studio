@@ -143,6 +143,10 @@ screenshot:
   as a tile and renders it at 1:1. The crop carries a margin so small pans do not
   re-upload, it is capped so a phone never allocates a huge texture, and the
   filmstrip hands the texture back when it borrows the renderer.
+- **Clean view** — `H` (or the corner icon in the toolbar) hides every control and
+  shows the photo edge to edge: no topbar, no filmstrip, no before/after divider.
+  A single dim exit pill stays in the bottom-right; `Esc` leaves. Wheel and pinch
+  still zoom while clean, so it doubles as a full-screen inspection mode.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in
