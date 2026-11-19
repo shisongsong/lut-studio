@@ -12,7 +12,7 @@
  *  gzipped while cutting the worst-case interpolation error against the
  *  authored 33^3 cubes roughly in half (17^3: mean 0.23 / max 20.8 levels of
  *  255; 21^3: mean 0.18 / max 11.6). */
-export const LUT_EDGE = 21;
+export const LUT_EDGE = 33;
 
 export const LOOKS = [
   // 电影

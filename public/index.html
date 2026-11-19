@@ -772,20 +772,36 @@ async function readBodyWithProgress(res, label, task){
  * the last-resort fallback.
  */
 async function loadLutPack(){
-  const expected = LOOKS.length * LUT_EDGE * LUT_EDGE * LUT_EDGE * 4;
+  // "LUTD" | u8 edge | u8 format | u16 looks | u32 reserved, then delta-coded cubes
+  const HEADER = 8;
+  const PER = LUT_EDGE ** 3 * 4;
+  const expected = HEADER + LOOKS.length * PER;
+  /** Accept a payload only if it really is the pack this build expects. */
+  const validate = (raw) => {
+    if (!raw || raw.byteLength !== expected) return null;
+    const v = new DataView(raw);
+    const magic = String.fromCharCode(v.getUint8(0), v.getUint8(1), v.getUint8(2), v.getUint8(3));
+    if (magic !== 'LUTD') return null;
+    if (v.getUint8(4) !== LUT_EDGE) return null;
+    if (v.getUint8(5) !== 1) return null;
+    if (v.getUint16(6, true) !== LOOKS.length) return null;
+    return raw;
+  };
   const inflate = async (packed) => {
     if (!packed) return null;
-    if (packed.byteLength === expected) return packed;
+    const direct = validate(packed);
+    if (direct) return direct;
     if (typeof DecompressionStream !== 'function') return null;
     setLoadTask('luts', { text: t(state.lang, 'lutInflating'), pct: null, eta: null });
     try {
       const stream = new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'));
       const raw = await new Response(stream).arrayBuffer();
-      return raw.byteLength === expected ? raw : null;
+      return validate(raw);
     } catch {
       return null;
     }
   };
+  window.__lutHeader = HEADER;
   const tryResponse = async (res) => {
     if (!res || !res.ok) return null;
     try {
@@ -813,7 +829,8 @@ async function loadLutPack(){
     const res = await fetchWithTimeout('/luts.bin', 120000);
     if (res.ok) {
       const plain = await readBodyWithProgress(res, t(state.lang, 'lutLoading'), { id: 'luts' });
-      if (plain.byteLength === expected) return plain;
+      const ok = validate(plain);
+      if (ok) return ok;
     }
   } catch { /* fall through to the error */ }
   throw new Error('LUT pack could not be loaded');
@@ -1222,13 +1239,50 @@ function allLooks(){
   return LOOKS.concat(state.imported);
 }
 
+/**
+ * Decode one look out of the delta-coded pack, lazily and once per look.
+ *
+ * Each row is stored as its first sample followed by differences along +x, so
+ * reconstion is a running sum (a LUT is a smooth gradient, which is why the
+ * differences gzip ~3x better than the values). Decoding on demand keeps the
+ * cost of the first frame tiny: ~2 ms for the one look being used.
+ */
+const lutDecoded = new Map();
+function decodeLut(index){
+  const hit = lutDecoded.get(index);
+  if (hit) return hit;
+  const per = LUT_EDGE ** 3 * 4;
+  const rowBytes = LUT_EDGE * 4;
+  // `luts` is a Uint8Array view, not the raw ArrayBuffer: slice the block out
+  // with subarray (passing an offset to the typed-array constructor would be
+  // ignored and every look would decode the same bytes).
+  const start = (window.__lutHeader || 8) + index * per;
+  const src = luts.subarray(start, start + per);
+  const out = new Uint8Array(per);
+  for (let row = 0; row < LUT_EDGE * LUT_EDGE; row++){
+    const o = row * rowBytes;
+    out[o] = src[o];
+    out[o + 1] = src[o + 1];
+    out[o + 2] = src[o + 2];
+    out[o + 3] = 255;
+    for (let x = 1; x < LUT_EDGE; x++){
+      const i = o + x * 4;
+      out[i] = (out[i - 4] + src[i]) & 255;
+      out[i + 1] = (out[i - 3] + src[i + 1]) & 255;
+      out[i + 2] = (out[i - 2] + src[i + 2]) & 255;
+      out[i + 3] = 255;
+    }
+  }
+  lutDecoded.set(index, out);
+  return out;
+}
+
 function lutData(id){
   const mine = state.imported.find(l => l.id === id);
   if (mine) return { size: mine.size, data: mine.data };
   if (!luts) return null;
   const i = LOOKS.findIndex(l => l.id === id);
-  const per = LUT_EDGE ** 3 * 4;
-  return { size: LUT_EDGE, data: luts.subarray(i * per, (i + 1) * per) };
+  return { size: LUT_EDGE, data: decodeLut(i) };
 }
 
 function currentStack(){
@@ -1419,6 +1473,23 @@ let nativeTilePending = 0;
 
 // Read-only introspection used by the viewer tests and by hand when diagnosing
 // zoom quality: what the renderer is actually sampling right now.
+window.__ltLut = () => {
+  const st = currentStack();
+  return {
+    ready: !!state.lutsReady,
+    header: window.__lutHeader || null,
+    edge: LUT_EDGE,
+    looks: LOOKS.length,
+    bufBytes: luts ? luts.byteLength : 0,
+    stack: st.map((l) => ({
+      id: l.id,
+      hasParsed: !!l.parsed,
+      size: l.parsed && l.parsed.size,
+      bytes: l.parsed && l.parsed.data && l.parsed.data.length,
+      head: l.parsed && l.parsed.data ? Array.from(l.parsed.data.slice(0, 8)) : null,
+    })),
+  };
+};
 window.__ltView = () => ({
   mode: renderer && renderer.texMode,
   tileRect: renderer && renderer.tileRect,

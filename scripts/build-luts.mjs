@@ -89,7 +89,41 @@ LOOKS.forEach((look, index) => {
   console.log('baked', look.id);
 });
 
+/*
+ * Store the cubes delta-encoded along the fastest axis, behind a small header.
+ *
+ * A LUT is a smooth 3D gradient, so neighbouring samples differ by a few code
+ * values: storing those differences instead of the values shrinks the gzipped
+ * pack from ~4.2 MB to ~1.3 MB at 33^3 with no loss at all (the decoder adds
+ * them back). The header also lets the loader reject a stale or mismatched
+ * bundle instead of feeding garbage to the shader — a version skew here is what
+ * produced the "rainbow" frames earlier.
+ *
+ * Layout: "LUTD" | u8 edge | u8 format(1 = delta) | u16 looks | u32 reserved
+ */
+const HEADER = 8;
+const body = Buffer.alloc(out.length);
+const rowBytes = SIZE * 4;
+for (let look = 0; look < LOOKS.length; look++) {
+  const base = look * perLut;
+  for (let row = 0; row < SIZE * SIZE; row++) {
+    const o = base + row * rowBytes;
+    for (let c = 0; c < 4; c++) body[o + c] = out[o + c];
+    for (let x = 1; x < SIZE; x++) {
+      const i = o + x * 4;
+      for (let c = 0; c < 3; c++) body[i + c] = (out[i + c] - out[i - 4 + c]) & 0xff;
+      body[i + 3] = 0; // alpha is constant 255
+    }
+  }
+}
+const header = Buffer.alloc(HEADER);
+header.write('LUTD', 0, 'latin1');
+header.writeUInt8(SIZE, 4);
+header.writeUInt8(1, 5);
+header.writeUInt16LE(LOOKS.length, 6);
+const pack = Buffer.concat([header, body]);
+
 mkdirSync(join(ROOT, 'public'), { recursive: true });
 const target = join(ROOT, 'public', 'luts.bin');
-writeFileSync(target, out);
-console.log(`\nwrote ${target} · ${LOOKS.length} looks · ${SIZE}³ · ${(out.length / 1024).toFixed(0)} KB`);
+writeFileSync(target, pack);
+console.log(`\nwrote ${target} · ${LOOKS.length} looks · ${SIZE}³ · delta-coded · ${(pack.length / 1024).toFixed(0)} KB`);
