@@ -102,6 +102,9 @@ screenshot:
   clipping. The parameters are fitted in closed form (`q = 5^-skew`,
   `p = contrast·(1−g)/tempSlope`, then `fog`/`pe` from the black and white
   anchors), which reproduces darktable's own numeric difference fit to 4e-10.
+  The black target is raised from darktable's 0.0152 % default to 0.06 %: the
+  steeper default toe collapsed night shadows into a flat patch (2.9 % of the
+  reference frame landed at ≤1/255, against 1.2 % for Lightroom's Auto export).
   Colour handling follows the module's per-channel mode with hue preservation:
   negative channels are desaturated first, the curve runs per channel, then the
   middle channel is re-solved to blend spectral-hue preservation with
@@ -117,6 +120,21 @@ screenshot:
   the same render without the sidecar reverts to a hard clip. No GPL code was
   copied: the maths comes from the published module documentation, the PR and
   the OpenCL kernel's formulas, and the GLSL is an independent implementation.
+- **Detail recovery** — a global tone curve cannot tell a bright window from a
+  bright patch of wall, so whatever it compresses it compresses uniformly and the
+  picture reads flat, worst where the curve is steepest (the highlight shoulder
+  and the shadow toe). After the display transform the shader measures each
+  pixel's deviation from its blurred neighbourhood in the scene-linear domain and
+  puts a fraction of it back as a multiplicative gain at two scales: ~1 px
+  (acutance) and ~8 px (the scale that survives fitting the photo to the screen).
+  The deviation is clamped and applied as a ratio, so gradients keep their shape;
+  a luminance gate skips the noise floor, and a structure mask (Lightroom's
+  "masking") keeps flat areas smooth. Measured against Lightroom's Auto export on
+  the reference frame, per-band local detail went from 3.4 to 5.0 in the
+  midtones and from 4.7 to 7.3 in the highlights (LR: 6.0 and 8.5) while crushed
+  blacks and clipped highlights stayed at 1.2 % / 0.1 % (LR: 1.2 % / 0.0 %).
+  Export tiles are cropped with a 14 px margin so the neighbourhood reads real
+  pixels across tile borders instead of breaking into seams.
 - **Develop panel, Lightroom-style** — opening any photo lands in a Develop rail
   (a bottom sheet on phones) with the camera's own render and **no LUT applied**,
   so you are looking at your RAW, not at somebody's look. White balance

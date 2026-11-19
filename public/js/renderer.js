@@ -76,12 +76,53 @@ export const SIGMOID = {
   contrast: 1.5,
   skew: 0,
   white: 1.0,
-  black: 0.000152,
+  // darktable's default black target (0.0152%) is a very low floor: below it
+  // the toe is steep enough that night shadows collapse into a flat black
+  // patch (measured: 2.9% of the reference frame landed at <=1/255, against
+  // 1.2% for Lightroom's own Auto export). A slightly higher floor keeps the
+  // deepest tones separated without turning the blacks milky.
+  black: 0.0006,
   hue: 1.0,
   // Basic-panel contrast (-100..100) scales the sigmoid contrast around the
   // darktable default; gain 0.6 spans darktable's own soft range (0.75..3.0),
   // so the extremes behave like Lightroom's Basic contrast.
   contrastGain: 0.6,
+};
+
+/**
+ * Detail recovery (the Lightroom Detail panel's job).
+ *
+ * A global tone curve cannot tell a bright window from a bright patch of wall:
+ * whatever it compresses, it compresses uniformly, so local contrast — the
+ * thing the eye reads as "crisp" — gets flattened, and most of it is flattened
+ * where the curve is steepest (the highlights and the shadow toe). This stage
+ * puts a fraction of it back as a local, multiplicative exposure gain in the
+ * log domain, at two scales:
+ *
+ *   - `detail` — ~1 texel (acutance; what you see at 100%)
+ *   - `localContrast` — ~8 texels (the scale that survives downscaling, i.e.
+ *     what you see when the photo is fitted to the screen)
+ *
+ * It is edge-aware by construction: the gain is the pixel's own deviation from
+ * its blurred neighbourhood, so gradients keep their shape (no halos, since the
+ * deviation is clamped and applied as a ratio), and it is gated by the local
+ * luminance so shadow noise is not amplified.
+ */
+export const DETAIL = {
+  amount: 0.72,
+  localAmount: 0.55,
+  localRadius: 8,
+  // Deviation clamp: max ±0.5 in log2-relative terms before the gain applies.
+  clamp: 0.5,
+  // Noise gate: scene-linear luminance (this pipeline's units, where 1.0 is
+  // sensor white) below which detail is faded out entirely.
+  gateLo: 0.0060,
+  gateHi: 0.0200,
+  // Structure mask (Lightroom's "masking"): the fine-detail gain only applies
+  // where the coarse scale shows real structure, so flat areas (sky, shadow
+  // walls) keep their smooth gradient instead of gaining amplified noise.
+  maskLo: 0.055,
+  maskHi: 0.16,
 };
 
 /**
@@ -272,6 +313,16 @@ uniform float uSigPe;
 uniform float uSigFog;
 uniform float uSigW;
 uniform float uSigHue;
+// Detail recovery (lightroom-style): relative local-contrast gain at two
+// scales, gated by luminance so shadow noise stays put.
+uniform float uDetail;
+uniform float uLocalContrast;
+uniform float uDetailClamp;
+uniform float uLocalRadius;
+uniform float uDetGateLo;
+uniform float uDetGateHi;
+uniform float uMaskLo;
+uniform float uMaskHi;
 in vec2 vUv;
 out vec4 outColor;
 
@@ -321,6 +372,45 @@ vec3 encodeLog(vec3 lin, int mode) {
 
 float lumaOf(vec3 c) {
   return dot(c, vec3(0.2126, 0.7152, 0.0722));
+}
+
+/**
+ * Local-contrast recovery, applied to the display-linear value right after the
+ * sigmoid. A global curve compresses local contrast uniformly — worst where it
+ * is steepest (the shadow toe and the highlight shoulder) — so the picture
+ * reads as flat there. This measures the pixel's own deviation from its blurred
+ * neighbourhood in the scene-linear domain and puts a fraction of it back as a
+ * multiplicative gain, at two scales (acutance and the coarser scale that
+ * survives on-screen downscaling). The deviation is clamped and applied as a
+ * ratio, which keeps gradients intact (no halos), and gated by luminance so the
+ * noise floor is not amplified.
+ */
+vec3 applyDetail(vec3 disp, vec2 uv, vec3 gains) {
+  vec3 Lw = vec3(0.2126, 0.7152, 0.0722);
+  float Yc = max(dot(texture(uImage, uv).rgb * gains, Lw), 1e-7);
+  vec2 t1 = uTexel;
+  vec2 t2 = uTexel * uLocalRadius;
+  float y1 = dot(texture(uImage, uv + vec2(t1.x, 0.0)).rgb * gains, Lw)
+           + dot(texture(uImage, uv - vec2(t1.x, 0.0)).rgb * gains, Lw)
+           + dot(texture(uImage, uv + vec2(0.0, t1.y)).rgb * gains, Lw)
+           + dot(texture(uImage, uv - vec2(0.0, t1.y)).rgb * gains, Lw);
+  y1 *= 0.25;
+  float y2 = dot(texture(uImage, uv + vec2(t2.x, 0.0)).rgb * gains, Lw)
+           + dot(texture(uImage, uv - vec2(t2.x, 0.0)).rgb * gains, Lw)
+           + dot(texture(uImage, uv + vec2(0.0, t2.y)).rgb * gains, Lw)
+           + dot(texture(uImage, uv - vec2(0.0, t2.y)).rgb * gains, Lw);
+  y2 *= 0.25;
+  float gate = smoothstep(uDetGateLo, uDetGateHi, min(Yc, min(y1, y2)));
+  float d2 = clamp(log2(Yc / max(y2, 1e-7)), -uDetailClamp, uDetailClamp);
+  // Structure mask (Lightroom's "masking"): both scales only act where the
+  // coarse deviation says there is real structure, so flat areas (sky, shadow
+  // walls) keep their smooth gradient instead of gaining amplified noise.
+  float mask = smoothstep(uMaskLo, uMaskHi, abs(d2));
+  float d1 = clamp(log2(Yc / max(y1, 1e-7)), -uDetailClamp, uDetailClamp) * uDetail * mask;
+  // Fade the boost out as the pixel approaches display white, so recovered
+  // micro-contrast turns into gradation instead of pushing highlights over 1.0.
+  float att = 1.0 - smoothstep(0.86, 0.995, max(disp.r, max(disp.g, disp.b)));
+  return disp * exp2((d1 + d2 * uLocalContrast * mask) * gate * att);
 }
 
 /**
@@ -498,14 +588,14 @@ void main() {
   // Exposure and white balance are multiplicative in linear light, which is the
   // whole point of a RAW processor: channel gains must not clip independently in
   // the encoded curve. +temp = warmer (more red, less blue), +tint = magenta.
-  lin *= exp2(uExposure);
   float wt = uTemp * 0.01;
   float tn = uTint * 0.01;
-  lin *= vec3(
+  vec3 gains = exp2(uExposure) * vec3(
     exp2(wt * 0.60 + tn * 0.14),
     exp2(-tn * 0.34),
     exp2(-wt * 0.60 + tn * 0.14)
   );
+  lin *= gains;
 
   // Tone, in the same order as the Basic panel: contrast → highlights/shadows
   // (adaptive) → whites/blacks (endpoints). Everything ends up as a luminance
@@ -568,7 +658,9 @@ void main() {
   // lets the sigmoid transform do this properly.)
   vec3 c;
   if (uLinearInput == 1) {
-    c = clamp(linearToSrgb(sigmoidPerChannel(graded)), 0.0, 1.0);
+    vec3 disp = sigmoidPerChannel(graded);
+    if (uDetail > 0.0 || uLocalContrast > 0.0) disp = applyDetail(disp, uv, gains);
+    c = clamp(linearToSrgb(disp), 0.0, 1.0);
   } else {
     float mx = max(graded.r, max(graded.g, graded.b));
     if (mx > 1.0) graded = mix(graded, vec3(1.0), clamp((mx - 1.0) / mx, 0.0, 1.0) * 0.65);
@@ -638,7 +730,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLinearInput', 'uShadows', 'uHighlights', 'uWhites', 'uBlacks', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uNr', 'uNrColor', 'uTexel', 'uSigP', 'uSigQ', 'uSigPe', 'uSigFog', 'uSigW', 'uSigHue']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLinearInput', 'uShadows', 'uHighlights', 'uWhites', 'uBlacks', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uNr', 'uNrColor', 'uTexel', 'uSigP', 'uSigQ', 'uSigPe', 'uSigFog', 'uSigW', 'uSigHue', 'uDetail', 'uLocalContrast', 'uDetailClamp', 'uLocalRadius', 'uDetGateLo', 'uDetGateHi', 'uMaskLo', 'uMaskHi']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -898,6 +990,17 @@ export class LookRenderer {
     gl.uniform1f(this.uniform.uSigFog, sig.fog);
     gl.uniform1f(this.uniform.uSigW, sig.w);
     gl.uniform1f(this.uniform.uSigHue, SIGMOID.hue);
+    // Detail recovery runs only on the linear RAW path (a JPEG has already been
+    // sharpened by the camera); the export can turn it off at tile borders.
+    const detailOn = this.linear && !adjust?.noDetail;
+    gl.uniform1f(this.uniform.uDetail, detailOn ? DETAIL.amount : 0);
+    gl.uniform1f(this.uniform.uLocalContrast, detailOn ? DETAIL.localAmount : 0);
+    gl.uniform1f(this.uniform.uDetailClamp, DETAIL.clamp);
+    gl.uniform1f(this.uniform.uLocalRadius, DETAIL.localRadius);
+    gl.uniform1f(this.uniform.uDetGateLo, DETAIL.gateLo);
+    gl.uniform1f(this.uniform.uDetGateHi, DETAIL.gateHi);
+    gl.uniform1f(this.uniform.uMaskLo, DETAIL.maskLo);
+    gl.uniform1f(this.uniform.uMaskHi, DETAIL.maskHi);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     return this.canvas;

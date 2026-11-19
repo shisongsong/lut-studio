@@ -124,8 +124,11 @@ const ramp = Array.from({ length: N + 1 }, (_, i) => i / N);
   const black = toneModelRaw(0, 0);
   const white = toneModelRaw(1, 1);        // sensor white
   const deep = toneModelRaw(16, 16);       // +6.4 EV of scene headroom
+  // The black floor is SIGMOID.black (0.06% -> ~2/255), deliberately above
+  // darktable's 0.0152% default so night shadows keep separation instead of
+  // collapsing into a flat black patch.
   check('sigmoid path is monotone, black stays near-black, headroom never clips',
-    monotone && black < 0.003 && white > 0.85 && white < 0.99 && deep > white && deep < 1.0,
+    monotone && black < 0.015 && white > 0.85 && white < 0.99 && deep > white && deep < 1.0,
     JSON.stringify({ black: levels(black), white: levels(white), deep: levels(deep) }));
 }
 
@@ -254,21 +257,28 @@ const ramp = Array.from({ length: N + 1 }, (_, i) => i / N);
   check('blacks −100 crushes the black point', bMinus <= 1e-3, String(levels(bMinus)));
 }
 
-// 10. the sigmoid display transform matches darktable's verified reference
+// 10. the sigmoid display transform matches darktable's algorithm
+//
+// The expected numbers below come from a faithful CPU port of darktable's own
+// numeric fit (centre differences, delta = 1e-6) run with this project's
+// parameters (contrast 1.5, skew 0, white 100%, black 0.06% instead of
+// darktable's 0.0152% — the raised floor keeps night shadows apart). The test
+// independent variable is therefore the closed-form fit in renderer.js.
 {
   const fit = sigmoidFit();
   const curve = (x) => sigmoidCurve(fit, x);
-  check('sigmoid fit defaults match darktable',
+  check('sigmoid fit defaults match darktable\'s numeric fit',
     Math.abs(fit.p - 1.5) < 1e-9 && Math.abs(fit.q - 1) < 1e-12 &&
-    Math.abs(fit.fog - 1.426371e-3) < 1e-8 && Math.abs(fit.pe - 0.354355423) < 1e-8,
+    Math.abs(fit.fog - 3.605463273058600e-3) < 1e-10 &&
+    Math.abs(fit.pe - 3.6060330994356454e-1) < 1e-10,
     JSON.stringify({ p: fit.p, q: fit.q, fog: fit.fog, pe: fit.pe }));
   check('sigmoid anchors: f(0)=black target, f(middle grey)=middle grey',
-    Math.abs(curve(0) - 0.000152) < 1e-9 && Math.abs(curve(0.1845) - 0.1845) < 1e-9);
+    Math.abs(curve(0) - SIGMOID.black) < 1e-12 && Math.abs(curve(0.1845) - 0.1845) < 1e-9);
   const ev = (e) => curve(0.1845 * Math.pow(2, e));
-  check('sigmoid EV response matches the darktable-verified table',
-    Math.abs(ev(-6) - 0.000798) < 2e-6 && Math.abs(ev(-1) - 0.074854) < 2e-6 &&
-    Math.abs(ev(2) - 0.642133) < 2e-6 && Math.abs(ev(4) - 0.934741) < 2e-6 &&
-    Math.abs(ev(6) - 0.991344) < 2e-6 && Math.abs(ev(8) - 0.998910) < 2e-6,
+  check('sigmoid EV response matches the verified table',
+    Math.abs(ev(-6) - 0.001447) < 2e-6 && Math.abs(ev(-1) - 0.076041) < 2e-6 &&
+    Math.abs(ev(2) - 0.639125) < 2e-6 && Math.abs(ev(4) - 0.933735) < 2e-6 &&
+    Math.abs(ev(6) - 0.991195) < 2e-6 && Math.abs(ev(8) - 0.998890) < 2e-6,
     JSON.stringify({ m6: ev(-6), p2: ev(2), p4: ev(4), p8: ev(8) }));
   let mono = true, prev = -1;
   for (let i = 0; i <= 160; i++) {

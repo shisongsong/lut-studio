@@ -2129,7 +2129,10 @@ function applyAutoTone() {
   tn.highlights = -Math.round(clamp((m.p95 - 140) * 0.94, 20, 80));
   tn.shadows = Math.round(clamp((28.5 - m.p5) * 0.7 + 4.4, 0, 55));
   tn.whites = Math.round(clamp((m.p95 - 205) * 0.5 + 5.5, -20, 30));
-  tn.blacks = Math.round(clamp((m.p1 - 4) * -5.5 - 8, -30, 8));
+  // Blacks place the darks at a display floor of ~2/255 instead of crushing
+  // them: the sigmoid already sets a black target, so this only trims the
+  // distance to it (and never digs a hole below it).
+  tn.blacks = Math.round(clamp((2 - m.p1) / 255 / 0.216 * 100, -30, 8));
   recalcNr();
   syncDevUI();
   drawBase();
@@ -2279,19 +2282,39 @@ async function exportImage(quality){
           // Crop the native-resolution scene-linear frame: the shader then maps
           // the tile's display pixels straight into real sensor data, so a 100%
           // export keeps every bit of the decoded resolution.
-          const cw = Math.max(1, Math.min(source.width, Math.round(tw / scale)));
-          const ch = Math.max(1, Math.min(source.height, Math.round(th / scale)));
-          const sx = Math.min(source.width - cw, Math.max(0, Math.round(tx / scale)));
-          const sy = Math.min(source.height - ch, Math.max(0, Math.round(ty / scale)));
+          //
+          // The detail stage reads a neighbourhood, so the tile is cropped with a
+          // margin and only its interior is blitted — otherwise the local
+          // contrast would break at every tile border.
+          const M = 14; // native pixels around the tile
+          const nx0 = Math.max(0, Math.round(tx / scale) - M);
+          const ny0 = Math.max(0, Math.round(ty / scale) - M);
+          const nx1 = Math.min(source.width, Math.round((tx + tw) / scale) + M);
+          const ny1 = Math.min(source.height, Math.round((ty + th) / scale) + M);
+          const cw = Math.max(1, nx1 - nx0);
+          const ch = Math.max(1, ny1 - ny0);
           const tile = new Uint16Array(cw * ch * 3);
           const srcData = source.data;
           for (let row = 0; row < ch; row++) {
-            const from = ((sy + row) * source.width + sx) * 3;
+            const from = ((ny0 + row) * source.width + nx0) * 3;
             tile.set(srcData.subarray(from, from + cw * 3), row * cw * 3);
           }
+          const rw = Math.max(1, Math.round(cw * scale));
+          const rh = Math.max(1, Math.round(ch * scale));
           renderer.setLinearTile(tile, cw, ch);
-          renderer.render(stack, adj, tw, th, 'cover', null,
-            { x: sx / source.width, y: sy / source.height, w: cw / source.width, h: ch / source.height });
+          renderer.render(stack, adj, rw, rh, 'cover', null,
+            { x: nx0 / source.width, y: ny0 / source.height, w: cw / source.width, h: ch / source.height });
+          // Blit exactly the tile's interior: the crop→render scale is uniform,
+          // so the sub-rectangle is a pure ratio (no reliance on fit rounding).
+          const k = rw / cw;
+          ctx.drawImage(renderer.canvas,
+            (Math.round(tx / scale) - nx0) * k, (Math.round(ty / scale) - ny0) * k,
+            Math.max(1, Math.round(tw / scale)) * k, Math.max(1, Math.round(th / scale)) * k,
+            tx, ty, tw, th);
+          done++;
+          busyUpdate({ progress: done / total * 0.9 });
+          await new Promise(r => setTimeout(r, 0));
+          continue;
         } else {
           const crop = document.createElement('canvas');
           crop.width = tw; crop.height = th;
