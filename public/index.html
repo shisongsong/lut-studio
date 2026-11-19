@@ -380,6 +380,12 @@ a.tbtn{text-decoration:none}
 .quality-list button span{font-family:var(--mono);font-size:13px;color:var(--ink)}
 .quality-list button b{font-family:var(--mono);font-size:8px;font-weight:400;color:var(--faint)}
 .quality-list button.on{border-color:var(--ink)}
+.profile-list button.on{border-color:var(--accent)}
+.profile-list button.on span{color:var(--accent)}
+.profile-list button:disabled{opacity:.35;cursor:not-allowed}
+.profile-list button{grid-template-columns:64px 1fr}
+.profile-list button b{max-width:220px;text-align:right}
+.tbtn.warn{color:#e8b16a;border-color:rgba(232,177,106,.55)}
 .export-sub{font-size:8px;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}
 @media(max-width:820px){
   .exportsheet{padding:12px}
@@ -460,7 +466,7 @@ a.tbtn{text-decoration:none}
       <button id="fitBtn">FILL</button>
       <button id="zoomBtn" class="zoom" title="缩放 / Zoom">100%</button>
       <button id="dualBtn" class="dual">DUAL LUT</button>
-      <button id="logBtn" title="输入色彩空间 / input profile">sRGB</button>
+      <button id="logBtn" title="输入曲线 / input curve">sRGB</button>
       <button id="autoBtn" class="auto" title="RAW 自动亮度 / RAW auto brightness" hidden>AUTO</button>
       <button id="toneBtn">冲洗</button>
       <button id="mergeBtn" title="合并当前单/双 LUT 并保存下载">合并 LUT</button>
@@ -537,6 +543,15 @@ a.tbtn{text-decoration:none}
   </div>
 </aside>
 
+<div class="exportsheet" id="profileSheet" hidden>
+  <div class="export-card">
+    <header><span id="profileTitle">输入曲线</span><button class="icon-x" id="profileClose" aria-label="关闭">×</button></header>
+    <p class="export-sub" id="profileStatus"></p>
+    <div class="quality-list profile-list" id="profileList"></div>
+    <p class="export-note" id="profileNote"></p>
+  </div>
+</div>
+
 <div class="exportsheet" id="importSheet" hidden>
   <div class="export-card">
     <header><span>导入 LUT</span><button class="icon-x" id="importClose" aria-label="关闭">×</button></header>
@@ -595,6 +610,7 @@ const el = {
   loadPillFill: $('#loadPillFill'), loadPillPct: $('#loadPillPct'),
   devPanel: $('#devPanel'), devTitle: $('#devTitle'), devSub: $('#devSub'), devBody: $('#devBody'), devAuto: $('#devAuto'), devReset: $('#devReset'), devClose: $('#devClose'), devPick: $('#devPick'), devHint: $('#devHint'), devHist: $('#devHist'), lqip: $('#lqip'), loadPill: $('#loadPill'), loadPillText: $('#loadPillText'),
   importSheet: $('#importSheet'), importClose: $('#importClose'), importPick: $('#importPick'),
+  profileSheet: $('#profileSheet'), profileTitle: $('#profileTitle'), profileStatus: $('#profileStatus'), profileList: $('#profileList'), profileNote: $('#profileNote'), profileClose: $('#profileClose'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
   q50Dims: $('#q50Dims'), q75Dims: $('#q75Dims'), q100Dims: $('#q100Dims'),
 };
@@ -611,6 +627,9 @@ const state = {
   activeSlot: 'A',
   cat: 'all',
   logMode: 0,
+  // true when the input curve was chosen by hand in the profile sheet instead
+  // of being derived from the imported LUT that is currently applied.
+  logManual: false,
   // RAW auto-brightness: brightness only, computed at decode time, applied as a
   // linear exposure in the shader so the toggle is instant and export matches.
   autoBright: localStorage.getItem('lut.autoBright') !== '0',
@@ -940,6 +959,7 @@ async function loadImportedLuts(){
     state.imported = stored.map(r => ({
       id: r.id, name: r.name, en: r.name, cat: 'mine', catLabel: '我的 LUT',
       imported: true, size: r.size, data: new Uint8Array(r.data),
+      log: detectLogFromName(r.name),
     }));
     if (state.imported.length) {
       buildFilm();
@@ -1465,7 +1485,7 @@ async function mergeLutStack(){
   try {
     await saveLut({ id, name, size: LUT_EDGE, data: baked.buffer });
   } catch {}
-  state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: LUT_EDGE, data: baked });
+  state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: LUT_EDGE, data: baked, log: 0 });
   buildFilm();
   buildCats();
   updateActiveChip();
@@ -1511,7 +1531,7 @@ function adjFor(){
     tint: t.tint,
     vibrance: t.vibrance / 100,
     saturation: t.saturation / 100,
-    logMode: state.logMode,
+    logMode: effectiveLogMode(),
     // The tone curve is built in -100..100 slider units inside the renderer.
     highlights: t.highlights,
     shadows: t.shadows,
@@ -2071,15 +2091,13 @@ async function handleImport(files){
         const id = `mine-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
         const name = (parsed.title || f.name.replace(/\.cube$/i, '')).slice(0, 40);
         // Vendor LOG LUTs (F-Log, V-Log…) only look right when the input is in
-        // that log curve, so switch the input profile automatically.
-        const probe = `${name} ${f.name}`.toLowerCase();
-        const detected = probe.includes('f-log2') || probe.includes('flog2') ? 2
-          : probe.includes('f-log') || probe.includes('flog') ? 1
-          : probe.includes('v-log') || probe.includes('vlog') || probe.includes('varicam') || probe.includes('s1h') ? 3 : 0;
-        if (detected) { state.logMode = detected; updateLogUI(); }
+        // that log curve. Tag the LUT so selecting it adopts the curve, and drop
+        // any manual override left over from the previous LUT.
+        const detected = detectLogFromName(`${name} ${f.name}`);
+        state.logManual = false;
         busyUpdate({ step: 2 });
         await saveLut({ id, name, size: parsed.size, data: parsed.data.buffer });
-        state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: parsed.size, data: parsed.data });
+        state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: parsed.size, data: parsed.data, log: detected });
         ok++;
         busyUpdate({ step: 0, progress: files.length > 1 ? (i + 1) / files.length : null });
       } catch (err) {
@@ -2118,6 +2136,8 @@ async function removeImported(id){
   state.imported = state.imported.filter(l => l.id !== id);
   if (state.look === id) state.look = LOOKS[0].id;
   if (state.dual.b === id) state.dual.b = LOOKS[0].id;
+  state.logManual = false;
+  updateLogUI();
   if (!state.imported.length && state.cat === 'mine') state.cat = 'all';
   buildFilm();
   buildCats();
@@ -2221,7 +2241,7 @@ function thumbSignature(){
     source ? `${source.width}x${source.height}` : '',
     t.exposure, t.contrast, t.temp, t.tint, t.vibrance, t.saturation,
     t.highlights, t.shadows, t.whites, t.blacks,
-    state.tone.logMode, state.noLook ? 1 : 0,
+    effectiveLogMode(), state.noLook ? 1 : 0,
     state.detail && state.detail.nr,
     // Which look is selected and how many exist: deleting or merging a LUT
     // changes what the strip must show even when no slider moved.
@@ -2269,8 +2289,14 @@ function renderFilmThumbs(){
 
 function selectLook(id, slot = 'A'){
   state.noLook = false;
-  if (state.dual.enabled && slot === 'B') state.dual.b = id;
-  else state.look = id;
+  if (state.dual.enabled && slot === 'B') {
+    if (state.dual.b !== id) state.logManual = false;
+    state.dual.b = id;
+  } else {
+    if (state.look !== id) state.logManual = false;
+    state.look = id;
+  }
+  updateLogUI();
   render();
   setLookText();
   updateActiveChip();
@@ -2279,6 +2305,8 @@ function selectLook(id, slot = 'A'){
 
 function selectOriginal(){
   state.noLook = true;
+  state.logManual = false;
+  updateLogUI();
   render();
   setLookText();
   updateActiveChip();
@@ -2352,6 +2380,8 @@ function updateSlotUI(){
 function toggleDual(force){
   state.dual.enabled = force === undefined ? !state.dual.enabled : force;
   if (state.dual.enabled) state.activeSlot = 'B';
+  state.logManual = false;
+  updateLogUI();
   updateSlotUI();
   render();
   setLookText();
@@ -2360,9 +2390,93 @@ function toggleDual(force){
 
 const LOG_LABELS = ['sRGB', 'F-Log', 'F-Log2', 'V-Log'];
 
+/** Which log curve a vendor LUT is built for, judged from its file/title name. */
+function detectLogFromName(name){
+  const probe = String(name || '').toLowerCase();
+  if (probe.includes('f-log2') || probe.includes('flog2')) return 2;
+  if (probe.includes('f-log') || probe.includes('flog')) return 1;
+  if (probe.includes('v-log') || probe.includes('vlog') || probe.includes('varicam') || probe.includes('s1h')) return 3;
+  return 0;
+}
+
+/** Looks currently feeding the renderer (A, plus B when dual is on). */
+function activeStackLooks(){
+  if (state.noLook) return [];
+  return [state.look, ...(state.dual.enabled && state.dual.b ? [state.dual.b] : [])]
+    .map(id => allLooks().find(look => look.id === id))
+    .filter(Boolean);
+}
+
+/** The input curve the current stack declares through its LUTs (0 = sRGB). */
+function stackLogMode(){
+  for (const look of activeStackLooks()) if (look.log) return look.log;
+  return 0;
+}
+
+function stackHasImported(){
+  return activeStackLooks().some(look => look.imported);
+}
+
+/**
+ * The curve the shader actually encodes to. An imported LOG LUT declares the
+ * curve it needs; a manual choice in the profile sheet overrides it, which is
+ * only necessary when a vendor file name does not say F-Log / V-Log.
+ */
+function effectiveLogMode(){
+  return state.logManual ? state.logMode : stackLogMode();
+}
+
 function updateLogUI(){
-  el.logBtn.textContent = LOG_LABELS[state.logMode];
-  el.logBtn.classList.toggle('on', state.logMode > 0);
+  const mode = effectiveLogMode();
+  el.logBtn.textContent = LOG_LABELS[mode];
+  el.logBtn.classList.toggle('on', mode > 0);
+  // A curve nothing converts back washes the photo out; flag it instead of
+  // letting it read as "the app broke".
+  const unmatched = mode > 0 && stackLogMode() !== mode;
+  el.logBtn.classList.toggle('warn', unmatched);
+  el.logBtn.title = unmatched ? t(state.lang, 'logNoLut') : t(state.lang, 'logHint');
+}
+
+/** Build the input-curve sheet: what each option is for and what the app chose. */
+function renderProfileSheet(){
+  const mode = effectiveLogMode();
+  const look = activeStackLooks()[0];
+  const name = look ? displayName(look, state.lang) : t(state.lang, 'original');
+  let status;
+  if (!look) status = t(state.lang, 'logStatusNone');
+  else if (state.logManual) status = t(state.lang, 'logStatusManual').replace('{name}', name).replace('{curve}', LOG_LABELS[mode]);
+  else if (stackLogMode()) status = t(state.lang, 'logStatusAuto').replace('{name}', name).replace('{curve}', LOG_LABELS[stackLogMode()]);
+  else if (look.imported) status = t(state.lang, 'logStatusImported').replace('{name}', name);
+  else status = t(state.lang, 'logStatusBuiltin').replace('{name}', name);
+
+  el.profileTitle.textContent = t(state.lang, 'logTitle');
+  el.profileStatus.textContent = `${t(state.lang, 'logSub')} · ${status}`;
+  el.profileNote.textContent = t(state.lang, 'logNote');
+  const canLog = stackHasImported();
+  const options = [
+    ['auto', t(state.lang, 'logAuto'), t(state.lang, 'logAutoSub'), true],
+    ['0', 'sRGB', t(state.lang, 'logSrgbSub'), true],
+    ['1', 'F-Log', t(state.lang, 'logFlogSub'), canLog],
+    ['2', 'F-Log2', t(state.lang, 'logFlog2Sub'), canLog],
+    ['3', 'V-Log', t(state.lang, 'logVlogSub'), canLog],
+  ];
+  el.profileList.innerHTML = options.map(([value, label, sub, enabled]) => {
+    const on = value === 'auto' ? !state.logManual : (state.logManual && String(mode) === value);
+    return `<button type="button" data-profile="${value}"${on ? ' class="on"' : ''}${enabled ? '' : ' disabled'}>` +
+      `<span>${label}</span><b>${enabled ? sub : t(state.lang, 'logNeedLut')}</b></button>`;
+  }).join('');
+}
+
+function setLogModeFromSheet(value){
+  if (value === 'auto') { state.logManual = false; state.logMode = 0; }
+  else { state.logManual = true; state.logMode = Number(value); }
+  updateLogUI();
+  render({ instant: true });
+  requestAnimationFrame(renderFilmThumbs);
+  renderProfileSheet();
+  if (state.logMode > 0 && stackLogMode() !== state.logMode) {
+    toast(t(state.lang, 'logNoLutToast').replace('{curve}', LOG_LABELS[state.logMode]), 4200);
+  }
 }
 
 /* ---------- Develop panel ---------- */
@@ -2443,6 +2557,7 @@ function setDevelop(open) {
 function beginPhoto(autoEV = 0) {
   state.noLook = true;
   state.logMode = 0;
+  state.logManual = false;
   updateLogUI();
   state.autoEV = autoEV;
   state.rawExposure = autoEV;
@@ -2614,6 +2729,7 @@ function applyLang(lang, { persist = true } = {}){
   el.importBtn.textContent = t(lang, 'importLut');
   if (el.mergeBtn) el.mergeBtn.textContent = t(lang, 'mergeLut');
   updateLogUI();
+  if (el.profileSheet && !el.profileSheet.hidden) renderProfileSheet();
   el.dualBtn.childNodes[0].nodeValue = `${t(lang, state.dual.enabled ? 'dualOn' : 'dual')} `;
   el.exportSheet.querySelector('header span').textContent = t(lang, 'exportTitle');
   el.exportSheet.querySelector('.export-sub').textContent = t(lang, 'exportSub');
@@ -2825,11 +2941,15 @@ function bind(){
   el.fileInput.addEventListener('change', () => { const f = el.fileInput.files?.[0]; if (f) loadFile(f); el.fileInput.value = ''; });
   el.exportBtn.addEventListener('click', openExport);
   el.logBtn.addEventListener('click', () => {
-    state.logMode = (state.logMode + 1) % 4;
-    updateLogUI();
-    render({ instant: true });
-    requestAnimationFrame(renderFilmThumbs);
-    toast(t(state.lang, 'logHint'));
+    el.profileSheet.hidden = false;
+    renderProfileSheet();
+  });
+  el.profileClose.addEventListener('click', () => { el.profileSheet.hidden = true; });
+  el.profileSheet.addEventListener('click', (e) => { if (e.target === el.profileSheet) el.profileSheet.hidden = true; });
+  el.profileList.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-profile]');
+    if (!btn || btn.disabled) return;
+    setLogModeFromSheet(btn.dataset.profile);
   });
   el.mergeBtn.addEventListener('click', () => { mergeLutStack(); });
   el.importBtn.addEventListener('click', () => { el.importError.hidden = true; el.importSheet.hidden = false; });

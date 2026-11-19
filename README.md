@@ -62,12 +62,17 @@ screenshot:
   curve is baked onto a 3D grid so the renderer only deals with one texture type.
   Files are parsed locally, stored in IndexedDB and appear under “我的 LUT / My
   LUTs”. Nothing is uploaded, and a file that cannot be parsed says why.
-- **Input profile switch** — `sRGB / F-Log / F-Log2 / V-Log`. Vendor LUTs are built
-  for log input; applying them to a normal photo blows out the sky and crushes the
-  shadows. The app detects `F-Log`/`V-Log` from the imported LUT name, switches the
-  profile automatically, and re-encodes the photo with the published transfer
-  function before the LUT runs. Gamut is still treated as sRGB, so vendor LUTs are
-  close but not byte-exact.
+- **Input curve follows the LUT, not the photo** — `sRGB / F-Log / F-Log2 / V-Log`.
+  Vendor LUTs are authored for log input; feeding them a normal photo blows out the
+  sky and crushes the shadows. Each imported LUT is tagged with the curve its name
+  declares (`F-Log`/`F-Log2`/`V-Log`/VariCam/S1H) and the renderer re-encodes the
+  photo with the published transfer function before that LUT runs. Selecting a
+  built-in look drops back to sRGB by itself, so a stale curve can no longer leave
+  the photo washed out. The toolbar button opens a sheet that explains the four
+  options and why a log curve without a LOG LUT is grey by design; the log options
+  only unlock once a LOG LUT is in the stack (manual override is still there for
+  vendor files whose name does not say which curve they want). Gamut is still
+  treated as sRGB, so vendor LUTs are close but not byte-exact.
 - **RAW uploads are really developed** — NEF/CR2/CR3/ARW/DNG/RAF… go through
   [flashraw](https://github.com/ybouane/flashraw) compiled to WebAssembly (vendored
   under `public/vendor/flashraw`, ~3.4 MB, fetched only when a RAW is actually

@@ -116,10 +116,12 @@ footer a:hover{color:var(--ink)}
   </ol>
   <div class="note">
     官方 LUT 大多是为 LOG 素材（V-Log / F-Log）做的转换，直接套普通 sRGB 照片会过曝、偏色。
-    导入后应用会自动把「输入色彩空间」切到对应的 LOG（F-Log / F-Log2 / V-Log），
+    导入后应用会按 LUT 文件名自动切到对应的输入曲线（F-Log / F-Log2 / V-Log），
     先把照片按该 log 曲线重编码再套 LUT——这样官方 LUT 才会按设计的样子出图。
     色域仍按 sRGB 处理，所以色相会有轻微偏差，不是逐字节一致。
-    底部那一排的 <code>sRGB / F-Log / F-Log2 / V-Log</code> 按钮可以手动切换。
+    注意：输入曲线只决定 LUT 拿到什么，它本身不是调色。没有 LOG LUT 把它转回显示时，
+    画面发灰是正常现象；切回内置 look 会自动回到 sRGB。需要手动指定时，点底部
+    原来的 <code>sRGB</code> 按钮会打开「输入曲线」面板。
     想在别的软件里复现同一套观感，可以先在 <a href="/">编辑器</a> 里把两层 look
     <a href="/guides/merge-lut">合并成一个 .cube</a> 再下载。
   </div>
