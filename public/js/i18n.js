@@ -1,11 +1,14 @@
 export const CAT_EN = {
   cinema: 'CINEMA', film: 'FILM', bw: 'B&W', warm: 'WARM / COOL', vintage: 'VINTAGE',
   airy: 'AIRY', punch: 'STYLE', leica: 'LEICA', hasselblad: 'HASSELBLAD',
+  kodak: 'KODAK', fuji: 'FUJIFILM', ricoh: 'RICOH', pana: 'LUMIX',
 };
 
 export const I18N = {
   zh: {
     all: '全部', importLut: '导入 LUT', myLuts: '我的 LUT', importOk: '已导入 {n} 个 LUT', importFail: '这个 .cube 读不了',
+    mergeLut: '合并 LUT', mergeNeed: '先把要合并的 LUT 选好（单支或双支都行）',
+    mergeDone: '已合并：存进「我的 LUT」并下载了 .cube',
     rawUnsupported: '这个 RAW 解不了，先用相机软件导出 JPG',
     demoLoading: '示例照片', slowNet: '网络较慢',
     busyOpen: '正在打开照片', busyRead: '读取文件', busyDecode: '解码', busyPreview: '生成预览',
@@ -46,6 +49,8 @@ export const I18N = {
   },
   en: {
     all: 'All', importLut: 'Import LUT', myLuts: 'My LUTs', importOk: 'Imported {n} LUT(s)', importFail: 'Could not read that .cube',
+    mergeLut: 'MERGE', mergeNeed: 'Pick the LUTs to merge first (one or two)',
+    mergeDone: 'Merged: saved to My LUTs and downloaded the .cube',
     rawUnsupported: 'This RAW cannot be decoded — export a JPG with the camera software.',
     demoLoading: 'Demo photo', slowNet: 'slow network',
     busyOpen: 'Opening photo', busyRead: 'Reading', busyDecode: 'Decoding', busyPreview: 'Preview',

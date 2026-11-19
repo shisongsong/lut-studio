@@ -386,10 +386,11 @@ a.tbtn{text-decoration:none}
       <button id="logBtn" title="输入色彩空间 / input profile">sRGB</button>
       <button id="autoBtn" class="auto" title="RAW 自动亮度 / RAW auto brightness" hidden>AUTO</button>
       <button id="toneBtn">冲洗</button>
+      <button id="mergeBtn" title="合并当前单/双 LUT 并保存下载">合并 LUT</button>
       <button id="importBtn">导入 LUT</button>
       <button id="exportBtn" class="quick-export">导出 ↗</button>
     </div>
-    <div class="meta"><span id="metaName">POSITANO</span><b id="metaDims">…</b><span>OPEN SOURCE</span><span id="metaLooks">44 LOOKS</span></div>
+    <div class="meta"><span id="metaName">POSITANO</span><b id="metaDims">…</b><span>OPEN SOURCE</span><span id="metaLooks">64 LOOKS</span></div>
   </div>
 </div>
 
@@ -397,7 +398,7 @@ a.tbtn{text-decoration:none}
   <div class="intro-inner">
     <span class="intro-word">LUT ARCHIVE</span>
     <span class="intro-line"><i></i></span>
-    <span class="intro-sub" id="introSub">44 LOOKS / OPEN SOURCE</span>
+    <span class="intro-sub" id="introSub">64 LOOKS / OPEN SOURCE</span>
     <span class="intro-wait" id="introWait">LOADING · 加载中</span>
   </div>
 </div>
@@ -512,7 +513,7 @@ const el = {
   photoBtn: $('#photoBtn'), fitBtn: $('#fitBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'), zoomBtn: $('#zoomBtn'),
+  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), mergeBtn: $('#mergeBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'), zoomBtn: $('#zoomBtn'),
   busy: $('#busy'), busyTitle: $('#busyTitle'), busySteps: $('#busySteps'), busyTrack: $('#busyTrack'), busyFill: $('#busyFill'), busySub: $('#busySub'), busyClock: $('#busyClock'),
   loadPillFill: $('#loadPillFill'), loadPillPct: $('#loadPillPct'),
   devPanel: $('#devPanel'), devTitle: $('#devTitle'), devSub: $('#devSub'), devBody: $('#devBody'), devAuto: $('#devAuto'), devReset: $('#devReset'), devClose: $('#devClose'), devPick: $('#devPick'), devHint: $('#devHint'), devHist: $('#devHist'), lqip: $('#lqip'), loadPill: $('#loadPill'), loadPillText: $('#loadPillText'),
@@ -1236,6 +1237,113 @@ function currentStack(){
   return stack;
 }
 
+/* ------------------------------------------------------------------------- *
+ * Merging the look stack into one downloadable LUT
+ *
+ * The renderer applies up to three LUTs in sequence, each mixed in by its
+ * strength slider: v = mix(v, lut(v), s). A merge bakes exactly that composition
+ * into a single cube, so the result can be used anywhere else (Resolve,
+ * Premiere, Photoshop) or kept in "My LUTs" and stacked again.
+ * ------------------------------------------------------------------------- */
+
+/** Trilinear sample of a parsed RGBA cube at gamma-space (r, g, b). */
+function sampleLutParsed(parsed, r, g, b){
+  const S = parsed.size, d = parsed.data;
+  const fx = Math.min(S - 1, Math.max(0, r * (S - 1)));
+  const fy = Math.min(S - 1, Math.max(0, g * (S - 1)));
+  const fz = Math.min(S - 1, Math.max(0, b * (S - 1)));
+  const x0 = Math.floor(fx), y0 = Math.floor(fy), z0 = Math.floor(fz);
+  const x1 = Math.min(S - 1, x0 + 1), y1 = Math.min(S - 1, y0 + 1), z1 = Math.min(S - 1, z0 + 1);
+  const tx = fx - x0, ty = fy - y0, tz = fz - z0;
+  const at = (x, y, z) => ((z * S + y) * S + x) * 4;
+  const out = [0, 0, 0];
+  for (let c = 0; c < 3; c++){
+    const c00 = d[at(x0, y0, z0) + c] * (1 - tx) + d[at(x1, y0, z0) + c] * tx;
+    const c10 = d[at(x0, y1, z0) + c] * (1 - tx) + d[at(x1, y1, z0) + c] * tx;
+    const c01 = d[at(x0, y0, z1) + c] * (1 - tx) + d[at(x1, y0, z1) + c] * tx;
+    const c11 = d[at(x0, y1, z1) + c] * (1 - tx) + d[at(x1, y1, z1) + c] * tx;
+    const c0 = c00 * (1 - ty) + c10 * ty;
+    const c1 = c01 * (1 - ty) + c11 * ty;
+    out[c] = (c0 * (1 - tz) + c1 * tz) / 255;
+  }
+  return out;
+}
+
+/** The shader's composition: each stacked LUT mixed in by its strength. */
+function composeStack(stack, rgb){
+  let v = rgb;
+  for (const layer of stack){
+    if (!layer.parsed) continue;
+    const s = Math.max(0, Math.min(1, (layer.strength ?? 100) / 100));
+    const t = sampleLutParsed(layer.parsed, v[0], v[1], v[2]);
+    v = [v[0] + (t[0] - v[0]) * s, v[1] + (t[1] - v[1]) * s, v[2] + (t[2] - v[2]) * s];
+  }
+  return v;
+}
+
+/** Bake the current stack into an RGBA cube of `size` (17 keeps the app bundle format). */
+function bakeStack(stack, size){
+  const data = new Uint8Array(size ** 3 * 4);
+  let i = 0;
+  for (let z = 0; z < size; z++){
+    for (let y = 0; y < size; y++){
+      for (let x = 0; x < size; x++){
+        const c = composeStack(stack, [x / (size - 1), y / (size - 1), z / (size - 1)]);
+        data[i++] = Math.round(Math.min(1, Math.max(0, c[0])) * 255);
+        data[i++] = Math.round(Math.min(1, Math.max(0, c[1])) * 255);
+        data[i++] = Math.round(Math.min(1, Math.max(0, c[2])) * 255);
+        data[i++] = 255;
+      }
+    }
+  }
+  return data;
+}
+
+/** Download a baked cube as an industry-standard .cube (33^3). */
+function downloadCube(fileName, baked, size){
+  const S = 33;
+  const lines = [`TITLE "${fileName}"`, `LUT_3D_SIZE ${S}`, 'DOMAIN_MIN 0 0 0', 'DOMAIN_MAX 1 1 1'];
+  // Re-sample the baked cube up to 33^3 so the file works in every host app.
+  const src = { size, data: baked };
+  for (let b = 0; b < S; b++){
+    for (let g = 0; g < S; g++){
+      for (let r = 0; r < S; r++){
+        const c = sampleLutParsed(src, r / (S - 1), g / (S - 1), b / (S - 1));
+        lines.push(`${c[0].toFixed(5)} ${c[1].toFixed(5)} ${c[2].toFixed(5)}`);
+      }
+    }
+  }
+  const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${fileName.replace(/[^\w\u4e00-\u9fa5-]+/g, '_')}.cube`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+async function mergeLutStack(){
+  const stack = currentStack().filter(l => l.parsed);
+  if (!stack.length) { toast(t(state.lang, 'mergeNeed')); return; }
+  const names = stack.map(l => allLooks().find(x => x.id === l.id)?.name || l.id);
+  const name = names.join(' + ');
+  const baked = bakeStack(stack, 17);
+  const id = `merged-${Date.now().toString(36)}`;
+  try {
+    await saveLut({ id, name, size: 17, data: baked.buffer });
+  } catch {}
+  state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: 17, data: baked });
+  buildFilm();
+  buildCats();
+  updateActiveChip();
+  setLookText();
+  if (state.lutsReady) renderFilmThumbs();
+  downloadCube(name, baked, 17);
+  toast(t(state.lang, 'mergeDone'));
+}
+
 function sizeCanvases(dprCap = 2){
   // The photo stage is the field itself: when the Develop rail is open the field
   // is inset, so measuring the viewport would stretch the render outside it.
@@ -1302,54 +1410,56 @@ function adjBase(){
  * crop carries a margin so small pans do not re-upload, and it is capped so a
  * phone never allocates a huge texture.
  */
-let nativeTileKey = '';
+let nativeTileRect = null;   // {x,y,w,h} in image uv, null when showing the preview
 let nativeTileSrc = null;
-let nativeTileData = null;   // cached crop, so a thumbnail pass can hand the texture back
+let nativeTilePending = 0;
+
 // Read-only introspection used by the viewer tests and by hand when diagnosing
 // zoom quality: what the renderer is actually sampling right now.
 window.__ltView = () => ({
-  tile: nativeTileKey || 'preview',
+  mode: renderer && renderer.texMode,
   tileRect: renderer && renderer.tileRect,
-  imgW: renderer && renderer.imgW,
-  imgH: renderer && renderer.imgH,
   texW: renderer && renderer.texW,
   texH: renderer && renderer.texH,
   zoom: state.view.zoom,
   layerW: layers[0] && layers[0].width,
-  layerH: layers[0] && layers[0].height,
   previewW: source && source.preview ? source.preview.w : null,
   sourceW: source && source.width,
   sourceH: source && source.height,
-  diag: (() => {
-    if (!source || !renderer) return null;
-    const st = stageSize();
-    const r = computeViewRect(source.width, source.height, st.w, st.h, state.fit, state.view);
-    const pv = source.preview || { w: source.width };
-    const dpr = Math.min(devicePixelRatio || 1, 2);
-    return { rectW: r.w, previewTexels: r.w * pv.w, needPx: st.w * dpr * 0.95, needed: r.w * pv.w < st.w * dpr * 0.95 };
-  })(),
 });
+
+/** Preview texture, no upload: one pointer swap. */
 function restorePreviewTexture(){
-  if (!nativeTileKey) return;
-  nativeTileKey = '';
-  if (!source || source.kind !== 'linear' || !renderer) return;
-  const pv = source.preview || { data: source.data, w: source.width, h: source.height };
-  renderer.setLinearPreview(pv, source.width, source.height);
+  if (!renderer || !renderer.previewSlot) return;
+  renderer.activatePreview();
 }
 
+/** Native crop for the current view, if the preview cannot resolve it. */
 function ensureNativeTile(){
-  if (!renderer || !source) return;
-  if (source !== nativeTileSrc) { nativeTileSrc = source; nativeTileKey = ''; }
-  if (source.kind !== 'linear') return;
+  if (!renderer || !source || source.kind !== 'linear') return;
+  if (source !== nativeTileSrc) { nativeTileSrc = source; nativeTileRect = null; renderer.dropTile(); }
   const { w, h } = stageSize();
   const rect = computeViewRect(source.width, source.height, w, h, state.fit, state.view);
   const pv = source.preview || { w: source.width, h: source.height };
-  // Compare against *device* pixels: the layer canvases are CSS size x DPR, so
-  // comparing with the CSS width would miss the upscaling on retina screens.
   const dpr = Math.min(devicePixelRatio || 1, 2);
   const needed = rect.w * pv.w < w * dpr * 0.95;
-  if (!needed) { restorePreviewTexture(); return; }
-  const cap = Math.min(renderer.maxTexture, 2560);
+  if (!needed) {
+    if (nativeTileRect) { nativeTileRect = null; renderer.dropTile(); }
+    restorePreviewTexture();
+    return;
+  }
+  // Hysteresis: keep the current crop while the view still sits comfortably
+  // inside it, so a small pan does not re-crop and re-upload a tile.
+  if (nativeTileRect) {
+    const T = nativeTileRect;
+    const mx = T.w * 0.12, my = T.h * 0.12;
+    if (rect.x >= T.x + mx && rect.y >= T.y + my &&
+        rect.x + rect.w <= T.x + T.w - mx && rect.y + rect.h <= T.y + T.h - my) {
+      renderer.activateTile();
+      return;
+    }
+  }
+  const cap = Math.min(renderer.maxTexture, 1600);
   let cw = Math.ceil(rect.w * source.width * 1.30);
   let ch = Math.ceil(rect.h * source.height * 1.30);
   const k = Math.min(1, cap / Math.max(cw, ch));
@@ -1358,8 +1468,6 @@ function ensureNativeTile(){
   const cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2;
   const sx = Math.max(0, Math.min(source.width - cw, Math.round(cx * source.width - cw / 2)));
   const sy = Math.max(0, Math.min(source.height - ch, Math.round(cy * source.height - ch / 2)));
-  const key = `${sx},${sy},${cw}x${ch}`;
-  if (key === nativeTileKey) return;
   const tile = new Uint16Array(cw * ch * 3);
   const src = source.data;
   for (let row = 0; row < ch; row++) {
@@ -1371,16 +1479,7 @@ function ensureNativeTile(){
     x: sx / source.width, y: sy / source.height, w: cw / source.width, h: ch / source.height,
   };
   renderer.setLinearTile(tile, cw, ch, tileMeta);
-  nativeTileData = { data: tile, cw, ch, rect: tileMeta, key };
-  nativeTileKey = key;
-}
-
-/** Hand the native crop back to the GPU after something else borrowed it. */
-function reapplyNativeTile(){
-  if (!nativeTileData) return;
-  const t = nativeTileData;
-  renderer.setLinearTile(t.data, t.cw, t.ch, t.rect);
-  nativeTileKey = t.key;
+  nativeTileRect = { x: tileMeta.x, y: tileMeta.y, w: tileMeta.w, h: tileMeta.h };
 }
 
 function render({ instant = false } = {}){
@@ -1401,6 +1500,13 @@ function render({ instant = false } = {}){
   sampleAccent();
   drawHistogram();
   refreshFilmThumbsSoon();
+}
+
+/** One render per animation frame: a slider drag fires many input events. */
+let sliderRaf = 0;
+function renderSoon(){
+  if (sliderRaf) return;
+  sliderRaf = requestAnimationFrame(() => { sliderRaf = 0; render({ instant: true }); });
 }
 
 function renderDirect(){
@@ -1926,54 +2032,83 @@ function filmVisibleSplit(chips){
   return { visible, rest };
 }
 
-function drawFilmThumb(i, chips, all){
+function drawFilmThumb(i, chips, all, sig){
   const chip = chips[i];
   if (!state.lutsReady || !chip || thumbRendered.has(i)) return;
+  // Already painted for this photo + develop state? Then there is nothing to do,
+  // which makes rebuilding the strip (new LUTs, language switch) instant instead
+  // of repainting 60+ canvases.
+  if (sig && chip.dataset.thumbSig === sig) {
+    chip.classList.remove('loading');
+    thumbRendered.add(i);
+    return;
+  }
   const look = i === 0 ? null : all[i - 1];
-  const hadTile = !!nativeTileKey;
-  restorePreviewTexture();
-  if (look) renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], adjFor(), 156, 104, 'cover');
-  else renderer.render([], adjFor(), 156, 104, 'cover');
+  // Thumbnails are 156x104: denoising them would cost 17 texture taps per pixel
+  // and show nothing — render the look itself, without NR or the local stages.
+  const adjThumb = { ...adjFor(), nr: 0, nrColor: 0, noDetail: true };
+  renderer.activatePreview();
+  if (look) renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], adjThumb, 156, 104, 'cover');
+  else renderer.render([], adjThumb, 156, 104, 'cover');
   chip.querySelector('canvas').getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   chip.classList.remove('loading');
+  if (sig) chip.dataset.thumbSig = sig;
   thumbRendered.add(i);
-  if (hadTile) reapplyNativeTile();
 }
 
 /** Refresh the look thumbnails after the photo or the develop settings change. */
+/**
+ * Signature of everything that changes what a filmstrip thumbnail looks like.
+ * Refresh requests that would repaint the same thumbnails are dropped: while a
+ * batch is filling in on idle callbacks, an unrelated re-render used to schedule
+ * a new pass, clear the progress and start over, so the strip never finished.
+ */
+let thumbSigApplied = '';
+function thumbSignature(){
+  const t = state.tone;
+  return [
+    source ? `${source.width}x${source.height}` : '',
+    t.exposure, t.contrast, t.temp, t.tint, t.vibrance, t.saturation,
+    t.highlights, t.shadows, t.whites, t.blacks,
+    state.tone.logMode, state.noLook ? 1 : 0,
+    state.detail && state.detail.nr,
+  ].join('|');
+}
+
 function refreshFilmThumbsSoon(){
   clearTimeout(filmThumbTimer);
-  filmThumbTimer = setTimeout(() => renderFilmThumbs(), 220);
+  filmThumbTimer = setTimeout(() => {
+    const sig = thumbSignature();
+    if (sig === thumbSigApplied) return;
+    thumbSigApplied = sig;
+    renderFilmThumbs();
+  }, 220);
 }
 
 function renderFilmThumbs(){
   if (!renderer || !state.lutsReady) return;
   thumbRendered.clear();
-  if (thumbIdleHandle && 'cancelIdleCallback' in window) cancelIdleCallback(thumbIdleHandle);
-  thumbIdleHandle = 0;
+  if (thumbIdleHandle) { clearTimeout(thumbIdleHandle); thumbIdleHandle = 0; }
   const chips = [...el.film.querySelectorAll('.chip')];
   const all = allLooks();
   const { visible, rest } = filmVisibleSplit(chips);
-  for (const i of visible) drawFilmThumb(i, chips, all);
+  const sig = thumbSignature();
+  for (const i of visible) drawFilmThumb(i, chips, all, sig);
   if (!rest.length) return;
   let cursor = 0;
-  const fill = (deadline) => {
+  // Time-budgeted chunks on a timer rather than requestIdleCallback: idle time
+  // can be throttled to a trickle on a busy page, which left the strip stuck on
+  // skeletons for seconds (and never finishing at all on software renderers).
+  const BUDGET_MS = 10;
+  const fill = () => {
     thumbIdleHandle = 0;
-    // small batches so scrolling and slider drags stay smooth
-    let drawn = 0;
-    while (cursor < rest.length && drawn < 8 && (!deadline || deadline.timeRemaining() > 5)) {
-      drawFilmThumb(rest[cursor++], chips, all);
-      drawn++;
-    }
-    if (cursor < rest.length) {
-      thumbIdleHandle = 'requestIdleCallback' in window
-        ? requestIdleCallback(fill, { timeout: 400 })
-        : setTimeout(() => fill(null), 60);
-    }
+    const t0 = performance.now();
+    do {
+      drawFilmThumb(rest[cursor++], chips, all, sig);
+    } while (cursor < rest.length && performance.now() - t0 < BUDGET_MS);
+    if (cursor < rest.length) thumbIdleHandle = setTimeout(fill, 0);
   };
-  thumbIdleHandle = 'requestIdleCallback' in window
-    ? requestIdleCallback(fill, { timeout: 400 })
-    : setTimeout(() => fill(null), 120);
+  thumbIdleHandle = setTimeout(fill, 40);
 }
 
 function selectLook(id, slot = 'A'){
@@ -2321,6 +2456,7 @@ function applyLang(lang, { persist = true } = {}){
   el.exportBtn.textContent = `${t(lang, 'export')} ↗`;
   el.hint.textContent = t(lang, 'hint');
   el.importBtn.textContent = t(lang, 'importLut');
+  if (el.mergeBtn) el.mergeBtn.textContent = t(lang, 'mergeLut');
   updateLogUI();
   el.dualBtn.childNodes[0].nodeValue = `${t(lang, state.dual.enabled ? 'dualOn' : 'dual')} `;
   el.exportSheet.querySelector('header span').textContent = t(lang, 'exportTitle');
@@ -2485,6 +2621,7 @@ function bind(){
     requestAnimationFrame(renderFilmThumbs);
     toast(t(state.lang, 'logHint'));
   });
+  el.mergeBtn.addEventListener('click', () => { mergeLutStack(); });
   el.importBtn.addEventListener('click', () => { el.importError.hidden = true; el.importSheet.hidden = false; });
   el.importClose.addEventListener('click', () => { el.importSheet.hidden = true; });
   el.importPick.addEventListener('click', () => el.importInput.click());
@@ -2505,12 +2642,12 @@ function bind(){
       state.detail.manual = true;
       syncDevRow(input);
       updateNrBadge();
-      render({ instant: true });
+      renderSoon();
       return;
     }
     state.tone[key] = Number(input.value);
     syncDevRow(input);
-    render({ instant: true });
+    renderSoon();
     if (key === 'exposure' && !state.detail.manual) scheduleNrRecalc();
   });
   el.devReset.addEventListener('click', resetDevelop);

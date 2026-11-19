@@ -795,6 +795,13 @@ export class LookRenderer {
     this.imgW = 0;
     this.imgH = 0;
     this.tileRect = null;
+    // Scene-linear sources keep two GPU textures: the downscaled preview and
+    // the native-resolution crop used when zoomed in. Switching between them is
+    // a pointer swap — re-uploading a 30 MB tile for every filmstrip thumbnail
+    // was what made the viewer stutter.
+    this.previewSlot = null;   // { tex, w, h, fullW, fullH }
+    this.tileSlot = null;      // { tex, w, h, rect }
+    this.texMode = 'preview';
     this.lutTex = new Map();
     this.dummyLut = createDummyLut(gl);
     // Tone LUT: one row of half-float log2-luminance values, rebuilt only when
@@ -895,11 +902,36 @@ export class LookRenderer {
    * maths, zoom and the guide still line up with the full-resolution frame.
    */
   setLinearPreview(preview, fullW, fullH) {
-    this._uploadLinear(preview.data, preview.w, preview.h);
-    this.tileRect = null;
-    this.imgW = fullW;
-    this.imgH = fullH;
+    if (this.previewSlot) this.gl.deleteTexture(this.previewSlot.tex);
+    this.previewSlot = { tex: this._uploadLinearTex(preview.data, preview.w, preview.h), w: preview.w, h: preview.h, fullW, fullH };
+    this.activatePreview();
     this.linear = true;
+  }
+
+  /** Show the downscaled preview texture (fit view, gestures, thumbnails). */
+  activatePreview() {
+    const slot = this.previewSlot;
+    if (!slot) return;
+    this.texMode = 'preview';
+    this.imageTex = slot.tex;
+    this.texW = slot.w;
+    this.texH = slot.h;
+    this.tileRect = null;
+    this.imgW = slot.fullW;
+    this.imgH = slot.fullH;
+  }
+
+  /** Show the native-resolution crop (zoomed inspection). */
+  activateTile() {
+    const slot = this.tileSlot;
+    if (!slot) { this.activatePreview(); return; }
+    this.texMode = 'tile';
+    this.imageTex = slot.tex;
+    this.texW = slot.w;
+    this.texH = slot.h;
+    this.tileRect = slot.rect;
+    this.imgW = slot.rect ? slot.rect.fullW : slot.w;
+    this.imgH = slot.rect ? slot.rect.fullH : slot.h;
   }
 
   /**
@@ -908,24 +940,26 @@ export class LookRenderer {
    * the full photo, so uv maths and the guide stay in image space.
    */
   setLinearTile(data, w, h, tile = null) {
-    this._uploadLinear(data, w, h);
-    if (tile) {
-      this.tileRect = { x: tile.x, y: tile.y, w: tile.w, h: tile.h };
-      this.imgW = tile.fullW || w;
-      this.imgH = tile.fullH || h;
-    } else {
-      this.tileRect = null;
-      this.imgW = w;
-      this.imgH = h;
-    }
+    if (this.tileSlot) this.gl.deleteTexture(this.tileSlot.tex);
+    this.tileSlot = {
+      tex: this._uploadLinearTex(data, w, h),
+      w, h,
+      rect: tile ? { x: tile.x, y: tile.y, w: tile.w, h: tile.h, fullW: tile.fullW || w, fullH: tile.fullH || h } : null,
+    };
+    this.activateTile();
     this.linear = true;
   }
 
-  _uploadLinear(data, w, h) {
+  /** Drop the native crop (e.g. a new photo or zoomed back out). */
+  dropTile() {
+    if (this.tileSlot) { this.gl.deleteTexture(this.tileSlot.tex); this.tileSlot = null; }
+    if (this.texMode === 'tile') this.activatePreview();
+  }
+
+  _uploadLinearTex(data, w, h) {
     const gl = this.gl;
-    if (this.imageTex) gl.deleteTexture(this.imageTex);
-    this.imageTex = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -933,9 +967,7 @@ export class LookRenderer {
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, w, h, 0, gl.RGB, gl.HALF_FLOAT, data);
     gl.bindTexture(gl.TEXTURE_2D, null);
-    this.texW = w;
-    this.texH = h;
-    this.linear = true;
+    return tex;
   }
 
   /**
@@ -1007,8 +1039,11 @@ export class LookRenderer {
     const scale = Math.min(1, max / Math.max(w, h));
     w = Math.max(2, Math.round(w * scale));
     h = Math.max(2, Math.round(h * scale));
-    this.canvas.width = w;
-    this.canvas.height = h;
+    // Assigning width/height reallocates the drawing buffer even when the value
+    // is unchanged, which is expensive on software renderers; only resize when
+    // the target really changed (the filmstrip renders 44 badges per pass).
+    if (this.canvas.width !== w) this.canvas.width = w;
+    if (this.canvas.height !== h) this.canvas.height = h;
     gl.viewport(0, 0, w, h);
     gl.useProgram(this.program);
 
@@ -1097,7 +1132,8 @@ export class LookRenderer {
 
   dispose() {
     const gl = this.gl;
-    if (this.imageTex) gl.deleteTexture(this.imageTex);
+    if (this.previewSlot) gl.deleteTexture(this.previewSlot.tex);
+    if (this.tileSlot) gl.deleteTexture(this.tileSlot.tex);
     if (this.toneTex) gl.deleteTexture(this.toneTex);
     if (this.guideTex) gl.deleteTexture(this.guideTex);
     for (const tex of this.lutTex.values()) gl.deleteTexture(tex);

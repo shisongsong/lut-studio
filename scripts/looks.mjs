@@ -841,4 +841,229 @@ export const GRADES = [
       return sat(c[0], c[1], c[2], 0.95);
     },
   },
+
+  /* === 品牌胶片/机身风格（自研近似；非厂商官方 LUT） === */
+  // 柯达 Portra 400：暖肤色、柔肩、阴影略冷，日常人像最稳的一支
+  {
+    id: 'kodak-portra-400', name: '柯达 Portra 400', category: '柯达',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 1.030), gain(g, 1.000), gain(b, 0.986)];
+      c = [scurve(c[0], 0.15), scurve(c[1], 0.14), scurve(c[2], 0.13)];
+      c = [lift(c[0], 0.012), lift(c[1], 0.011), lift(c[2], 0.013)];
+      c = splitTone(c[0], c[1], c[2], [-0.006, 0.000, 0.008], [0.012, 0.005, -0.004]);
+      c = [shoulder(c[0], 0.80, 0.16), shoulder(c[1], 0.80, 0.16), shoulder(c[2], 0.82, 0.14)];
+      c[0] = clamp01(c[0] + 0.045 * clamp01(c[0] - c[2]));
+      return sat(c[0], c[1], c[2], 0.97);
+    },
+  },
+  // 柯达 Portra 160：更干净、阴影更中性
+  {
+    id: 'kodak-portra-160', name: '柯达 Portra 160', category: '柯达',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 1.014), gain(g, 1.000), gain(b, 0.994)];
+      c = [scurve(c[0], 0.18), scurve(c[1], 0.17), scurve(c[2], 0.16)];
+      c = [lift(c[0], 0.004), lift(c[1], 0.004), lift(c[2], 0.005)];
+      c = splitTone(c[0], c[1], c[2], [-0.003, 0.000, 0.004], [0.008, 0.003, -0.002]);
+      return sat(c[0], c[1], c[2], 1.00);
+    },
+  },
+  // 柯达 Ektar 100：高饱和、红最艳、阴影偏冷、细节硬
+  {
+    id: 'kodak-ektar-100', name: '柯达 Ektar 100', category: '柯达',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 1.020), gain(g, 1.000), gain(b, 0.988)];
+      c = [scurve(c[0], 0.24), scurve(c[1], 0.23), scurve(c[2], 0.22)];
+      c = splitTone(c[0], c[1], c[2], [-0.006, -0.002, 0.010], [0.008, 0.002, -0.004]);
+      c[0] = clamp01(c[0] + 0.070 * clamp01(c[0] - c[1])); // 红色更艳
+      c = [shoulder(c[0], 0.86, 0.10), shoulder(c[1], 0.86, 0.10), shoulder(c[2], 0.88, 0.10)];
+      return sat(c[0], c[1], c[2], 1.18);
+    },
+  },
+  // 柯达 Gold 200：金黄暖调、柔和、抬黑，廉价胶卷的怀旧感
+  {
+    id: 'kodak-gold-200', name: '柯达 Gold 200', category: '柯达',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 1.060), gain(g, 1.020), gain(b, 0.930)];
+      c = [scurve(c[0], 0.14), scurve(c[1], 0.13), scurve(c[2], 0.12)];
+      c = [lift(c[0], 0.022), lift(c[1], 0.020), lift(c[2], 0.018)];
+      c = [shoulder(c[0], 0.74, 0.22), shoulder(c[1], 0.74, 0.22), shoulder(c[2], 0.76, 0.20)];
+      return sat(c[0], c[1], c[2], 1.05);
+    },
+  },
+  // 柯达 Kodachrome 64：红极浓、阴影冷、反差高
+  {
+    id: 'kodachrome-64', name: '柯达 Kodachrome 64', category: '柯达',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 1.030), gain(g, 0.992), gain(b, 0.962)];
+      c = [scurve(c[0], 0.27), scurve(c[1], 0.25), scurve(c[2], 0.24)];
+      c = splitTone(c[0], c[1], c[2], [-0.012, -0.004, 0.020], [0.014, 0.004, -0.010]);
+      c[0] = clamp01(c[0] + 0.080 * clamp01(c[0] - c[2]));
+      c = [shoulder(c[0], 0.88, 0.08), shoulder(c[1], 0.88, 0.08), shoulder(c[2], 0.89, 0.08)];
+      return sat(c[0], c[1], c[2], 1.12);
+    },
+  },
+  // 柯达 Tri-X 400：全色黑白、颗粒感的深黑
+  {
+    id: 'kodak-trix-400', name: '柯达 Tri-X 400', category: '柯达',
+    fn: ([r, g, b]) => {
+      const l = 0.30 * r + 0.59 * g + 0.11 * b;
+      let v = scurve(l, 0.24);
+      v = lift(v, -0.006);
+      v = shoulder(v, 0.86, 0.10);
+      return [v, v, v];
+    },
+  },
+  // 富士 Pro 400H：薄荷绿阴影、粉色高光、低反差
+  {
+    id: 'fuji-pro400h', name: '富士 Pro 400H', category: '富士',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 0.988), gain(g, 1.016), gain(b, 1.004)];
+      c = [scurve(c[0], 0.12), scurve(c[1], 0.12), scurve(c[2], 0.11)];
+      c = [lift(c[0], 0.018), lift(c[1], 0.020), lift(c[2], 0.018)];
+      c = splitTone(c[0], c[1], c[2], [-0.006, 0.010, 0.006], [0.014, 0.004, 0.010]);
+      return sat(c[0], c[1], c[2], 0.95);
+    },
+  },
+  // 富士 Velvia 50：极高饱和、深绿、洋红阴影
+  {
+    id: 'fuji-velvia-50', name: '富士 Velvia 50', category: '富士',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 1.000), gain(g, 1.006), gain(b, 0.992)];
+      c = [scurve(c[0], 0.30), scurve(c[1], 0.30), scurve(c[2], 0.28)];
+      c = [lift(c[0], -0.010), lift(c[1], -0.010), lift(c[2], -0.008)];
+      c = splitTone(c[0], c[1], c[2], [0.010, -0.004, 0.014], [0.004, 0.002, -0.006]);
+      c[1] = clamp01(c[1] + 0.030 * clamp01(c[1] - c[0])); // 绿色更浓
+      c = [shoulder(c[0], 0.90, 0.06), shoulder(c[1], 0.90, 0.06), shoulder(c[2], 0.90, 0.06)];
+      return sat(c[0], c[1], c[2], 1.28);
+    },
+  },
+  // 富士 Provia 100F：中性、微冷、饱和略高
+  {
+    id: 'fuji-provia-100f', name: '富士 Provia 100F', category: '富士',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 0.996), gain(g, 1.000), gain(b, 1.008)];
+      c = [scurve(c[0], 0.22), scurve(c[1], 0.22), scurve(c[2], 0.21)];
+      c = splitTone(c[0], c[1], c[2], [-0.004, 0.000, 0.008], [0.004, 0.002, 0.000]);
+      return sat(c[0], c[1], c[2], 1.10);
+    },
+  },
+  // 富士 Astia 100F：柔和、粉调、低反差，人像友好
+  {
+    id: 'fuji-astia-100f', name: '富士 Astia 100F', category: '富士',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 1.006), gain(g, 1.000), gain(b, 1.000)];
+      c = [scurve(c[0], 0.13), scurve(c[1], 0.13), scurve(c[2], 0.12)];
+      c = [lift(c[0], 0.010), lift(c[1], 0.010), lift(c[2], 0.011)];
+      c = splitTone(c[0], c[1], c[2], [0.004, 0.000, 0.004], [0.010, 0.004, 0.006]);
+      return sat(c[0], c[1], c[2], 0.96);
+    },
+  },
+  // 富士 Classic Chrome：收饱和、冷阴影、深红，纪实感
+  {
+    id: 'fuji-classic-chrome', name: '富士 Classic Chrome', category: '富士',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 0.990), gain(g, 1.000), gain(b, 1.010)];
+      c = [scurve(c[0], 0.22), scurve(c[1], 0.21), scurve(c[2], 0.20)];
+      c = splitTone(c[0], c[1], c[2], [-0.008, -0.002, 0.012], [0.008, 0.003, -0.002]);
+      c[0] = clamp01(c[0] + 0.045 * clamp01(c[0] - c[1]));
+      return sat(c[0], c[1], c[2], 0.82);
+    },
+  },
+  // 富士 Acros 100：绿滤镜黑白、过渡细腻
+  {
+    id: 'fuji-acros-100', name: '富士 Acros 100', category: '富士',
+    fn: ([r, g, b]) => {
+      const l = 0.24 * r + 0.63 * g + 0.13 * b;
+      let v = scurve(l, 0.19);
+      v = lift(v, -0.002);
+      return [v, v, v];
+    },
+  },
+  // 理光 GR 正片：高对比、红绿浓、微洋红阴影
+  {
+    id: 'ricoh-positive', name: '理光 GR 正片', category: '理光',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 1.012), gain(g, 1.000), gain(b, 0.994)];
+      c = [scurve(c[0], 0.28), scurve(c[1], 0.27), scurve(c[2], 0.26)];
+      c = [lift(c[0], -0.008), lift(c[1], -0.008), lift(c[2], -0.006)];
+      c = splitTone(c[0], c[1], c[2], [0.010, -0.004, 0.012], [0.004, 0.002, -0.004]);
+      c[0] = clamp01(c[0] + 0.055 * clamp01(c[0] - c[1]));
+      c = [shoulder(c[0], 0.88, 0.08), shoulder(c[1], 0.88, 0.08), shoulder(c[2], 0.89, 0.08)];
+      return sat(c[0], c[1], c[2], 1.16);
+    },
+  },
+  // 理光 GR 负片：暖、柔、抬黑
+  {
+    id: 'ricoh-negative', name: '理光 GR 负片', category: '理光',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 1.040), gain(g, 1.006), gain(b, 0.972)];
+      c = [scurve(c[0], 0.15), scurve(c[1], 0.14), scurve(c[2], 0.13)];
+      c = [lift(c[0], 0.020), lift(c[1], 0.018), lift(c[2], 0.016)];
+      c = splitTone(c[0], c[1], c[2], [0.004, 0.000, -0.004], [0.012, 0.005, -0.006]);
+      return sat(c[0], c[1], c[2], 1.04);
+    },
+  },
+  // 理光 GR 高反差黑白
+  {
+    id: 'ricoh-hi-bw', name: '理光 GR 高反差黑白', category: '理光',
+    fn: ([r, g, b]) => {
+      const l = 0.28 * r + 0.60 * g + 0.12 * b;
+      let v = scurve(l, 0.34);
+      v = lift(v, -0.018);
+      v = shoulder(v, 0.84, 0.10);
+      return [v, v, v];
+    },
+  },
+  // 理光 GR 青调：青绿阴影 + 暖高光的都市夜感
+  {
+    id: 'ricoh-teal', name: '理光 GR 青调', category: '理光',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 0.988), gain(g, 1.004), gain(b, 1.020)];
+      c = [scurve(c[0], 0.20), scurve(c[1], 0.20), scurve(c[2], 0.19)];
+      c = splitTone(c[0], c[1], c[2], [-0.010, 0.008, 0.020], [0.014, 0.004, -0.006]);
+      return sat(c[0], c[1], c[2], 1.05);
+    },
+  },
+  // 松下 L.单色：平灰、低反差黑白
+  {
+    id: 'pana-l-monochrome', name: '松下 L.单色', category: '松下',
+    fn: ([r, g, b]) => {
+      const l = 0.26 * r + 0.62 * g + 0.12 * b;
+      let v = scurve(l, 0.10);
+      v = lift(v, 0.012);
+      return [v, v, v];
+    },
+  },
+  // 松下 L.单色 D：深黑、高反差、亮部干净
+  {
+    id: 'pana-l-monochrome-d', name: '松下 L.单色 D', category: '松下',
+    fn: ([r, g, b]) => {
+      const l = 0.26 * r + 0.62 * g + 0.12 * b;
+      let v = scurve(l, 0.30);
+      v = lift(v, -0.020);
+      v = shoulder(v, 0.86, 0.10);
+      return [v, v, v];
+    },
+  },
+  // 松下 Cinelike D：低反差、灰平的中间调，便于再调色
+  {
+    id: 'pana-cine-d', name: '松下 Cinelike D', category: '松下',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 0.998), gain(g, 1.000), gain(b, 1.006)];
+      c = [contrast(c[0], 0.86), contrast(c[1], 0.86), contrast(c[2], 0.86)];
+      c = [lift(c[0], 0.028), lift(c[1], 0.028), lift(c[2], 0.030)];
+      c = splitTone(c[0], c[1], c[2], [-0.004, 0.000, 0.010], [0.004, 0.002, 0.000]);
+      return sat(c[0], c[1], c[2], 0.90);
+    },
+  },
+  // 松下 Cinelike V：鲜艳电影，暖高光青阴影
+  {
+    id: 'pana-cine-v', name: '松下 Cinelike V', category: '松下',
+    fn: ([r, g, b]) => {
+      let c = [gain(r, 1.008), gain(g, 1.000), gain(b, 0.996)];
+      c = [scurve(c[0], 0.20), scurve(c[1], 0.20), scurve(c[2], 0.19)];
+      c = splitTone(c[0], c[1], c[2], [-0.008, 0.004, 0.014], [0.012, 0.004, -0.006]);
+      return sat(c[0], c[1], c[2], 1.12);
+    },
+  },
 ];

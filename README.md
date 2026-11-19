@@ -142,6 +142,37 @@ screenshot:
 - **Nothing leaves the device** — decoding, grading and encoding all happen in
   the browser. The only network calls are for static assets and a country code.
 
+## Look pack
+
+64 built-in grades, generated from the recipes in `scripts/looks.mjs` (no
+third-party LUT data is bundled or resampled). Alongside the cinematic, vintage
+and B&W sets there are four brand-inspired families that photographers ask for
+by name: **Kodak** (Portra 400/160, Ektar 100, Gold 200, Kodachrome 64, Tri-X),
+**Fujifilm** (Pro 400H, Velvia 50, Provia 100F, Astia 100F, Classic Chrome,
+Acros 100), **Ricoh** (GR positive / negative / high-contrast B&W / teal) and
+**Lumix** (L. Monochrome, L. Monochrome D, Cinelike D / V). Each recipe models
+the stock's documented behaviour — tone curve, colour cast, highlight shoulder,
+channel cross-talk — rather than copying a vendor file.
+
+Stack up to two looks with the `DUAL LUT` button. **合并 LUT / MERGE** bakes the
+current stack (each layer mixed in by its strength, exactly as the shader
+composes it) into a single 33³ `.cube`, downloads it, and stores the same grade
+in **My LUTs** so it can be reused on any other photo. The cube is standard
+`LUT_3D_SIZE 33` / `DOMAIN_MIN 0 0 0`, so it also opens in Resolve, Premiere or
+Photoshop.
+
+## Performance
+
+The viewer keeps two scene-linear GPU textures — the downscaled preview and, when
+zoomed past the preview's resolution, one native-resolution crop — and switches
+between them with a pointer swap. Re-uploading the crop for every filmstrip
+thumbnail was the cause of the viewer stutter: one zoom used to upload ~2.9 GB of
+texture data, now it uploads ~2 MB. Slider drags coalesce to one render per
+animation frame, and thumbnails are painted in time-budgeted chunks (and skipped
+entirely when the photo and develop state have not changed). Measured on the
+reference phone viewport: slider drag 836 ms → 100 ms of main-thread work, zoom
+745 ms → 137 ms, filmstrip refresh 652 ms → 89 ms.
+
 ## Viewer controls
 
 | Action | Desktop | Phone / tablet |
@@ -304,7 +335,7 @@ public/            # the whole app (no build step)
   js/looks.js      # LUT manifest
   js/i18n.js       # zh/en strings
   js/lut-store.js  # IndexedDB store for imported .cube LUTs
-  luts.bin         # baked LUT texture (44 looks)
+  luts.bin         # baked LUT texture (64 looks)
   get-luts.html    # how to get vendor LUTs + download the bundled ones
   photos/demo.webp # default demo photo
   fonts/           # IBM Plex Mono, Instrument Sans/Serif (woff2)

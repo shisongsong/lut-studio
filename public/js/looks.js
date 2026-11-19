@@ -70,6 +70,33 @@ export const LOOKS = [
   { id: 'hasselblad-cream', file: 'hasselblad-cream.cube', name: '哈苏奶油', en: 'Hasselblad Cream', cat: 'hasselblad', catLabel: '哈苏', tag: '奶油高光，低对比', featured: false },
   { id: 'hasselblad-cool', file: 'hasselblad-cool.cube', name: '哈苏清冷', en: 'Hasselblad Cool', cat: 'hasselblad', catLabel: '哈苏', tag: '冷阴影，干净白', featured: false },
   { id: 'hasselblad-mono', file: 'hasselblad-mono.cube', name: '哈苏黑白', en: 'Hasselblad Mono', cat: 'hasselblad', catLabel: '哈苏', tag: '中性黑白，平滑中间调', featured: false },
+  // 柯达
+  { id: 'kodak-portra-400', file: 'kodak-portra-400.cube', name: '柯达 Portra 400', en: 'Kodak Portra 400', cat: 'kodak', catLabel: '柯达', tag: '暖肤色、柔肩、阴影微冷', featured: true },
+  { id: 'kodak-portra-160', file: 'kodak-portra-160.cube', name: '柯达 Portra 160', en: 'Kodak Portra 160', cat: 'kodak', catLabel: '柯达', tag: '更干净、阴影更中性', featured: false },
+  { id: 'kodak-ektar-100', file: 'kodak-ektar-100.cube', name: '柯达 Ektar 100', en: 'Kodak Ektar 100', cat: 'kodak', catLabel: '柯达', tag: '高饱和、红最艳、阴影偏冷', featured: true },
+  { id: 'kodak-gold-200', file: 'kodak-gold-200.cube', name: '柯达 Gold 200', en: 'Kodak Gold 200', cat: 'kodak', catLabel: '柯达', tag: '金黄暖调、柔和、怀旧', featured: false },
+  { id: 'kodachrome-64', file: 'kodachrome-64.cube', name: '柯达 Kodachrome 64', en: 'Kodachrome 64', cat: 'kodak', catLabel: '柯达', tag: '红极浓、深黑、冷阴影', featured: true },
+  { id: 'kodak-trix-400', file: 'kodak-trix-400.cube', name: '柯达 Tri-X 400', en: 'Kodak Tri-X 400', cat: 'kodak', catLabel: '柯达', tag: '全色黑白、深黑', featured: false },
+
+  // 富士
+  { id: 'fuji-pro400h', file: 'fuji-pro400h.cube', name: '富士 Pro 400H', en: 'Fujifilm Pro 400H', cat: 'fuji', catLabel: '富士', tag: '薄荷绿阴影、粉调高光', featured: true },
+  { id: 'fuji-velvia-50', file: 'fuji-velvia-50.cube', name: '富士 Velvia 50', en: 'Fujifilm Velvia 50', cat: 'fuji', catLabel: '富士', tag: '极高饱和、深绿、洋红阴影', featured: true },
+  { id: 'fuji-provia-100f', file: 'fuji-provia-100f.cube', name: '富士 Provia 100F', en: 'Fujifilm Provia 100F', cat: 'fuji', catLabel: '富士', tag: '中性微冷、饱和略高', featured: false },
+  { id: 'fuji-astia-100f', file: 'fuji-astia-100f.cube', name: '富士 Astia 100F', en: 'Fujifilm Astia 100F', cat: 'fuji', catLabel: '富士', tag: '柔粉、低反差、人像友好', featured: false },
+  { id: 'fuji-classic-chrome', file: 'fuji-classic-chrome.cube', name: '富士 Classic Chrome', en: 'Fujifilm Classic Chrome', cat: 'fuji', catLabel: '富士', tag: '收饱和、冷阴影、纪实感', featured: true },
+  { id: 'fuji-acros-100', file: 'fuji-acros-100.cube', name: '富士 Acros 100', en: 'Fujifilm Acros 100', cat: 'fuji', catLabel: '富士', tag: '绿滤镜黑白、过渡细腻', featured: false },
+
+  // 理光
+  { id: 'ricoh-positive', file: 'ricoh-positive.cube', name: '理光 GR 正片', en: 'Ricoh GR Positive', cat: 'ricoh', catLabel: '理光', tag: '高对比、红绿浓、微洋红阴影', featured: true },
+  { id: 'ricoh-negative', file: 'ricoh-negative.cube', name: '理光 GR 负片', en: 'Ricoh GR Negative', cat: 'ricoh', catLabel: '理光', tag: '暖、柔、抬黑', featured: false },
+  { id: 'ricoh-hi-bw', file: 'ricoh-hi-bw.cube', name: '理光 GR 高反差黑白', en: 'Ricoh GR Hi-Contrast B&W', cat: 'ricoh', catLabel: '理光', tag: '硬朗的黑白分离度', featured: false },
+  { id: 'ricoh-teal', file: 'ricoh-teal.cube', name: '理光 GR 青调', en: 'Ricoh GR Teal', cat: 'ricoh', catLabel: '理光', tag: '青绿阴影配暖高光的夜感', featured: false },
+
+  // 松下
+  { id: 'pana-l-monochrome', file: 'pana-l-monochrome.cube', name: '松下 L.单色', en: 'Lumix L. Monochrome', cat: 'pana', catLabel: '松下', tag: '平灰、低反差黑白', featured: false },
+  { id: 'pana-l-monochrome-d', file: 'pana-l-monochrome-d.cube', name: '松下 L.单色 D', en: 'Lumix L. Monochrome D', cat: 'pana', catLabel: '松下', tag: '深黑、高反差', featured: false },
+  { id: 'pana-cine-d', file: 'pana-cine-d.cube', name: '松下 Cinelike D', en: 'Lumix Cinelike D', cat: 'pana', catLabel: '松下', tag: '灰平中间调，方便再调色', featured: false },
+  { id: 'pana-cine-v', file: 'pana-cine-v.cube', name: '松下 Cinelike V', en: 'Lumix Cinelike V', cat: 'pana', catLabel: '松下', tag: '鲜艳电影、青阴影暖高光', featured: false },
 ];
 
 export const LOOK_MAP = new Map(LOOKS.map((look) => [look.id, look]));
@@ -85,6 +112,11 @@ export const FILTERS = [
   ['punch', '风格'],
   ['leica', '徕卡'],
   ['hasselblad', '哈苏'],
+  ['kodak', '柯达'],
+  ['fuji', '富士'],
+  ['ricoh', '理光'],
+  ['pana', '松下'],
+
 ];
 
 export const FEATURED = LOOKS.filter((look) => look.featured);
