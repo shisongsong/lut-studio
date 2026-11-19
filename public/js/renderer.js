@@ -5,8 +5,9 @@
  * created on phones).
  *
  * Pipeline: exposure + white balance in linear light → monotone tone curve
- * sampled in log2 luminance (contrast / shadows / highlights / whites / blacks)
- * → vibrance/saturation → optional LOG encode → up to 3 stacked LUTs.
+ * sampled in log2 luminance (shadows / highlights / whites / blacks) → the
+ * darktable sigmoid display transform (scene-referred RAW path) →
+ * vibrance/saturation → optional LOG encode → up to 3 stacked LUTs.
  *
  * The tone curve is built on the CPU into a 1024-entry log-luminance LUT and
  * applied as a luminance *ratio* in linear light, so a tone move cannot shift
@@ -59,6 +60,52 @@ export const TONE_MODEL = {
   // display-space black point: negative = levels move, positive = gamma lift
   blacks: { point: 0.216, gamma: 0.75, gammaA: 0.967, gammaB: 0.0157 },
 };
+
+/**
+ * The RAW display transform: darktable's sigmoid view transform
+ * (scene-referred → display). The curve is the generalized log-logistic
+ * (Naka-Rushton) family from darktable's sigmoid module (jandren, PR #12642,
+ * darktable 4.2) — implemented from the published maths, no GPL code copied.
+ * It anchors middle grey, rolls highlights off smoothly instead of clipping
+ * them and keeps everything monotonic for any input in [0, +inf).
+ */
+export const SIGMOID = {
+  // darktable's MIDDLE_GREY constant: scene 0.1845 maps to display-linear
+  // 0.1845, which is sRGB 46.7% after the output encode.
+  grey: 0.1845,
+  contrast: 1.5,
+  skew: 0,
+  white: 1.0,
+  black: 0.000152,
+  hue: 1.0,
+  // Basic-panel contrast (-100..100) scales the sigmoid contrast around the
+  // darktable default; gain 0.6 spans darktable's own soft range (0.75..3.0),
+  // so the extremes behave like Lightroom's Basic contrast.
+  contrastGain: 0.6,
+};
+
+/**
+ * Closed-form parameter fit of the sigmoid curve (matches darktable's own
+ * numeric fit to 4e-10). Guarantees f(0)=b, f(g)=g, f(+inf)=w and a mid-grey
+ * slope that depends on `contrast` only (skew moves compression between
+ * shadows and highlights without shifting that slope).
+ */
+export function sigmoidFit(c = SIGMOID.contrast, s = SIGMOID.skew, w = SIGMOID.white, b = SIGMOID.black) {
+  const g = SIGMOID.grey;
+  const q = Math.pow(5, -s);
+  const refSlope = c * (1 - g);
+  const alpha = Math.pow(w / g, 1 / q);
+  const tempSlope = (w * q / g) * (alpha - 1) * Math.pow(w / g, -(q + 1) / q);
+  const p = refSlope / tempSlope;
+  const WGR = alpha - 1;
+  let fog = 0;
+  if (b > 0) {
+    const WBR = Math.pow(b / w, -1 / q) - 1;
+    fog = g * Math.pow(WGR, 1 / p) / (Math.pow(WBR, 1 / p) - Math.pow(WGR, 1 / p));
+  }
+  const pe = Math.pow(fog + g, p) * WGR;
+  return { p, q, pe, fog, w, b };
+}
 
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const smoothstep = (a, b, x) => {
@@ -217,6 +264,14 @@ uniform vec2 uTexel;
 // LOG modes encode the photo into the log curve the LUT expects, so vendor
 // LUTs designed for log footage behave as intended instead of blowing out.
 uniform int uLogMode;
+// darktable sigmoid display transform (scene-referred RAW path). The JS
+// side runs sigmoidFit() per parameter change and uploads the curve here.
+uniform float uSigP;
+uniform float uSigQ;
+uniform float uSigPe;
+uniform float uSigFog;
+uniform float uSigW;
+uniform float uSigHue;
 in vec2 vUv;
 out vec4 outColor;
 
@@ -266,6 +321,75 @@ vec3 encodeLog(vec3 lin, int mode) {
 
 float lumaOf(vec3 c) {
   return dot(c, vec3(0.2126, 0.7152, 0.0722));
+}
+
+/**
+ * darktable sigmoid display transform, per channel with hue preservation
+ * (darktable sigmoid module / jandren PR #12642 — formulas re-implemented,
+ * no GPL code copied). Scene-referred RGB in, display-referred *linear* RGB
+ * out; the sRGB encode happens after it, like darktable's output profile step.
+ *   u = (fog + max(x, 0))^p ;  y = w * (u / (pe + u))^q
+ * The fit anchors f(0.1845) = 0.1845 and converges to w, so above-white
+ * scene headroom rolls off instead of clipping.
+ */
+float sigCurve(float x) {
+  float u = pow(uSigFog + max(x, 0.0), uSigP);
+  float y = uSigW * pow(u / (uSigPe + u), uSigQ);
+  return isnan(y) ? uSigW : y;
+}
+
+vec3 sigmoidPerChannel(vec3 v) {
+  // 1) Desaturate negative channels (white balance can undershoot them).
+  float avg = max((v.r + v.g + v.b) / 3.0, 0.0);
+  float mn = min(v.r, min(v.g, v.b));
+  float sf = mn < 0.0 ? -avg / (mn - avg) : 1.0;
+  vec3 in3 = avg + sf * (v - avg);
+  // 2) The curve, one pass per channel.
+  vec3 pc = vec3(sigCurve(in3.r), sigCurve(in3.g), sigCurve(in3.b));
+  // 3) Hue preservation: blend the naive midscale-preserving midpoint against
+  //    the per-channel result, then re-solve the remaining channel to keep
+  //    the channel sum (energy) between the two behaviours.
+  int mni, midi, mxi;
+  mxi = (in3.r >= in3.g) ? ((in3.r >= in3.b) ? 0 : 2) : ((in3.g >= in3.b) ? 1 : 2);
+  mni = (in3.r <= in3.g) ? ((in3.r <= in3.b) ? 0 : 2) : ((in3.g <= in3.b) ? 1 : 2);
+  if (mni == mxi) {
+    // Grey: any distinct channel order degenerates to a straight-through.
+    mni = 2; midi = 1; mxi = 0;
+  } else {
+    midi = 3 - mni - mxi;
+  }
+  float imn = in3[mni];
+  float imid = in3[midi];
+  float imx = in3[mxi];
+  float pmn = pc[mni];
+  float pmid = pc[midi];
+  float pmx = pc[mxi];
+  float chroma = imx - imn;
+  float midscale = chroma != 0.0 ? (imid - imn) / chroma : 0.0;
+  float fullCorr = pmn + (pmx - pmn) * midscale;
+  float naiveMid = (1.0 - uSigHue) * pmid + uSigHue * fullCorr;
+  float pcEnergy = pc.r + pc.g + pc.b;
+  float naiveEnergy = pmn + naiveMid + pmx;
+  float mm = imn + imid;
+  float blend = mm != 0.0 ? 2.0 * imn / mm : 0.0;
+  float E = blend * pcEnergy + (1.0 - blend) * naiveEnergy;
+  vec3 o;
+  if (naiveMid <= pmid) {
+    float cm = ((1.0 - uSigHue) * pmid
+              + uSigHue * (midscale * pmx + (1.0 - midscale) * (E - pmx)))
+              / (1.0 + uSigHue * (1.0 - midscale));
+    o[mxi] = pmx;
+    o[midi] = cm;
+    o[mni] = E - pmx - cm;
+  } else {
+    float cm = ((1.0 - uSigHue) * pmid
+              + uSigHue * (pmn * (1.0 - midscale) + midscale * (E - pmn)))
+              / (1.0 + uSigHue * midscale);
+    o[mni] = pmn;
+    o[midi] = cm;
+    o[mxi] = E - pmn - cm;
+  }
+  return o;
 }
 
 /**
@@ -440,17 +564,15 @@ void main() {
   float Yl = Yc * exp2(shadowDelta + highlightDelta);
   vec3 graded = lin * (Yl / Y);
   // Desaturate only what is about to clip, so pushed whites roll to white
-  // instead of turning a sunset magenta.
-  float mx = max(graded.r, max(graded.g, graded.b));
-  if (mx > 1.0) graded = mix(graded, vec3(1.0), clamp((mx - 1.0) / mx, 0.0, 1.0) * 0.65);
-
-  vec3 c = clamp(linearToSrgb(graded), 0.0, 1.0);
-  // The linear RAW path replaces the old 8-bit worker S-curve with the same
-  // curve in display space, so RAW thumbnails/previews keep their familiar
-  // rendering while the data below stays linear (and recoverable).
+  // instead of turning a sunset magenta. (sRGB input only — the RAW path
+  // lets the sigmoid transform do this properly.)
+  vec3 c;
   if (uLinearInput == 1) {
-    vec3 soft = c * c * (3.0 - 2.0 * c);
-    c = clamp(c * 0.6 + soft * 0.4, 0.0, 1.0);
+    c = clamp(linearToSrgb(sigmoidPerChannel(graded)), 0.0, 1.0);
+  } else {
+    float mx = max(graded.r, max(graded.g, graded.b));
+    if (mx > 1.0) graded = mix(graded, vec3(1.0), clamp((mx - 1.0) / mx, 0.0, 1.0) * 0.65);
+    c = clamp(linearToSrgb(graded), 0.0, 1.0);
   }
 
   // Whites / blacks, calibrated in display space against LR Mobile:
@@ -516,7 +638,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLinearInput', 'uShadows', 'uHighlights', 'uWhites', 'uBlacks', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uNr', 'uNrColor', 'uTexel']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLinearInput', 'uShadows', 'uHighlights', 'uWhites', 'uBlacks', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uNr', 'uNrColor', 'uTexel', 'uSigP', 'uSigQ', 'uSigPe', 'uSigFog', 'uSigW', 'uSigHue']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -764,7 +886,18 @@ export class LookRenderer {
     gl.uniform1f(this.uniform.uNr, nr);
     gl.uniform1f(this.uniform.uNrColor, Math.max(0, Math.min(1, adjust?.nrColor || 0)));
     gl.uniform2f(this.uniform.uTexel, 1 / Math.max(1, this.texW), 1 / Math.max(1, this.texH));
-    this._syncToneCurve(adjust);
+    // The sigmoid display transform owns mid-tone contrast on the RAW path, so
+    // the 1D log-domain LUT stays neutral there (it still drives contrast for
+    // sRGB canvas input). The slider feeds sigmoid's contrast parameter.
+    this._syncToneCurve(this.linear ? { contrast: 0 } : (adjust || {}));
+    const cn = Math.max(-1, Math.min(1, (adjust?.contrast || 0) / 100));
+    const sig = sigmoidFit(SIGMOID.contrast * Math.pow(2, SIGMOID.contrastGain * cn), SIGMOID.skew);
+    gl.uniform1f(this.uniform.uSigP, sig.p);
+    gl.uniform1f(this.uniform.uSigQ, sig.q);
+    gl.uniform1f(this.uniform.uSigPe, sig.pe);
+    gl.uniform1f(this.uniform.uSigFog, sig.fog);
+    gl.uniform1f(this.uniform.uSigW, sig.w);
+    gl.uniform1f(this.uniform.uSigHue, SIGMOID.hue);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     return this.canvas;

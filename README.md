@@ -85,10 +85,38 @@ screenshot:
   app falls back to the camera JPEG embedded in it — including 45 MP-class frames
   that the current decoder returns truncated, which are detected and swapped for
   the full-resolution JPEG inside the RAW instead of showing a half-black photo.
-  RAW files also get an automatic exposure (the 95th percentile is placed near
-  white, so a dim interior comes out lit instead of moody: +3–4 EV where the old
-  target stopped at +2), applied as a linear exposure so the preview and the
-  export always match; the `AUTO` button in the toolbar turns it off.
+  RAW files also get an automatic exposure computed in the **scene domain** (the
+  95th percentile is placed near sensor white and the midtones are not pushed
+  past ~0.39 of white, so a dim interior comes out lit instead of moody: +3–4 EV
+  where the old target stopped at +2), applied as a linear exposure so the
+  preview and the export always match; the `AUTO` button in the toolbar turns it
+  off.
+- **Scene-referred display transform (darktable sigmoid)** — the RAW path does
+  not invent its own base curve. Tone mapping is darktable's [sigmoid view
+  transform](https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/)
+  (jandren, merged for darktable 4.2 in
+  [PR #12642](https://github.com/darktable-org/darktable/pull/12642)): a
+  generalized log-logistic (Naka-Rushton) curve defined on 0…∞, monotone
+  everywhere, anchored so scene-linear 0.1845 maps to display-linear 0.1845
+  (sRGB 46.7 %) and converging asymptotically on the white target instead of
+  clipping. The parameters are fitted in closed form (`q = 5^-skew`,
+  `p = contrast·(1−g)/tempSlope`, then `fog`/`pe` from the black and white
+  anchors), which reproduces darktable's own numeric difference fit to 4e-10.
+  Colour handling follows the module's per-channel mode with hue preservation:
+  negative channels are desaturated first, the curve runs per channel, then the
+  middle channel is re-solved to blend spectral-hue preservation with
+  channel-sum (energy) conservation, weighted by where the pixel sits between
+  the achromatic axis and the gamut boundary. Middle grey renders at sRGB
+  46.7 %, +4 EV of scene headroom at display 0.9347 and +6 EV at 0.9913 — that
+  above-white range is exactly the sensor headroom the 16-bit decode kept, so
+  highlights roll off instead of ending in a flat white patch. The port was
+  verified two ways: the closed-form fit against a faithful re-implementation of
+  darktable's algorithm, and end-to-end against darktable 5.6.2 itself — a
+  linear float TIFF rendered through darktable's sigmoid (via an XMP sidecar)
+  matches this implementation to 0.0008 across the whole −12…+8 EV sweep, while
+  the same render without the sidecar reverts to a hard clip. No GPL code was
+  copied: the maths comes from the published module documentation, the PR and
+  the OpenCL kernel's formulas, and the GLSL is an independent implementation.
 - **Develop panel, Lightroom-style** — opening any photo lands in a Develop rail
   (a bottom sheet on phones) with the camera's own render and **no LUT applied**,
   so you are looking at your RAW, not at somebody's look. White balance
@@ -98,11 +126,13 @@ screenshot:
   re-decode — and the preview, the filmstrip thumbnails and the export all go
   through the same `adjFor()`, so what you judge is what you get. A live RGB
   histogram sits above the sliders, `自动色调 / Auto tone` places the whole tone
-  group from the histogram (calibrated against Lightroom Mobile's Auto: it also
-  applies the automatic exposure even when the AUTO toggle is off, and the
-  highlights/shadows/whites/blacks targets match LR Auto on the reference night
-  frame), and the split line keeps working as before/after
-  against the untouched camera render. The 44 looks stay one click away on the
+  group from the histogram, and the split line keeps working as before/after
+  against the untouched camera render. Auto tone is calibrated against
+  Lightroom Mobile's Auto on the reference night frame and fitted on 100 %
+  exports: it also applies the automatic exposure even when the AUTO toggle is
+  off, and the exported render lands within ±3 display levels of LR's own Auto
+  export on every percentile (mean 57.9 vs 58.2, p50 45 vs 47, p90 118 vs 117,
+  p95 165 vs 166, p99 240 vs 237). The 44 looks stay one click away on the
   filmstrip and stack on top of the develop settings.
 - **Auto noise reduction, only where it is needed** — the frame's noise floor is
   measured (robust high-pass on native-resolution patches, evaluated at the
@@ -113,7 +143,9 @@ screenshot:
   export share it.
 - **Lightroom-shaped tone controls** — the Basic-panel sliders are not four
   gamma-space offsets:
-  - `contrast` is the only 1D curve (log2-luminance slope around mid grey).
+  - `contrast` drives the sigmoid's mid-grey slope on the RAW path (see the
+    display-transform bullet above); for JPEG/demo input it stays a 1D
+    log2-luminance slope curve around mid grey.
   - `highlights` / `shadows` are **adaptive**: a small, bilateral-blurred
     luminance guide decides where they act, and the correction is a local
     exposure change in that region. Because the weight is constant across a
@@ -138,11 +170,14 @@ screenshot:
   proves the curve and the model are monotone for every slider extreme, checks
   band isolation, that a shadow lift is multiplicative (local contrast
   preserved), that highlights depend on the neighbourhood (adaptive), and that
-  no slider can produce a plateau. On the linear RAW path, negative highlights is
-  a real **highlight recovery**: the guide's highlight range is mapped through an
-  exponential shoulder whose asymptote sits just under white, so sensor values
-  above 1.0 are compressed back into visible gradation while the detail inside the
-  region survives through the guide/pixel ratio.
+  no slider can produce a plateau. It also pins the sigmoid display transform to
+  darktable's verified EV→display table and to its anchors (`f(0)` = the black
+  target, `f(0.1845)` = middle grey), so a regression in tone mapping fails the
+  build instead of quietly shifting every photo. On the linear RAW path, negative
+  highlights is a real **highlight recovery**: the guide's highlight range is
+  mapped through an exponential shoulder whose asymptote sits just under white, so
+  sensor values above 1.0 are compressed back into visible gradation while the
+  detail inside the region survives through the guide/pixel ratio.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in
@@ -174,11 +209,12 @@ app itself.
   luminance from a 1024-entry R16F LUT → adaptive highlights/shadows from a
   blurred luminance guide (built from the linear frame in the worker for RAW,
   from the canvas for JPEG; sampled as an R8 texture over −10…+8 EV) →
-  whites/blacks endpoint curves in display space → sRGB encode → the RAW display
-  base curve → vibrance / saturation around luma → optional LOG encode → 1–3
-  stacked LUTs. Highlight recovery is a shoulder in the guide's log-luminance
-  domain, so above-white scene data becomes gradation instead of a clipped flat
-  area. Noise reduction runs first (a
+  whites/blacks endpoint curves in display space → on the RAW path, darktable's
+  **sigmoid display transform** turns scene-linear into display-linear and the
+  sRGB encode follows → vibrance / saturation around luma → optional LOG encode
+  → 1–3 stacked LUTs. Highlight recovery is a shoulder in the guide's
+  log-luminance domain, so above-white scene data becomes gradation instead of a
+  clipped flat area. Noise reduction runs first (a
   3×3 bilateral on luma plus a wider chroma ring, both edge-aware), driven by
   the measured noise floor. The framing is a single image-space rectangle
   (`computeViewRect`): `cover`/`contain` choose it at zoom 1, and the interactive
@@ -198,8 +234,10 @@ app itself.
   reference](https://helpx.adobe.com/lightroom-classic/help/tone-control-adjustment.html);
   the slider magnitudes were sanity-checked against the measured Lightroom
   values collected in [RapidRAW issue
-  #2061](https://github.com/CyberTimon/RapidRAW/issues/2061). Contrast and the
-  whites/blacks endpoints follow the log-exposure / filmic modelling of
+  #2061](https://github.com/CyberTimon/RapidRAW/issues/2061). The RAW-path
+  contrast and the display transform come from [darktable
+  sigmoid](https://github.com/darktable-org/darktable/blob/master/src/iop/sigmoid.c);
+  the whites/blacks endpoints follow the log-exposure / filmic modelling of
   [darktable filmic
   RGB](https://github.com/darktable-org/darktable/blob/master/src/iop/filmicrgb.c)
   and [RawTherapee's

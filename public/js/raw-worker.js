@@ -215,43 +215,31 @@ function buildGuide(frameData, w, h) {
 }
 
 /**
- * Automatic exposure, measured in scene-linear light and calibrated the way a
- * photographer works: the upper end of the frame lands near white (95th
- * percentile at ~0.93 sRGB, letting ~5% of speculars clip) and the midtones are
- * not pushed past ~0.62 sRGB. The numbers are computed on the same display
- * curve the renderer uses, so switching to the linear pipeline keeps the
- * familiar auto brightness.
+ * Automatic exposure, measured in scene-linear light. Scene-referred, like
+ * the rest of the RAW pipeline: the anchors are *scene* constants, so auto
+ * exposure means the same thing whatever display transform runs later. The
+ * 95th percentile lands near sensor white (everything above it is specular
+ * headroom the sigmoid display transform compresses), and the midtones are
+ * not pushed past ~0.39 of white. Both values reproduce the calibration the
+ * old display-referred pipeline landed on, which the regression suite's
+ * exposure contracts (dim frame, daylight frame) are written against.
  */
 function autoExposureEV(frameData, w, h) {
   const N = w * h;
   const stride = Math.max(1, Math.floor(N / 120000));
-  const hist = new Uint32Array(256);
-  let n = 0;
+  const lums = [];
   for (let p = 0; p < N; p += stride) {
     const i = p * 3;
-    const lin = (
+    lums.push((
       0.2126 * toLin(frameData[i] / 65535) +
       0.7152 * toLin(frameData[i + 1] / 65535) +
       0.0722 * toLin(frameData[i + 2] / 65535)
-    ) * WHITE_POINT;
-    let d = toSrgb(lin);
-    // The renderer's RAW base curve: 60% linear + 40% smoothstep, in display.
-    d = d * 0.6 + (d * d * (3 - 2 * d)) * 0.4;
-    hist[Math.max(0, Math.min(255, Math.round(d * 255)))]++;
-    n++;
+    ) * WHITE_POINT);
   }
-  const pct = (p) => {
-    let acc = 0;
-    for (let v = 0; v < 256; v++) {
-      acc += hist[v];
-      if (acc >= n * p) return v;
-    }
-    return 255;
-  };
-  const p50 = pct(0.50) / 255;
-  const p95 = pct(0.95) / 255;
-  const evHi = Math.log2(toLin(0.93) / Math.max(toLin(p95), 1e-6));
-  const evMid = Math.log2(toLin(0.62) / Math.max(toLin(p50), 1e-6));
+  lums.sort((a, b) => a - b);
+  const at = (p) => lums[Math.min(lums.length - 1, Math.floor(lums.length * p))];
+  const evHi = Math.log2(0.88 / Math.max(at(0.95), 1e-7));
+  const evMid = Math.log2(0.39 / Math.max(at(0.50), 1e-7));
   return Math.max(-1.0, Math.min(4.5, Math.min(evHi, evMid)));
 }
 

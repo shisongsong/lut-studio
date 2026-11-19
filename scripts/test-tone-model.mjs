@@ -3,12 +3,13 @@
  * Property test for the Basic-panel tone model: `npm run test:tone`.
  *
  * This mirrors the luminance mapping in the fragment shader (renderer.js) using
- * the same calibration constants (TONE_MODEL). It is the contract the UI relies
- * on: no plateau, no cross-band damage, adaptive highlights/shadows, a real
- * highlight shoulder for scene-linear headroom, endpoint behaviour for
- * whites/blacks, and local contrast preserved inside a region.
+ * the same calibration constants (TONE_MODEL, SIGMOID). It is the contract the
+ * UI relies on: no plateau, no cross-band damage, adaptive highlights/shadows,
+ * a real highlight shoulder for scene-linear headroom, endpoint behaviour for
+ * whites/blacks, and a sigmoid display transform that matches darktable's
+ * verified reference values.
  */
-import { TONE_MODEL, TONE_EV_MIN, TONE_EV_MAX } from '../public/js/renderer.js';
+import { TONE_MODEL, TONE_EV_MIN, TONE_EV_MAX, SIGMOID, sigmoidFit } from '../public/js/renderer.js';
 
 const lin = (s) => { s = Math.max(0, Math.min(1, s)); return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
 const srgb = (y) => { y = Math.max(0, y); return y <= 0.0031308 ? 12.92 * y : 1.055 * Math.pow(y, 1 / 2.4) - 0.055; };
@@ -17,14 +18,27 @@ const smooth = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t
 const sigmoid = (x) => 1 / (1 + Math.exp(-x));
 const evOf = (y) => Math.max(TONE_EV_MIN, Math.min(TONE_EV_MAX, Math.log2(Math.max(y, 1e-7) / 0.18)));
 
+/** The shader's sigmoid curve, on the CPU. `fit` comes from sigmoidFit(). */
+const sigmoidCurve = (fit, x) => {
+  const u = Math.pow(fit.fog + Math.max(x, 0), fit.p);
+  const y = fit.w * Math.pow(u / (fit.pe + u), fit.q);
+  return Number.isNaN(y) ? fit.w : y;
+};
+
 /**
  * Mirror of the shader's luminance mapping. Y / Yguide are *scene-linear*
- * values (the linear RAW path can exceed 1.0). `baseCurve` mirrors the display
- * S-curve the linear path applies after encoding.
+ * values (the linear RAW path can exceed 1.0). `display` picks the transform
+ * the two paths apply after the tone work: 'plain' encodes sRGB directly
+ * (canvas input), 'sigmoid' routes scene values through the darktable
+ * sigmoid view transform first (the RAW path — headroom rolls off instead
+ * of clipping).
  */
-function toneMapLinear(Y, Yguide, tone = {}, { baseCurve = false } = {}) {
+function toneMapLinear(Y, Yguide, tone = {}, { display = 'plain' } = {}) {
+  const rawPath = display === 'sigmoid';
+  // On the RAW path the sigmoid curve owns mid-tone contrast (the 1D log LUT
+  // is neutral there); on the sRGB path contrast stays in the LUT.
+  const slope = rawPath ? 1 : 1 + 0.32 * (tone.contrast || 0) / 100;
   const ev = evOf(Y);
-  const slope = 1 + 0.32 * (tone.contrast || 0) / 100;
   const evC = Math.max(TONE_EV_MIN - 8, Math.min(TONE_EV_MAX + 4, ev * slope));
   const Yc = 0.18 * Math.pow(2, evC);
   const gEv = evOf(Yguide);
@@ -53,8 +67,16 @@ function toneMapLinear(Y, Yguide, tone = {}, { baseCurve = false } = {}) {
   }
 
   const Yl = Yc * Math.pow(2, shadowDelta + highlightDelta);
-  let d = srgb(Math.min(Yl, 1));
-  if (baseCurve) d = d * 0.6 + smooth(0, 1, d) * 0.4;
+  let d;
+  if (rawPath) {
+    const cn = Math.max(-1, Math.min(1, (tone.contrast || 0) / 100));
+    const fit = sigmoidFit(SIGMOID.contrast * Math.pow(2, SIGMOID.contrastGain * cn), SIGMOID.skew);
+    // Yl is not clamped: the sigmoid curve is defined for all x >= 0 and the
+    // above-white part is exactly the highlight headroom it compresses.
+    d = srgb(Math.min(sigmoidCurve(fit, Yl), 1));
+  } else {
+    d = srgb(Math.min(Yl, 1));
+  }
 
   const w = (tone.whites || 0) / 100;
   const b = (tone.blacks || 0) / 100;
@@ -72,9 +94,9 @@ function toneMapLinear(Y, Yguide, tone = {}, { baseCurve = false } = {}) {
 }
 
 /** sRGB-source variant: the inputs are display values. */
-const toneModel = (dIn, gDisp, tone = {}) => toneMapLinear(lin(dIn), lin(gDisp), tone, { baseCurve: false });
-/** Linear-RAW variant: scene-linear input, includes the display base curve. */
-const toneModelRaw = (Y, Yg, tone = {}) => toneMapLinear(Y, Yg, tone, { baseCurve: true });
+const toneModel = (dIn, gDisp, tone = {}) => toneMapLinear(lin(dIn), lin(gDisp), tone, { display: 'plain' });
+/** Linear-RAW variant: scene-linear input through the sigmoid display transform. */
+const toneModelRaw = (Y, Yg, tone = {}) => toneMapLinear(Y, Yg, tone, { display: 'sigmoid' });
 
 let failures = 0;
 const check = (name, condition, detail = '') => {
@@ -94,13 +116,17 @@ const ramp = Array.from({ length: N + 1 }, (_, i) => i / N);
   check('neutral is the identity for every guide value', worst < 2e-3, `max error ${worst}`);
 }
 
-// 2. the linear RAW base curve is monotone and keeps both endpoints
+// 2. the sigmoid display transform is monotone, anchored and non-clipping
 {
   let monotone = true;
   let prev = -1;
   for (const d of ramp) { const v = toneModelRaw(lin(d), lin(d)); if (v < prev - 1e-6) monotone = false; prev = v; }
-  check('linear base curve is monotone with fixed endpoints',
-    monotone && toneModelRaw(0, 0) < 0.002 && toneModelRaw(1, 1) > 0.99);
+  const black = toneModelRaw(0, 0);
+  const white = toneModelRaw(1, 1);        // sensor white
+  const deep = toneModelRaw(16, 16);       // +6.4 EV of scene headroom
+  check('sigmoid path is monotone, black stays near-black, headroom never clips',
+    monotone && black < 0.003 && white > 0.85 && white < 0.99 && deep > white && deep < 1.0,
+    JSON.stringify({ black: levels(black), white: levels(white), deep: levels(deep) }));
 }
 
 // 3. monotone in the pixel value for every single-slider extreme (sRGB + RAW)
@@ -153,12 +179,16 @@ const ramp = Array.from({ length: N + 1 }, (_, i) => i / N);
   check('no flat plateau in any tone mapping', !bad, JSON.stringify(bad));
 }
 
-// 5. highlight recovery actually uses scene-linear headroom
+// 5. highlight behaviour on scene-linear headroom: smooth shoulder, real recovery
 {
-  const clipped = toneModelRaw(4, 4, { highlights: 0 });
+  const white = toneModelRaw(1, 1, { highlights: 0 });
+  const four = toneModelRaw(4, 4, { highlights: 0 });
+  const deep = toneModelRaw(16, 16, { highlights: 0 });
+  check('sensor white renders bright without hard clipping', white > 0.85 && white < 0.99, String(levels(white)));
+  check('headroom above white compresses smoothly (asymptotic, never clips)',
+    four > white && deep > four && deep < 1.0, JSON.stringify({ white: levels(white), four: levels(four), deep: levels(deep) }));
   const rec = toneModelRaw(4, 4, { highlights: -100 });
   const more = toneModelRaw(8, 8, { highlights: -100 });
-  check('headroom above white clips when Highlights is 0', clipped > 0.995, String(levels(clipped)));
   check('highlights −100 recovers scene-linear headroom', rec > 0.35 && rec < 0.95 && more >= rec - 0.02,
     JSON.stringify({ rec: levels(rec), more: levels(more) }));
   check('highlights −100 compresses the midtones like Lightroom', (() => {
@@ -224,7 +254,35 @@ const ramp = Array.from({ length: N + 1 }, (_, i) => i / N);
   check('blacks −100 crushes the black point', bMinus <= 1e-3, String(levels(bMinus)));
 }
 
-// 10. response table for tuning (`node scripts/test-tone-model.mjs --table`)
+// 10. the sigmoid display transform matches darktable's verified reference
+{
+  const fit = sigmoidFit();
+  const curve = (x) => sigmoidCurve(fit, x);
+  check('sigmoid fit defaults match darktable',
+    Math.abs(fit.p - 1.5) < 1e-9 && Math.abs(fit.q - 1) < 1e-12 &&
+    Math.abs(fit.fog - 1.426371e-3) < 1e-8 && Math.abs(fit.pe - 0.354355423) < 1e-8,
+    JSON.stringify({ p: fit.p, q: fit.q, fog: fit.fog, pe: fit.pe }));
+  check('sigmoid anchors: f(0)=black target, f(middle grey)=middle grey',
+    Math.abs(curve(0) - 0.000152) < 1e-9 && Math.abs(curve(0.1845) - 0.1845) < 1e-9);
+  const ev = (e) => curve(0.1845 * Math.pow(2, e));
+  check('sigmoid EV response matches the darktable-verified table',
+    Math.abs(ev(-6) - 0.000798) < 2e-6 && Math.abs(ev(-1) - 0.074854) < 2e-6 &&
+    Math.abs(ev(2) - 0.642133) < 2e-6 && Math.abs(ev(4) - 0.934741) < 2e-6 &&
+    Math.abs(ev(6) - 0.991344) < 2e-6 && Math.abs(ev(8) - 0.998910) < 2e-6,
+    JSON.stringify({ m6: ev(-6), p2: ev(2), p4: ev(4), p8: ev(8) }));
+  let mono = true, prev = -1;
+  for (let i = 0; i <= 160; i++) {
+    const v = curve(0.1845 * Math.pow(2, -12 + 0.125 * i));
+    if (v < prev - 1e-12) mono = false;
+    prev = v;
+  }
+  check('sigmoid curve is monotone from −12 EV to +8 EV', mono);
+  const grey = toneModelRaw(0.1845, 0.1845);
+  check('grey renders at sRGB 46–47% (the darktable middle-grey anchor)',
+    Math.abs(grey - srgb(0.1845)) < 0.004, String(levels(grey)));
+}
+
+// 11. response table for tuning (`node scripts/test-tone-model.mjs --table`)
 if (process.argv.includes('--table')) {
   const bands = [0.03, 0.08, 0.15, 0.3, 0.5, 0.7, 0.8, 0.9, 0.97];
   const rows = {
