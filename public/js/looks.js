@@ -8,6 +8,12 @@
  * cat: filter key, catLabel: Chinese category name, en: English display name.
  * featured: the stronger looks, used by FEATURED.
  */
+/** Edge length of the baked web cube per look. 21 keeps the pack at ~1.2 MB
+ *  gzipped while cutting the worst-case interpolation error against the
+ *  authored 33^3 cubes roughly in half (17^3: mean 0.23 / max 20.8 levels of
+ *  255; 21^3: mean 0.18 / max 11.6). */
+export const LUT_EDGE = 21;
+
 export const LOOKS = [
   // 电影
   { id: 'cinema-teal', file: 'cinema-teal.cube', name: '电影青橙', en: 'Cinema Teal', cat: 'cinema', catLabel: '电影', tag: '冷阴影、暖高光，最像电影的一支', featured: true },

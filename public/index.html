@@ -51,15 +51,18 @@ a.tbtn{text-decoration:none}
 .tbtn.solid{border:1px solid rgba(255,255,255,.3);padding:8px 12px;color:#fff;transition:background .15s,border-color .15s}
 .tbtn.solid:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.6)}
 
-.bottom{position:absolute;left:0;right:0;bottom:0;z-index:6;padding:0 24px max(18px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
-.look-line{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
-.look-copy{display:flex;align-items:flex-end;gap:16px;min-width:0}
-.look-no{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--muted);padding-bottom:6px}
-.look-name{min-width:0}
-.look-name h1{margin:0;font-size:clamp(30px,4.6vw,54px);font-weight:300;letter-spacing:-.025em;line-height:.98;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.look-name .en{display:block;margin-top:5px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.bottom{position:absolute;left:0;right:0;bottom:0;z-index:6;padding:0 24px max(18px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+/* The look name is a small caption above the strength slider: a headline over
+   the photo covered exactly the part you want to look at. */
+.look-line{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:20px}
+.look-copy{display:flex;align-items:baseline;gap:10px;min-width:0}
+.look-no{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--muted);flex:none}
+.look-name{min-width:0;display:flex;align-items:baseline;gap:8px}
+.look-name h1{margin:0;font-size:14px;font-weight:450;letter-spacing:.01em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.look-name .en{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
 .look-name .cat{color:var(--accent);transition:color .3s}
-.hint{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--muted);white-space:nowrap;padding-bottom:6px}
+.hint{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--faint);white-space:nowrap;opacity:.75}
+@media (max-width:700px){.hint{display:none}.look-name h1{font-size:13px}}
 .meta{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--faint)}
 .meta b{font-weight:400;color:var(--muted)}
 
@@ -146,7 +149,7 @@ a.tbtn{text-decoration:none}
   .topbar{padding:14px 14px}
   .top-actions .tbtn:not(.solid){display:inline-block;font-size:8px}
   .bottom{padding:0 14px max(14px,env(safe-area-inset-bottom));gap:10px}
-  .look-name h1{font-size:clamp(26px,7.4vw,36px)}
+  .look-name h1{font-size:13px}
   .hint{display:none}
   .strengths{position:static;transform:none;flex-direction:column;gap:6px;order:0;margin:2px 0 0}
   .strength{flex-direction:row;gap:10px;align-items:center}
@@ -318,7 +321,7 @@ a.tbtn{text-decoration:none}
   .exportsheet{padding:12px}
   .export-card{padding:18px 16px 14px}
   .strengths{background:rgba(8,8,9,.35);padding:8px 8px;width:max-content;max-width:100%;align-self:flex-start}
-  .hint{display:block;font-size:7.5px;color:var(--muted);padding:0;margin-top:2px}
+  .hint{display:none}
 }
 
 @media(prefers-reduced-motion:reduce){
@@ -496,7 +499,7 @@ a.tbtn{text-decoration:none}
 <div class="drop" id="drop">DROP A PHOTO</div>
 
 <script type="module">
-import { LOOKS } from '/js/looks.js';
+import { LOOKS, LUT_EDGE } from '/js/looks.js';
 import { LookRenderer, computeViewRect } from '/js/renderer.js';
 import { t, displayName, displayMeta, CAT_EN } from '/js/i18n.js';
 import { loadLuts, saveLut, deleteLut } from '/js/lut-store.js';
@@ -760,7 +763,7 @@ async function readBodyWithProgress(res, label, task){
 /**
  * Load the LUT pack in the background.
  *
- * It ships as `luts.bin.gz` (~474 KB vs 844 KB). The page inflates it itself
+ * It ships as `luts.bin.gz` (~1.2 MB vs 2.3 MB). The page inflates it itself
  * instead of relying on an origin `content-encoding` header: Cloudflare
  * compresses Worker responses as well, so a header-compressed body arrives
  * compressed twice and the browser only undoes one layer — which showed up as
@@ -769,7 +772,7 @@ async function readBodyWithProgress(res, label, task){
  * the last-resort fallback.
  */
 async function loadLutPack(){
-  const expected = LOOKS.length * 17 * 17 * 17 * 4;
+  const expected = LOOKS.length * LUT_EDGE * LUT_EDGE * LUT_EDGE * 4;
   const inflate = async (packed) => {
     if (!packed) return null;
     if (packed.byteLength === expected) return packed;
@@ -1224,8 +1227,8 @@ function lutData(id){
   if (mine) return { size: mine.size, data: mine.data };
   if (!luts) return null;
   const i = LOOKS.findIndex(l => l.id === id);
-  const per = 17 ** 3 * 4;
-  return { size: 17, data: luts.subarray(i * per, (i + 1) * per) };
+  const per = LUT_EDGE ** 3 * 4;
+  return { size: LUT_EDGE, data: luts.subarray(i * per, (i + 1) * per) };
 }
 
 function currentStack(){
@@ -1329,18 +1332,18 @@ async function mergeLutStack(){
   if (!stack.length) { toast(t(state.lang, 'mergeNeed')); return; }
   const names = stack.map(l => allLooks().find(x => x.id === l.id)?.name || l.id);
   const name = names.join(' + ');
-  const baked = bakeStack(stack, 17);
+  const baked = bakeStack(stack, LUT_EDGE);
   const id = `merged-${Date.now().toString(36)}`;
   try {
-    await saveLut({ id, name, size: 17, data: baked.buffer });
+    await saveLut({ id, name, size: LUT_EDGE, data: baked.buffer });
   } catch {}
-  state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: 17, data: baked });
+  state.imported.push({ id, name, en: name, cat: 'mine', catLabel: t(state.lang, 'myLuts'), imported: true, size: LUT_EDGE, data: baked });
   buildFilm();
   buildCats();
   updateActiveChip();
   setLookText();
   if (state.lutsReady) renderFilmThumbs();
-  downloadCube(name, baked, 17);
+  downloadCube(name, baked, LUT_EDGE);
   toast(t(state.lang, 'mergeDone'));
 }
 
@@ -1976,10 +1979,13 @@ async function removeImported(id){
   updateActiveChip();
   render();
   setLookText();
+  if (state.lutsReady) renderFilmThumbs();
 }
 
 function buildFilm(){
   el.film.innerHTML = '';
+  // New chips start as skeletons; whatever was painted before no longer exists.
+  thumbSigApplied = '';
   const frag = document.createDocumentFragment();
   const all = allLooks();
   // Original sits in front of the looks so "no LUT at all" is a first-class
@@ -2072,6 +2078,11 @@ function thumbSignature(){
     t.highlights, t.shadows, t.whites, t.blacks,
     state.tone.logMode, state.noLook ? 1 : 0,
     state.detail && state.detail.nr,
+    // Which look is selected and how many exist: deleting or merging a LUT
+    // changes what the strip must show even when no slider moved.
+    state.look, state.dual.enabled ? 1 : 0, state.dual.b,
+    state.strength, state.dual.strengthB,
+    allLooks().length, allLooks().slice(-1)[0]?.id,
   ].join('|');
 }
 

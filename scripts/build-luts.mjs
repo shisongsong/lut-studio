@@ -11,19 +11,19 @@
  * included: their terms only allow local personal use, not public
  * redistribution. The app imports user-supplied .cube files instead.
  *
- * Output: public/luts.bin — one 17³ RGBA block per look, in the exact order of
+ * Output: public/luts.bin — one LUT_EDGE³ RGBA block per look, in the exact order of
  * LOOKS in public/js/looks.js. 17³ keeps the whole pack under ~1 MB while
  * trilinear filtering keeps the grades smooth.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LOOKS } from '../public/js/looks.js';
+import { LOOKS, LUT_EDGE } from '../public/js/looks.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
 const SRC = join(ROOT, 'luts-src');
-const SIZE = 17;
+const SIZE = LUT_EDGE;
 
 function parseCube(text) {
   const lines = text.split(/\r?\n/);
