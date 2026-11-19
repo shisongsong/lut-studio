@@ -312,6 +312,10 @@ npm run seo:validate   # parse every JSON-LD block and every hreflang pair
 npm run indexnow       # submit the sitemap to Bing/Yandex after a deploy
 ```
 
+See [`docs/seo.md`](docs/seo.md) for the page contract, the URL rules and the
+two account-level steps (GSC sitemap submission, Cloudflare AI crawler access)
+that cannot be done from this repository.
+
 ## LUT files
 
 `luts-src/` holds one 33³ `.cube` per look (64 files, named after the look id).
