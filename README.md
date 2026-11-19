@@ -120,25 +120,15 @@ screenshot:
   the same render without the sidecar reverts to a hard clip. No GPL code was
   copied: the maths comes from the published module documentation, the PR and
   the OpenCL kernel's formulas, and the GLSL is an independent implementation.
-- **Detail recovery** — a global tone curve cannot tell a bright window from a
-  bright patch of wall, so whatever it compresses it compresses uniformly and the
-  picture reads flat, worst where the curve is steepest (the highlight shoulder
-  and the shadow toe). After the display transform the shader runs the remap
-  from [local Laplacian filters](https://people.csail.mit.edu/sparis/publi/2011/siggraph/)
-  (Paris / Hasinoff / Kautz, SIGGRAPH 2011) at two scales — ρ ≈ 1 px (acutance)
-  and ρ ≈ 8 px (the local contrast that survives fitting the photo to the
-  screen): `|i-g|` below σ becomes `σ·(|i-g|/σ)^α` with α < 1, which amplifies
-  texture while staying monotone, and **beyond σ the mapping is the identity**,
-  so a real edge (a neon tube against a dark wall) is left exactly untouched.
-  That identity branch is what makes it halo-free by construction — an earlier
-  version of this stage kept adding gain as the deviation grew and painted a
-  white rim around every light. Deviations under the noise deadband get nothing,
-  and the stage fades out below the measured noise floor.
-- **Chroma restore** — per-channel display curves compress every channel towards
-  the white point, so a saturated light source converges on white (measured on
-  the reference frame: bright-band saturation 0.23 where Lightroom keeps 0.41 —
-  the neon signs went pale). The shader puts that chroma back proportionally,
-  weighted towards the bright end.
+- **Why there is no synthetic sharpening stage** — an earlier revision added a
+  detail / local-contrast stage after the display transform. It produced a white
+  rim around every light and coloured fringing at high-contrast edges (visible at
+  570 % and above): a single-scale "amplify the deviation" remap cannot tell a
+  texture bump from the penumbra of a real edge, so the transition band around
+  every light gets boosted. It has been removed rather than tuned down. Restoring
+  local contrast properly needs the multi-scale operator (a full local Laplacian
+  pyramid), where detail is amplified inside the pyramid and edges are carried by
+  the coarse levels — that is the next piece of work, not a knob.
 - **Native-resolution zoom** — the GPU preview is capped at 4096 px on the long
   edge, so past ~110 % zoom the screen would be showing an upscaled preview,
   which is what made a 570 % view look soft next to Lightroom. When the visible

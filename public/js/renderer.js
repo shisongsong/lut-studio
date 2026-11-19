@@ -38,7 +38,7 @@ const GREY = 0.18;
  */
 const glf = (n) => Number(n).toFixed(4);
 // How much chroma to restore after the per-channel display transform.
-export const CHROMA_RESTORE = 0.80;
+export const CHROMA_RESTORE = 0.0;
 
 export const TONE_MODEL = {
   // Calibrated from Lightroom Mobile (Adobe Color) on the night test frame:
@@ -114,8 +114,8 @@ export const SIGMOID = {
  */
 export const DETAIL = {
   // Two scales of the same local-Laplacian remap.
-  sigma1: 0.22, alpha1: 0.60, weight1: 1.10,
-  sigma2: 0.50, alpha2: 0.60, weight2: 1.30,
+  sigma1: 0.22, alpha1: 0.60, weight1: 0.0,
+  sigma2: 0.50, alpha2: 0.60, weight2: 0.0,
   localRadius: 8,
   // Deviations below this (log2 units, ~1.4% of luminance) are sensor noise,
   // not texture.
