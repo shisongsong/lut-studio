@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "MIT",
-  "description": "A darkroom-style photo editor that runs entirely in the browser: develop RAW files with a Lightroom-style panel (white balance, tone, presence, histogram, auto tone), then stack 44 generated LUT looks or import your own .cube. Full-resolution JPEG export — no accounts, no server-side processing.",
+  "description": "A darkroom-style photo editor that runs entirely in the browser: develop RAW files with a Lightroom-style panel (white balance, tone, presence, histogram, auto tone), then stack 64 generated LUT looks or import your own .cube. Full-resolution JPEG export — no accounts, no server-side processing.",
   "homepage": "https://lut.openanthropic.com",
   "repository": {
     "type": "git",
@@ -16,8 +16,12 @@
     "build:luts": "node scripts/build-luts.mjs",
     "export:cubes": "node scripts/export-cubes.mjs",
     "test:tone": "node scripts/test-tone-curve.mjs && node scripts/test-tone-model.mjs",
-    "predeploy": "npm run build:luts && npm run build:gz",
-    "build:gz": "node scripts/compress-assets.mjs"
+    "predeploy": "npm run build:luts && npm run build:gz && npm run build:site",
+    "build:gz": "node scripts/compress-assets.mjs",
+    "build:site": "node scripts/build-site.mjs",
+    "seo:audit": "node scripts/seo-audit.mjs",
+    "seo:validate": "node scripts/seo-validate.mjs",
+    "indexnow": "node scripts/indexnow.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.85.0"

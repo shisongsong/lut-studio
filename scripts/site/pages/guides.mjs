@@ -1,0 +1,25 @@
+export default {
+  slug: 'guides',
+  kind: 'hub',
+  hub: null,
+  priority: 0.8,
+  changefreq: 'weekly',
+  updated: '2026-11-19',
+  image: '/photos/home-desktop.jpg',
+  zh: {
+    title: '指南：浏览器里的 RAW 显影与 LUT 调色',
+    description: '从打开 RAW 到导出 JPEG：浏览器内 RAW 处理原理、LUT 精度实测、双 LUT 合并、.cube 导入与格式说明。',
+    kicker: '指南',
+    h1: '把一张照片从 RAW 带到 JPEG',
+    lede: '这些文章讲的是这台浏览器暗房实际怎么工作：RAW 在哪里解码、16 位线性管线保留了什么、LUT 用多大精度才够、两个 look 怎么合成一个 .cube。没有营销话术，只有可复现的做法和实测数字。',
+    body: `<p>按顺序读也行，当手册查也行。每篇都在中文和英文各写了一遍，内容一致。</p>`,
+  },
+  en: {
+    title: 'Guides: RAW development and LUT grading in the browser',
+    description: 'From opening a RAW to exporting a JPEG: how in-browser RAW processing works, measured LUT precision, merging two looks into one, .cube import, and format notes.',
+    kicker: 'GUIDES',
+    h1: 'Take a photo from RAW to JPEG',
+    lede: 'These articles describe how this browser darkroom actually works: where the RAW is decoded, what the 16-bit linear pipeline preserves, how precise a LUT has to be, and how two looks are baked into one .cube. No marketing, just reproducible steps and measured numbers.',
+    body: `<p>Read them in order or use them as a manual — each page follows the same structure in Chinese and English.</p>`,
+  },
+};

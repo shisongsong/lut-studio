@@ -1,0 +1,51 @@
+# LUT ARCHIVE — full text
+
+LUT ARCHIVE (https://lut.openanthropic.com) is a photo editor that runs entirely in the browser. It reads RAW files and JPEG/PNG/WebP/TIFF on the user's device, develops them with a Lightroom-style panel, applies generated LUT looks, and exports full-resolution JPEGs. There is no account system, no upload step and no server-side rendering. It is MIT-licensed and the source is at https://github.com/shisongsong/lut-studio.
+
+What it does
+
+- RAW decoding runs in a Web Worker through flashraw (vendored WebAssembly): NEF/HE/HE*, CR2, CR3, ARW, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, KDC, MOS, IIQ, X3F. If a RAW cannot be unpacked, the camera JPEG embedded in it is used instead.
+- The decoded frame is 16-bit with four stops of scene headroom kept above sensor white, re-encoded as scene-linear half floats for the GPU. Tone mapping is darktable's sigmoid (jandren PR #12642) with per-channel hue handling, verified against darktable 5.6.2 to within 0.0008 over a −12…+8 EV sweep.
+- 64 LUT looks ship in a single delta-coded 33×33×33 pack (1.34 MB gzipped, decoded lazily per look). The same looks are exported as standard .cube files in the repository.
+- Two looks can be stacked with independent strength, then baked into a single 33³ LUT and downloaded as .cube.
+- Any .cube can be imported: 3D LUTs (LUT_3D_SIZE 2–128) and 1D LUTs. Files are parsed locally and kept in IndexedDB under "My LUTs".
+- Input profiles sRGB / F-Log / F-Log2 / V-Log re-encode the image before a log LUT runs, so vendor LUTs land close to what they were built for.
+- Export is JPEG at 50/75/100 % of the source long edge, rendered from the 16-bit linear frame in tiles so full resolution works past the GPU texture limit.
+- No account, no upload, no server-side rendering, no tracking cookies. The only network requests are the app assets and the optional /api/geo country lookup used to pick a UI language.
+- Preview is capped at 4096 px on the long edge; the full-resolution frame stays in memory for export. A 26 MP NEF decodes to a 5568×3712 linear frame in about 1.2 s on a recent laptop.
+
+
+How RAW processing works
+
+The RAW file is decoded in a Web Worker by flashraw (WebAssembly), including AHD demosaicing, camera white balance and the camera colour matrix. The result is decoded at 16 bit with an extended white point — four stops of scene headroom above sensor white are preserved — and re-encoded as scene-linear half floats for the GPU. The display transform is darktable's sigmoid, a generalized log-logistic curve defined on 0…∞ that is monotone everywhere and converges asymptotically on the white target instead of clipping. It is anchored so that scene-linear 0.1845 maps to display-linear 0.1845 and uses per-channel curves with hue preservation. Auto exposure works in the scene domain: the 95th percentile is placed near sensor white and the midtones are kept below about 0.39 of white.
+
+
+LUTs and looks
+
+64 looks are generated from original recipes in scripts/looks.mjs (cinema, film, black and white, warm/cool, vintage, airy, plus Leica, Hasselblad, Kodak, Fujifilm, Ricoh and Panasonic-inspired grades). They ship as one delta-coded 33³ binary and as standard .cube files. Two looks can be stacked and merged into one 33³ LUT, exported as .cube. Imported .cube files (1D or 3D, size 2–128) are parsed locally and stored in IndexedDB. The look catalogue with names and categories is listed at https://lut.openanthropic.com/looks and as JSON at https://lut.openanthropic.com/looks.json.
+
+
+Limits
+
+- Preview is capped at 4096 px on the long edge; export uses the full-resolution frame in tiles.
+- WebGL2 is required.
+- Imported LUTs and preferences live in the browser's IndexedDB/localStorage; there is no cloud sync.
+- Vendored LUTs are original recipes, not vendor files; they approximate the named film stocks and camera profiles rather than reproducing their official LUT data.
+
+
+Guides
+
+- How precise does a LUT have to be before the difference disappears: https://lut.openanthropic.com/en/guides/lut-size
+- Bake two LUTs into one and take it out of the browser: https://lut.openanthropic.com/en/guides/merge-lut
+- Open a RAW in the browser and develop it like a darkroom: https://lut.openanthropic.com/en/guides/raw-in-browser
+- A LUT is a colour table, not a filter: https://lut.openanthropic.com/en/guides/what-is-lut
+
+
+Comparisons
+
+- Is there a free browser alternative to Lightroom?: https://lut.openanthropic.com/en/alternatives/lightroom-web
+
+
+## Contact
+
+https://github.com/shisongsong/lut-studio

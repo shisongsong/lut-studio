@@ -1,0 +1,719 @@
+{
+  "site": "https://lut.openanthropic.com",
+  "app": "https://lut.openanthropic.com/",
+  "count": 64,
+  "categories": [
+    {
+      "id": "all",
+      "zh": "全部",
+      "en": "all"
+    },
+    {
+      "id": "cinema",
+      "zh": "电影",
+      "en": "cinema"
+    },
+    {
+      "id": "film",
+      "zh": "胶片",
+      "en": "film"
+    },
+    {
+      "id": "bw",
+      "zh": "黑白",
+      "en": "bw"
+    },
+    {
+      "id": "warm",
+      "zh": "冷暖",
+      "en": "warm"
+    },
+    {
+      "id": "vintage",
+      "zh": "复古",
+      "en": "vintage"
+    },
+    {
+      "id": "airy",
+      "zh": "空气感",
+      "en": "airy"
+    },
+    {
+      "id": "punch",
+      "zh": "风格",
+      "en": "punch"
+    },
+    {
+      "id": "leica",
+      "zh": "徕卡",
+      "en": "leica"
+    },
+    {
+      "id": "hasselblad",
+      "zh": "哈苏",
+      "en": "hasselblad"
+    },
+    {
+      "id": "kodak",
+      "zh": "柯达",
+      "en": "kodak"
+    },
+    {
+      "id": "fuji",
+      "zh": "富士",
+      "en": "fuji"
+    },
+    {
+      "id": "ricoh",
+      "zh": "理光",
+      "en": "ricoh"
+    },
+    {
+      "id": "pana",
+      "zh": "松下",
+      "en": "pana"
+    }
+  ],
+  "looks": [
+    {
+      "id": "cinema-teal",
+      "name": "电影青橙",
+      "nameEn": "Cinema Teal",
+      "category": "cinema",
+      "categoryZh": "电影",
+      "tag": "冷阴影、暖高光，最像电影的一支",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/cinema-teal.cube"
+    },
+    {
+      "id": "cinema-709",
+      "name": "电影 709",
+      "nameEn": "Cinema 709",
+      "category": "cinema",
+      "categoryZh": "电影",
+      "tag": "中性的 Rec.709 观感，收一点饱和",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/cinema-709.cube"
+    },
+    {
+      "id": "cinema-blue",
+      "name": "电影蓝",
+      "nameEn": "Cinema Blue",
+      "category": "cinema",
+      "categoryZh": "电影",
+      "tag": "青蓝阴影配暖高光的夜戏",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/cinema-blue.cube"
+    },
+    {
+      "id": "cinema-noir",
+      "name": "暗调电影",
+      "nameEn": "Cinema Noir",
+      "category": "cinema",
+      "categoryZh": "电影",
+      "tag": "压暗、低饱和、冷阴影",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/cinema-noir.cube"
+    },
+    {
+      "id": "film-classic",
+      "name": "经典胶片",
+      "nameEn": "Film Classic",
+      "category": "film",
+      "categoryZh": "胶片",
+      "tag": "轻微暖调与柔和高光，负片味道",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/film-classic.cube"
+    },
+    {
+      "id": "soft-veil",
+      "name": "柔光",
+      "nameEn": "Soft Veil",
+      "category": "film",
+      "categoryZh": "胶片",
+      "tag": "低反差、薄雾般的柔光",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/soft-veil.cube"
+    },
+    {
+      "id": "film-eter",
+      "name": "电影绿",
+      "nameEn": "Cinema Green",
+      "category": "film",
+      "categoryZh": "胶片",
+      "tag": "低饱和青绿中间调，院线片感",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/film-eter.cube"
+    },
+    {
+      "id": "film-bleach",
+      "name": "漂白",
+      "nameEn": "Bleach Bypass",
+      "category": "film",
+      "categoryZh": "胶片",
+      "tag": "高反差低饱和，银盐发亮",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/film-bleach.cube"
+    },
+    {
+      "id": "film-doc",
+      "name": "纪录片",
+      "nameEn": "Documentary",
+      "category": "film",
+      "categoryZh": "胶片",
+      "tag": "中性偏冷、层次清楚的纪实感",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/film-doc.cube"
+    },
+    {
+      "id": "film-neg-hi",
+      "name": "专业负片",
+      "nameEn": "Pro Negative",
+      "category": "film",
+      "categoryZh": "胶片",
+      "tag": "肤色稳、对比适中、红黄干净",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/film-neg-hi.cube"
+    },
+    {
+      "id": "film-green-neg",
+      "name": "绿调负片",
+      "nameEn": "Green Negative",
+      "category": "film",
+      "categoryZh": "胶片",
+      "tag": "阴影偏绿、饱和略高的负片",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/film-green-neg.cube"
+    },
+    {
+      "id": "film-tungsten",
+      "name": "夜色青蓝",
+      "nameEn": "Tungsten Night",
+      "category": "film",
+      "categoryZh": "胶片",
+      "tag": "钨丝灯夜景，蓝阴影暖高光",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/film-tungsten.cube"
+    },
+    {
+      "id": "film-cream",
+      "name": "奶油负片",
+      "nameEn": "Cream Negative",
+      "category": "film",
+      "categoryZh": "胶片",
+      "tag": "暖、柔、低对比，肤色讨喜",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/film-cream.cube"
+    },
+    {
+      "id": "mono-classic",
+      "name": "中性黑白",
+      "nameEn": "Mono Classic",
+      "category": "bw",
+      "categoryZh": "黑白",
+      "tag": "干净通透的黑白",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/mono-classic.cube"
+    },
+    {
+      "id": "mono-contrast",
+      "name": "黑白高反差",
+      "nameEn": "Mono Contrast",
+      "category": "bw",
+      "categoryZh": "黑白",
+      "tag": "强反差，压暗天空",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/mono-contrast.cube"
+    },
+    {
+      "id": "bw-bleach",
+      "name": "漂白黑白",
+      "nameEn": "Bleach B&W",
+      "category": "bw",
+      "categoryZh": "黑白",
+      "tag": "亮部发银、对比强",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/bw-bleach.cube"
+    },
+    {
+      "id": "bw-silver",
+      "name": "银盐",
+      "nameEn": "Silver Gelatin",
+      "category": "bw",
+      "categoryZh": "黑白",
+      "tag": "深黑、平滑过渡、全色响应",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/bw-silver.cube"
+    },
+    {
+      "id": "bw-red",
+      "name": "红滤镜黑白",
+      "nameEn": "Red Filter",
+      "category": "bw",
+      "categoryZh": "黑白",
+      "tag": "压暗天空、提亮肤色",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/bw-red.cube"
+    },
+    {
+      "id": "warm-sun",
+      "name": "暖阳",
+      "nameEn": "Warm Sun",
+      "category": "warm",
+      "categoryZh": "冷暖",
+      "tag": "金色暖调，夕阳氛围",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/warm-sun.cube"
+    },
+    {
+      "id": "cool-shade",
+      "name": "冷调",
+      "nameEn": "Cool Shade",
+      "category": "warm",
+      "categoryZh": "冷暖",
+      "tag": "清冷蓝调，阴天空气感",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/cool-shade.cube"
+    },
+    {
+      "id": "punch",
+      "name": "高对比",
+      "nameEn": "Punch",
+      "category": "punch",
+      "categoryZh": "风格",
+      "tag": "高对比高饱和，冲击力",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/punch.cube"
+    },
+    {
+      "id": "style-dusk",
+      "name": "蓝调黄昏",
+      "nameEn": "Blue Dusk",
+      "category": "punch",
+      "categoryZh": "风格",
+      "tag": "整体偏蓝的黄昏",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/style-dusk.cube"
+    },
+    {
+      "id": "style-warmth",
+      "name": "暖光室内",
+      "nameEn": "Warm Interior",
+      "category": "punch",
+      "categoryZh": "风格",
+      "tag": "钨丝灯暖黄、柔和抬黑",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/style-warmth.cube"
+    },
+    {
+      "id": "faded-matte",
+      "name": "褪色",
+      "nameEn": "Faded Matte",
+      "category": "vintage",
+      "categoryZh": "复古",
+      "tag": "褪色胶片，抬黑柔和",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/faded-matte.cube"
+    },
+    {
+      "id": "vintage-70",
+      "name": "七十年代",
+      "nameEn": "Vintage 70",
+      "category": "vintage",
+      "categoryZh": "复古",
+      "tag": "暖黄褪色的七十年代",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/vintage-70.cube"
+    },
+    {
+      "id": "vintage-instant",
+      "name": "一次成像",
+      "nameEn": "Instant Film",
+      "category": "vintage",
+      "categoryZh": "复古",
+      "tag": "青阴影暖高光的拍立得",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/vintage-instant.cube"
+    },
+    {
+      "id": "vintage-gold",
+      "name": "金色负片",
+      "nameEn": "Golden Film",
+      "category": "vintage",
+      "categoryZh": "复古",
+      "tag": "暖黄、饱和、高光偏金",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/vintage-gold.cube"
+    },
+    {
+      "id": "vintage-mag",
+      "name": "杂志褪色",
+      "nameEn": "Magazine Fade",
+      "category": "vintage",
+      "categoryZh": "复古",
+      "tag": "抬黑、低饱和、偏冷的印刷感",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/vintage-mag.cube"
+    },
+    {
+      "id": "airy-day",
+      "name": "日系空气",
+      "nameEn": "Airy Day",
+      "category": "airy",
+      "categoryZh": "空气感",
+      "tag": "明亮低饱和，日系空气感",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/airy-day.cube"
+    },
+    {
+      "id": "haze-dream",
+      "name": "雾面",
+      "nameEn": "Haze Dream",
+      "category": "airy",
+      "categoryZh": "空气感",
+      "tag": "雾面空气感，柔和高光",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/haze-dream.cube"
+    },
+    {
+      "id": "airy-mist",
+      "name": "薄雾",
+      "nameEn": "Mist",
+      "category": "airy",
+      "categoryZh": "空气感",
+      "tag": "低对比、抬黑、微冷",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/airy-mist.cube"
+    },
+    {
+      "id": "airy-cream",
+      "name": "奶油高光",
+      "nameEn": "Cream Highlight",
+      "category": "airy",
+      "categoryZh": "空气感",
+      "tag": "柔肩、暖白、低对比",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/airy-cream.cube"
+    },
+    {
+      "id": "leica-classic",
+      "name": "徕卡经典",
+      "nameEn": "Leica Classic",
+      "category": "leica",
+      "categoryZh": "徕卡",
+      "tag": "暖调深黑、红润低饱和",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/leica-classic.cube"
+    },
+    {
+      "id": "leica-modern",
+      "name": "徕卡现代",
+      "nameEn": "Leica Modern",
+      "category": "leica",
+      "categoryZh": "徕卡",
+      "tag": "干净中性，红黄鲜活",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/leica-modern.cube"
+    },
+    {
+      "id": "leica-vivid",
+      "name": "徕卡鲜艳",
+      "nameEn": "Leica Vivid",
+      "category": "leica",
+      "categoryZh": "徕卡",
+      "tag": "高饱和高对比，浓郁色彩",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/leica-vivid.cube"
+    },
+    {
+      "id": "leica-ccd",
+      "name": "徕卡 CCD",
+      "nameEn": "Leica CCD",
+      "category": "leica",
+      "categoryZh": "徕卡",
+      "tag": "洋红阴影，CCD 数码味",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/leica-ccd.cube"
+    },
+    {
+      "id": "leica-mono",
+      "name": "徕卡黑白",
+      "nameEn": "Leica Mono",
+      "category": "leica",
+      "categoryZh": "徕卡",
+      "tag": "红滤镜黑白，肤色明亮",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/leica-mono.cube"
+    },
+    {
+      "id": "leica-mono-contrast",
+      "name": "徕卡黑白高反差",
+      "nameEn": "Leica Mono HC",
+      "category": "leica",
+      "categoryZh": "徕卡",
+      "tag": "红滤镜强反差，黑白分离",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/leica-mono-contrast.cube"
+    },
+    {
+      "id": "hasselblad-natural",
+      "name": "哈苏自然",
+      "nameEn": "Hasselblad Natural",
+      "category": "hasselblad",
+      "categoryZh": "哈苏",
+      "tag": "自然肤色，柔和高光",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/hasselblad-natural.cube"
+    },
+    {
+      "id": "hasselblad-portrait",
+      "name": "哈苏人像",
+      "nameEn": "Hasselblad Portrait",
+      "category": "hasselblad",
+      "categoryZh": "哈苏",
+      "tag": "奶油肤色，柔对比",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/hasselblad-portrait.cube"
+    },
+    {
+      "id": "hasselblad-landscape",
+      "name": "哈苏风光",
+      "nameEn": "Hasselblad Landscape",
+      "category": "hasselblad",
+      "categoryZh": "哈苏",
+      "tag": "青蓝深绿，风光通透",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/hasselblad-landscape.cube"
+    },
+    {
+      "id": "hasselblad-cream",
+      "name": "哈苏奶油",
+      "nameEn": "Hasselblad Cream",
+      "category": "hasselblad",
+      "categoryZh": "哈苏",
+      "tag": "奶油高光，低对比",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/hasselblad-cream.cube"
+    },
+    {
+      "id": "hasselblad-cool",
+      "name": "哈苏清冷",
+      "nameEn": "Hasselblad Cool",
+      "category": "hasselblad",
+      "categoryZh": "哈苏",
+      "tag": "冷阴影，干净白",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/hasselblad-cool.cube"
+    },
+    {
+      "id": "hasselblad-mono",
+      "name": "哈苏黑白",
+      "nameEn": "Hasselblad Mono",
+      "category": "hasselblad",
+      "categoryZh": "哈苏",
+      "tag": "中性黑白，平滑中间调",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/hasselblad-mono.cube"
+    },
+    {
+      "id": "kodak-portra-400",
+      "name": "柯达 Portra 400",
+      "nameEn": "Kodak Portra 400",
+      "category": "kodak",
+      "categoryZh": "柯达",
+      "tag": "暖肤色、柔肩、阴影微冷",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/kodak-portra-400.cube"
+    },
+    {
+      "id": "kodak-portra-160",
+      "name": "柯达 Portra 160",
+      "nameEn": "Kodak Portra 160",
+      "category": "kodak",
+      "categoryZh": "柯达",
+      "tag": "更干净、阴影更中性",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/kodak-portra-160.cube"
+    },
+    {
+      "id": "kodak-ektar-100",
+      "name": "柯达 Ektar 100",
+      "nameEn": "Kodak Ektar 100",
+      "category": "kodak",
+      "categoryZh": "柯达",
+      "tag": "高饱和、红最艳、阴影偏冷",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/kodak-ektar-100.cube"
+    },
+    {
+      "id": "kodak-gold-200",
+      "name": "柯达 Gold 200",
+      "nameEn": "Kodak Gold 200",
+      "category": "kodak",
+      "categoryZh": "柯达",
+      "tag": "金黄暖调、柔和、怀旧",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/kodak-gold-200.cube"
+    },
+    {
+      "id": "kodachrome-64",
+      "name": "柯达 Kodachrome 64",
+      "nameEn": "Kodachrome 64",
+      "category": "kodak",
+      "categoryZh": "柯达",
+      "tag": "红极浓、深黑、冷阴影",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/kodachrome-64.cube"
+    },
+    {
+      "id": "kodak-trix-400",
+      "name": "柯达 Tri-X 400",
+      "nameEn": "Kodak Tri-X 400",
+      "category": "kodak",
+      "categoryZh": "柯达",
+      "tag": "全色黑白、深黑",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/kodak-trix-400.cube"
+    },
+    {
+      "id": "fuji-pro400h",
+      "name": "富士 Pro 400H",
+      "nameEn": "Fujifilm Pro 400H",
+      "category": "fuji",
+      "categoryZh": "富士",
+      "tag": "薄荷绿阴影、粉调高光",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/fuji-pro400h.cube"
+    },
+    {
+      "id": "fuji-velvia-50",
+      "name": "富士 Velvia 50",
+      "nameEn": "Fujifilm Velvia 50",
+      "category": "fuji",
+      "categoryZh": "富士",
+      "tag": "极高饱和、深绿、洋红阴影",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/fuji-velvia-50.cube"
+    },
+    {
+      "id": "fuji-provia-100f",
+      "name": "富士 Provia 100F",
+      "nameEn": "Fujifilm Provia 100F",
+      "category": "fuji",
+      "categoryZh": "富士",
+      "tag": "中性微冷、饱和略高",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/fuji-provia-100f.cube"
+    },
+    {
+      "id": "fuji-astia-100f",
+      "name": "富士 Astia 100F",
+      "nameEn": "Fujifilm Astia 100F",
+      "category": "fuji",
+      "categoryZh": "富士",
+      "tag": "柔粉、低反差、人像友好",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/fuji-astia-100f.cube"
+    },
+    {
+      "id": "fuji-classic-chrome",
+      "name": "富士 Classic Chrome",
+      "nameEn": "Fujifilm Classic Chrome",
+      "category": "fuji",
+      "categoryZh": "富士",
+      "tag": "收饱和、冷阴影、纪实感",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/fuji-classic-chrome.cube"
+    },
+    {
+      "id": "fuji-acros-100",
+      "name": "富士 Acros 100",
+      "nameEn": "Fujifilm Acros 100",
+      "category": "fuji",
+      "categoryZh": "富士",
+      "tag": "绿滤镜黑白、过渡细腻",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/fuji-acros-100.cube"
+    },
+    {
+      "id": "ricoh-positive",
+      "name": "理光 GR 正片",
+      "nameEn": "Ricoh GR Positive",
+      "category": "ricoh",
+      "categoryZh": "理光",
+      "tag": "高对比、红绿浓、微洋红阴影",
+      "featured": true,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/ricoh-positive.cube"
+    },
+    {
+      "id": "ricoh-negative",
+      "name": "理光 GR 负片",
+      "nameEn": "Ricoh GR Negative",
+      "category": "ricoh",
+      "categoryZh": "理光",
+      "tag": "暖、柔、抬黑",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/ricoh-negative.cube"
+    },
+    {
+      "id": "ricoh-hi-bw",
+      "name": "理光 GR 高反差黑白",
+      "nameEn": "Ricoh GR Hi-Contrast B&W",
+      "category": "ricoh",
+      "categoryZh": "理光",
+      "tag": "硬朗的黑白分离度",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/ricoh-hi-bw.cube"
+    },
+    {
+      "id": "ricoh-teal",
+      "name": "理光 GR 青调",
+      "nameEn": "Ricoh GR Teal",
+      "category": "ricoh",
+      "categoryZh": "理光",
+      "tag": "青绿阴影配暖高光的夜感",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/ricoh-teal.cube"
+    },
+    {
+      "id": "pana-l-monochrome",
+      "name": "松下 L.单色",
+      "nameEn": "Lumix L. Monochrome",
+      "category": "pana",
+      "categoryZh": "松下",
+      "tag": "平灰、低反差黑白",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/pana-l-monochrome.cube"
+    },
+    {
+      "id": "pana-l-monochrome-d",
+      "name": "松下 L.单色 D",
+      "nameEn": "Lumix L. Monochrome D",
+      "category": "pana",
+      "categoryZh": "松下",
+      "tag": "深黑、高反差",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/pana-l-monochrome-d.cube"
+    },
+    {
+      "id": "pana-cine-d",
+      "name": "松下 Cinelike D",
+      "nameEn": "Lumix Cinelike D",
+      "category": "pana",
+      "categoryZh": "松下",
+      "tag": "灰平中间调，方便再调色",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/pana-cine-d.cube"
+    },
+    {
+      "id": "pana-cine-v",
+      "name": "松下 Cinelike V",
+      "nameEn": "Lumix Cinelike V",
+      "category": "pana",
+      "categoryZh": "松下",
+      "tag": "鲜艳电影、青阴影暖高光",
+      "featured": false,
+      "cube": "https://github.com/shisongsong/lut-studio/blob/main/luts-src/pana-cine-v.cube"
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>LUT 精度实测：17³、21³、25³ 还是 33³</title>
+<meta name="description" content="同一组照片查询点实测四档 LUT：三线性插值平均误差、最大偏差和 gzip 包体积，说明 33³ 为什么精确、65³ 为什么没有收益。">
+<link rel="canonical" href="https://lut.openanthropic.com/guides/lut-size">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/guides/lut-size">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/guides/lut-size">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/guides/lut-size">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LUT 精度实测：17³、21³、25³ 还是 33³">
+<meta property="og:description" content="同一组照片查询点实测四档 LUT：三线性插值平均误差、最大偏差和 gzip 包体积，说明 33³ 为什么精确、65³ 为什么没有收益。">
+<meta property="og:url" content="https://lut.openanthropic.com/guides/lut-size">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/zoom.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LUT 精度实测：17³、21³、25³ 还是 33³">
+<meta name="twitter:description" content="同一组照片查询点实测四档 LUT：三线性插值平均误差、最大偏差和 gzip 包体积，说明 33³ 为什么精确、65³ 为什么没有收益。">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/zoom.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "https://lut.openanthropic.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "指南",
+      "item": "https://lut.openanthropic.com/guides/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "LUT 要做多精细，画质才看不出差别",
+      "item": "https://lut.openanthropic.com/guides/lut-size"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "LUT 精度实测：17³ 到 33³，网页上该用多大",
+  "description": "同一组照片查询点实测 17³、21³、25³、33³ 的四档 LUT：三线性插值误差、最大偏差与 gzip 包体积。",
+  "inLanguage": "zh-CN",
+  "mainEntityOfPage": "https://lut.openanthropic.com/guides/lut-size",
+  "url": "https://lut.openanthropic.com/guides/lut-size",
+  "image": "https://lut.openanthropic.com/photos/zoom.jpg",
+  "datePublished": "2026-11-19",
+  "dateModified": "2026-11-19",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": "指南"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么 17³ 的平均误差不到 1 个色阶，还说它不够？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "平均值被中间调的像素稀释了。照片的大部分颜色落在响应接近线性的区域，插值几乎不产生偏差；最大误差出现在曲线拐点上，17³ 能达到 20.8 个色阶，而台阶恰好最容易被眼睛在一大片平滑渐变里抓到。判断标准应该看最大值，不是平均值。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么 21³ 和 25³ 的最大误差几乎一样？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "最大误差由整批 look 里弯曲最厉害的那一处决定，那一点往往已经贴近拐点或者色域边缘。从 21³ 到 25³ 节点变密了，均值明显下降（0.182 → 0.128），但最坏那一点的弯曲没有被抹平，所以最大值只从 11.6 降到 11.3。到 33³ 直接对上母版数据，才归零。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "把 33³ 的 look 存成 65³ 会不会更准？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不会。33³ 已经是作者给出的数据本身，65³ 只是把同一份数据采样得更密，信息量没有增加；64 款 look 的原始体积却会涨到约 52 MB。要更准只能改母版（重新写配方），不能靠提高采样密度。"
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+</style>
+</head>
+<body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/guides/">指南</a><a href="/looks">64 款 LUT</a><a href="/alternatives/lightroom-web">对比 Lightroom</a><a href="/faq">常见问题</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/en/guides/lut-size" hreflang="en">EN</a>
+</div></header>
+<article class="wrap">
+<div class="wrap">
+  <p class="crumbs"><a href="/">首页</a><span>/</span><a href="/guides/">指南</a><span>/</span>LUT 要做多精细，画质才看不出差别</p><p class="kicker">指南 · LUT 精度</p>
+  <h1>LUT 要做多精细，画质才看不出差别</h1>
+  <p class="lede">LUT 的精度就是立方体边长：17³ 有 4,913 个节点，33³ 有 35,937 个。我们用同一组照片查询点量了四档尺寸的插值误差，结论不是「越大越好」，而是要和作者写下的那个立方体对齐。</p>
+  <p class="crumbs"><span>更新 2026-11-19</span><span>6 分钟</span></p>
+</div>
+<h2 id="measure">怎么测的，量到了什么</h2>
+<p>方法很直接：以 33³ 的母版为参照，把同一款 look 重采样成 17³、21³、25³，再用三线性插值回答一组取自真实照片的查询点，逐通道比较相对母版的偏差。误差单位是 0–255 的色阶，不是百分比。被测的是这批 look 的颜色响应，不是显示器或相机。</p>
+<table>
+  <thead><tr><th>边长</th><th>平均误差（/255）</th><th>最大误差（/255）</th><th>64 款 look 的包体积</th></tr></thead>
+  <tbody>
+    <tr><td>17³</td><td>0.226</td><td>20.8</td><td>约 0.65 MB gzip</td></tr>
+    <tr><td>21³</td><td>0.182</td><td>11.6</td><td>约 1.2 MB gzip</td></tr>
+    <tr><td>25³</td><td>0.128</td><td>11.3</td><td>没有单独统计</td></tr>
+    <tr><td>33³</td><td>0（与母版完全一致）</td><td>0</td><td>1.34 MB gzip（差值编码）</td></tr>
+  </tbody>
+</table>
+<p>真正有用的是平均误差和最大误差之间的落差。17³ 的平均误差只有 0.226 个色阶，典型像素看上去不会有事；最大误差 20.8 个色阶却足够在平滑的天空渐变上留下一条条台阶。21³ 把最大值压到 11.6，25³ 是 11.3，到 33³ 两项一起归零。均值好看不代表安全，判断够不够用要看最大值落在哪。</p>
+
+<h2 id="curvature">误差为什么长在曲线弯得最厉害的地方</h2>
+<p>三线性插值做的事，是用周围 8 个节点按距离加权平均。如果这 8 个节点之间的映射是一条直线，结果就完全正确；如果映射在弯——暗部的趾部、高光的肩部、接近饱和的红、被扭过色相的肤色——加权平均就会把弯的地方拉直。误差大致随「曲线的弯曲程度 × 节点间距的平方」增长，节点间距减半，误差理论上降到四分之一左右。</p>
+<p>这也解释了为什么均值和最大值差两个数量级。照片的绝大部分像素待在中间调，那里的响应接近线性，17³ 的 0.226 个色阶来自这里；最大误差出现在少数被推到拐点上的颜色——大面积渐变的天空、很饱和的红、暗部刚离开黑的地方——那里 17³ 的插值能差出 20.8 个色阶。人眼对平滑过渡里的固定台阶格外敏感，所以只看平均误差会高估小立方体的表现。</p>
+
+<h2 id="exact">33³ 的误差为什么是 0</h2>
+<p>因为这 64 款 look 本来就是以 33³ 写下来的：仓库里的每一个 <code>.cube</code> 都是 <code>LUT_3D_SIZE 33</code>，正好 35,937 行数值。拿 33³ 对照 33³，查询点落在作者给出的节点上，差值是 0。它精确不是因为边长足够大，而是因为它就是母版本身。</p>
+<p>还有一层容易被忽略：渲染时像素几乎不会正好落在节点上，GPU 一直在节点之间做三线性插值。这一步不算误差，它就是 3D LUT 的定义方式——作者写下 33³ 的节点，等于约定节点之间按线性插值来读。所以「零误差」指的是和作者的数据一致，不是指屏幕上绝对没有插值。</p>
+
+<h2 id="bigger">65³ 为什么没有可见收益</h2>
+<p>65³ 每款 look 有 274,625 个节点，是 33³ 的 7.6 倍。64 款 look 全部算上约 52 MB 原始数据，下载、解压、显存都要跟着涨，但多出来的信息量是零：它只是在同一份 33³ 母版上采样得更密，不会比 33³ 离母版更近。33³ 已经把「和作者数据完全一致」做到了，再加密度只是把同一份折线画得更细。</p>
+<p>网页端还有一笔隐形成本：LUT 是作为 3D 纹理传给着色器的，边长翻一倍，纹理占用的显存就是 8 倍。多出来的那点插值精度没人看得见，带宽和显存却都要付。</p>
+
+<h2 id="pack">33³ 为什么只占 1.34 MB：差值编码</h2>
+<p>33³ 的原始体积并不小：35,937 个节点 × 4 字节 × 64 款 ≈ 9.2 MB。能塞进 1.34 MB 的 gzip 包，是因为 LUT 是平滑的三维渐变，同一行里相邻两个节点通常只差几个色阶。打包时每个节点存成「与左边邻居的差值」，再用 gzip 压缩，体积从 9,199,880 字节降到 1,342,919 字节；解码时按行累加就能无损还原。文件头里记着边长和 look 数量，版本对不上可以直接拒绝，而不是把坏数据交给着色器。</p>
+<p>这 64 款 look 在浏览器里是懒解码的：选中哪一款才解哪一款，一款约 2 ms。所以 1.34 MB 是网络传输量，不是启动时就要吃掉的显存——立方体也是按需上传的，一支 33³ 在 GPU 上约 140 KB。</p>
+
+<h2 id="pick">所以一张要上网页的 LUT 该做多大</h2>
+<dl class="facts">
+  <div><dt>17³</dt><dd>包最小，均值不到 1 个色阶，最大值 20.8，渐变更容易出现台阶</dd></div>
+  <div><dt>21³</dt><dd>最大误差减半到 11.6，整包约 1.2 MB gzip</dd></div>
+  <div><dt>33³</dt><dd>和作者写下的立方体零误差，整包 1.34 MB gzip</dd></div>
+  <div><dt>65³</dt><dd>约 52 MB / 64 款，没有可见收益</dd></div>
+</dl>
+<p>选择的关键是母版在哪一档。母版本来就是 33³ 时，没必要为了省几十万字节降到 21³：差值编码之后，33³ 的整包只比 21³ 大一点，最大误差却从 11.6 个色阶直接归零。反过来，母版是 17³ 的，硬升成 33³ 也不会变准，只会让文件变大——体积要花在有信息量的地方。</p>
+<p>想看看这 64 款 look 实际长什么样，去<a href="/looks">look 目录</a>；想把自己叠加的两款 look 烘成一个可下载的 .cube，做法在<a href="/guides/merge-lut">合并 LUT</a>；想在浏览器里直接对着一张 RAW 验证这些渐变，打开<a href="/">编辑器</a>拖一张照片进去就行。</p>
+<nav class="crumbs" style="display:flex;gap:12px;margin-top:44px" aria-label="上下篇"><a class="btn ghost" href="/guides/merge-lut">下一篇 →</a></nav>
+<div class="cta">
+  <h2>在浏览器里试一次</h2>
+  <p>打开 RAW、调色、套 LUT、导出 JPEG —— 全程在本机完成，不上传，也不需要账号。</p>
+  <a class="btn" href="/">打开编辑器</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/about">关于与隐私</a><a href="/privacy">隐私政策</a><a href="/guides/">全部指南</a><a href="/get-luts">LUT 下载来源</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
+</body>
+</html>

@@ -1,0 +1,44 @@
+# LUT ARCHIVE
+
+> A darkroom-style RAW editor that runs entirely in the browser. Open a RAW or JPEG, develop it with a Lightroom-style panel (white balance, exposure, tone, presence, histogram, auto tone), stack one of 64 generated LUT looks, import .cube files, merge two looks into one, and export a full-resolution JPEG. Photos are decoded and rendered on the user's device; nothing is uploaded and there is no account.
+
+## The app
+
+- [Open the editor](https://lut.openanthropic.com/): WebGL2, WebAssembly, no signup, no upload.
+- [Look catalogue](https://lut.openanthropic.com/looks): all 64 built-in looks with names, categories and intent.
+- [Machine-readable looks](https://lut.openanthropic.com/looks.json): JSON array of every look (id, zh/en name, category).
+- [Official LUT sources](https://lut.openanthropic.com/get-luts): where the camera makers publish .cube files, and how to import them.
+
+## What it can do
+
+- RAW decoding runs in a Web Worker through flashraw (vendored WebAssembly): NEF/HE/HE*, CR2, CR3, ARW, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, KDC, MOS, IIQ, X3F. If a RAW cannot be unpacked, the camera JPEG embedded in it is used instead.
+- The decoded frame is 16-bit with four stops of scene headroom kept above sensor white, re-encoded as scene-linear half floats for the GPU. Tone mapping is darktable's sigmoid (jandren PR #12642) with per-channel hue handling, verified against darktable 5.6.2 to within 0.0008 over a −12…+8 EV sweep.
+- 64 LUT looks ship in a single delta-coded 33×33×33 pack (1.34 MB gzipped, decoded lazily per look). The same looks are exported as standard .cube files in the repository.
+- Two looks can be stacked with independent strength, then baked into a single 33³ LUT and downloaded as .cube.
+- Any .cube can be imported: 3D LUTs (LUT_3D_SIZE 2–128) and 1D LUTs. Files are parsed locally and kept in IndexedDB under "My LUTs".
+- Input profiles sRGB / F-Log / F-Log2 / V-Log re-encode the image before a log LUT runs, so vendor LUTs land close to what they were built for.
+- Export is JPEG at 50/75/100 % of the source long edge, rendered from the 16-bit linear frame in tiles so full resolution works past the GPU texture limit.
+- No account, no upload, no server-side rendering, no tracking cookies. The only network requests are the app assets and the optional /api/geo country lookup used to pick a UI language.
+- Preview is capped at 4096 px on the long edge; the full-resolution frame stays in memory for export. A 26 MP NEF decodes to a 5568×3712 linear frame in about 1.2 s on a recent laptop.
+
+## Guides
+
+- [How precise does a LUT have to be before the difference disappears](https://lut.openanthropic.com/en/guides/lut-size): One photo-derived query set, four LUT sizes: mean and maximum trilinear error, gzip pack cost, why 33³ is exact and why 65³ buys nothing visible.
+- [LUT 要做多精细，画质才看不出差别](https://lut.openanthropic.com/guides/lut-size): 同一组照片查询点实测四档 LUT：三线性插值平均误差、最大偏差和 gzip 包体积，说明 33³ 为什么精确、65³ 为什么没有收益。
+- [Bake two LUTs into one and take it out of the browser](https://lut.openanthropic.com/en/guides/merge-lut): Stack two looks, set both strengths, bake them into a single 33³ .cube, keep it under My LUTs and download it for Resolve, Premiere or Photoshop.
+- [把两支 LUT 合成一支，带出浏览器](https://lut.openanthropic.com/guides/merge-lut): 两款 look 调好强度后烘成一个 33³ 的 .cube，存进「我的 LUT」并下载，Resolve、Premiere、Photoshop 都能直接用。
+- [Open a RAW in the browser and develop it like a darkroom](https://lut.openanthropic.com/en/guides/raw-in-browser): Open NEF/CR2/ARW/DNG in the browser: 16-bit scene-linear development, a darkroom panel, 64 LUT looks and full-resolution export. Nothing is uploaded.
+- [在浏览器里打开 RAW，并按暗房方式处理](https://lut.openanthropic.com/guides/raw-in-browser): 浏览器里直接打开 NEF/CR2/ARW/DNG 等 RAW：16 位显影、暗房面板、64 款 LUT、全分辨率导出，照片不上传。
+- [A LUT is a colour table, not a filter](https://lut.openanthropic.com/en/guides/what-is-lut): A LUT maps input colours to output colours. What 1D and 3D can do, what LUT_3D_SIZE means, the log input vendor LUTs expect, and why clipped highlights stay clipped.
+- [LUT 是一张颜色对照表，不是一层滤镜](https://lut.openanthropic.com/guides/what-is-lut): LUT 是输入颜色换成输出颜色的查找表。讲清 1D 与 3D 的区别、.cube 里的 LUT_3D_SIZE、厂商 LOG LUT 的输入前提，以及强度滑块和裁切高光。
+
+## Comparisons
+
+- [Is there a free browser alternative to Lightroom?](https://lut.openanthropic.com/en/alternatives/lightroom-web): A browser editor can develop one RAW and grade it with LUTs for free, but it cannot replace a catalogue, batch or cloud library. Compare five tools by job.
+
+## About
+
+- [About and privacy](https://lut.openanthropic.com/en/about): architecture, supported formats, what is stored, and the limits.
+- [FAQ](https://lut.openanthropic.com/en/faq): formats, LUT sizes, log input, export, privacy.
+- Source (MIT): https://github.com/shisongsong/lut-studio
+- Full text: https://lut.openanthropic.com/llms-full.txt

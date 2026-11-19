@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>FAQ: RAW formats, LUT size, privacy, offline use and license</title>
+<meta name="description" content="Twelve answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.">
+<link rel="canonical" href="https://lut.openanthropic.com/en/faq">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/faq">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/faq">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/faq">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="FAQ: RAW formats, LUT size, privacy, offline use and license">
+<meta property="og:description" content="Twelve answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.">
+<meta property="og:url" content="https://lut.openanthropic.com/en/faq">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/home-desktop.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FAQ: RAW formats, LUT size, privacy, offline use and license">
+<meta name="twitter:description" content="Twelve answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/home-desktop.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://lut.openanthropic.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "The twelve questions people ask before using it",
+      "item": "https://lut.openanthropic.com/en/faq"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "LUT ARCHIVE FAQ",
+  "description": "Twelve answers about the browser RAW editor: uploads, formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.",
+  "inLanguage": "en",
+  "mainEntityOfPage": "https://lut.openanthropic.com/en/faq",
+  "url": "https://lut.openanthropic.com/en/faq",
+  "image": "https://lut.openanthropic.com/photos/home-desktop.jpg",
+  "datePublished": "2026-11-19",
+  "dateModified": "2026-11-19",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": "FAQ"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Does it upload my photos?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. RAW decoding runs in a Web Worker on this machine, development and rendering happen on the GPU, and files are only read locally — there is no upload endpoint. The only network requests are the app's own assets and an /api/geo country lookup used to choose the initial interface language. There is no account system and no analytics or tracking cookies; the privacy note has the details."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which RAW formats can it open?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "NEF / NRW (including HE and HE* compression), CR2, CR3, ARW, SRF, SR2, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ and X3F. It also opens JPEG, PNG, WebP, AVIF, HEIC/HEIF and TIFF. If a RAW cannot be unpacked at all, the camera JPEG embedded in the file is used instead of showing half a black frame."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is it really free, and under what license?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, and there is no sign-up. The code is MIT-licensed and published on GitHub , so you can read it or deploy your own copy. There is no subscription and no paid tier."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is a LUT, and what size are the built-in ones?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A LUT is a look-up table mapping input colour to output colour: a grade frozen into data, so applying it is faster and more portable than recreating a series of slider moves. The 64 built-in looks ship as a 33×33×33 pack — 33 steps per channel, 35,937 entries — which is exact against the authored recipes. Smaller sizes were measured too: 17³ has a mean error of 0.226 levels out of 255 (maximum 20.8), 21³ a mean of 0.182 (max 11.6), 25³ a mean of 0.128 (max 11.3); going up to 65³ would multiply the storage for no visible gain. The full list is in the look catalogue ."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I import my own .cube files?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. 3D LUTs ( LUT_3D_SIZE 2–128) and 1D LUTs are supported; 1D tables are baked onto a 3D grid, and a UTF-8 BOM is tolerated. Files are parsed locally and never uploaded, and they appear under “My LUTs”, where they survive a reload."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What are the dual-LUT and merge features for?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The two slots each hold a look with its own strength — a cool film base under a light warm highlight tint, for example. When the stack looks right, merge bakes both layers into one 33³ LUT using the same rule the renderer uses, mix(v, lut(v), strength) per slot, saves it under My LUTs and downloads it as a .cube (35,937 rows) that works in Premiere, Resolve or any other .cube-capable app."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why do vendor LUTs need F-Log or V-Log?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Vendor LUTs from Fujifilm, Panasonic and others are built for a log-encoded image: the input is not a normal display picture but a signal that packs highlights into a code range, so applying one directly to an sRGB image shifts colours. The app has sRGB, F-Log, F-Log2 and V-Log input profiles: choose the matching one and the frame is re-encoded with the published transfer function before the LUT runs. A LUT whose name carries F-Log or V-Log is detected automatically. Gamut is still treated as sRGB, so results are close but not byte-exact. The RAW-in-browser guide covers the pipeline in detail."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does export give me?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A JPEG at 50 / 75 / 100 % of the source long edge, at quality 0.90 / 0.95 / 0.98 respectively. The 100 % option renders the in-memory full-resolution frame in tiles, so it can go past the GPU texture limit instead of quietly downscaling. The export includes the development and the LUT; there is no TIFF or DNG output."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it work on a phone?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The editor has a narrow-screen layout and runs in a phone browser that supports WebGL2; if the device or browser does not support WebGL2, the editor cannot render. Keyboard shortcuts do not apply on a phone — switching looks and exporting are on-screen controls. The interface is Chinese and English, auto-selected by country and switchable from the toolbar."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it work offline?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "There is no offline-mode switch, so what happens depends on the browser cache. The first visit needs a connection to load the app assets, and the first RAW open downloads about 3.4 MB of decoder. Once those resources are committed to the browser cache, reopening the page without a connection will usually still load — provided the cache has not been cleared. After a cache clear, or on a different browser or device, they have to be downloaded again."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is there a library or a batch mode?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. This is a single-frame editor: one photo at a time, with no catalogue, ratings, keywords, batch queue or sync. For batch processing or a long-term library, desktop software is the right category; the Lightroom comparison explains where this tool stops."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Where do imported LUTs get stored?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "In the browser's IndexedDB, under “My LUTs”; merged LUTs are kept in the same place, and interface preferences live in localStorage. They are not uploaded and do not sync between devices. Clearing site data removes them, so download a .cube if you want to keep a merged look."
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+</style>
+</head>
+<body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/en/guides/">Guides</a><a href="/en/looks">64 looks</a><a href="/en/alternatives/lightroom-web">vs Lightroom</a><a href="/en/faq">FAQ</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/faq" hreflang="zh-CN">中文</a>
+</div></header>
+<article class="wrap">
+<div class="wrap">
+  <p class="crumbs"><a href="/">Home</a><span>/</span>The twelve questions people ask before using it</p><p class="kicker">FAQ</p>
+  <h1>The twelve questions people ask before using it</h1>
+  <p class="lede">Where the photo goes, which files it opens, how exact the LUTs are, whether it still works without a connection — answered from what is actually implemented, including what it does not do.</p>
+  <p class="crumbs"><span>Updated 2026-11-19</span><span>6 min read</span></p>
+</div>
+<p>This page answers the twelve questions that come up before using it: whether photos are uploaded, which RAW files it opens, what size the LUTs are, whether it works offline, what export produces and whether it runs on a phone. The answers describe what is actually implemented, including what it cannot do.</p>
+<p>To see how it works first, read <a href="/en/guides/raw-in-browser">opening a RAW in the browser</a>; to compare it with desktop software, read the <a href="/en/alternatives/lightroom-web">Lightroom comparison</a>.</p>
+<h2 id="questions">Questions and answers</h2>
+<div class="faq"><details open><summary>Does it upload my photos?</summary><div class="a"><p>No. RAW decoding runs in a Web Worker on this machine, development and rendering happen on the GPU, and files are only read locally — there is no upload endpoint. The only network requests are the app's own assets and an <code>/api/geo</code> country lookup used to choose the initial interface language. There is no account system and no analytics or tracking cookies; the <a href="/en/privacy">privacy note</a> has the details.</p></div></details>
+<details><summary>Which RAW formats can it open?</summary><div class="a"><p>NEF / NRW (including HE and HE* compression), CR2, CR3, ARW, SRF, SR2, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ and X3F. It also opens JPEG, PNG, WebP, AVIF, HEIC/HEIF and TIFF. If a RAW cannot be unpacked at all, the camera JPEG embedded in the file is used instead of showing half a black frame.</p></div></details>
+<details><summary>Is it really free, and under what license?</summary><div class="a"><p>Yes, and there is no sign-up. The code is MIT-licensed and published <a href="https://github.com/shisongsong/lut-studio" rel="noopener">on GitHub</a>, so you can read it or deploy your own copy. There is no subscription and no paid tier.</p></div></details>
+<details><summary>What is a LUT, and what size are the built-in ones?</summary><div class="a"><p>A LUT is a look-up table mapping input colour to output colour: a grade frozen into data, so applying it is faster and more portable than recreating a series of slider moves. The 64 built-in looks ship as a 33×33×33 pack — 33 steps per channel, 35,937 entries — which is exact against the authored recipes. Smaller sizes were measured too: 17³ has a mean error of 0.226 levels out of 255 (maximum 20.8), 21³ a mean of 0.182 (max 11.6), 25³ a mean of 0.128 (max 11.3); going up to 65³ would multiply the storage for no visible gain. The full list is in the <a href="/en/looks">look catalogue</a>.</p></div></details>
+<details><summary>Can I import my own .cube files?</summary><div class="a"><p>Yes. 3D LUTs (<code>LUT_3D_SIZE</code> 2–128) and 1D LUTs are supported; 1D tables are baked onto a 3D grid, and a UTF-8 BOM is tolerated. Files are parsed locally and never uploaded, and they appear under “My LUTs”, where they survive a reload.</p></div></details>
+<details><summary>What are the dual-LUT and merge features for?</summary><div class="a"><p>The two slots each hold a look with its own strength — a cool film base under a light warm highlight tint, for example. When the stack looks right, merge bakes both layers into one 33³ LUT using the same rule the renderer uses, <code>mix(v, lut(v), strength)</code> per slot, saves it under My LUTs and downloads it as a .cube (35,937 rows) that works in Premiere, Resolve or any other .cube-capable app.</p></div></details>
+<details><summary>Why do vendor LUTs need F-Log or V-Log?</summary><div class="a"><p>Vendor LUTs from Fujifilm, Panasonic and others are built for a log-encoded image: the input is not a normal display picture but a signal that packs highlights into a code range, so applying one directly to an sRGB image shifts colours. The app has sRGB, F-Log, F-Log2 and V-Log input profiles: choose the matching one and the frame is re-encoded with the published transfer function before the LUT runs. A LUT whose name carries F-Log or V-Log is detected automatically. Gamut is still treated as sRGB, so results are close but not byte-exact. The <a href="/en/guides/raw-in-browser">RAW-in-browser guide</a> covers the pipeline in detail.</p></div></details>
+<details><summary>What does export give me?</summary><div class="a"><p>A JPEG at 50 / 75 / 100 % of the source long edge, at quality 0.90 / 0.95 / 0.98 respectively. The 100 % option renders the in-memory full-resolution frame in tiles, so it can go past the GPU texture limit instead of quietly downscaling. The export includes the development and the LUT; there is no TIFF or DNG output.</p></div></details>
+<details><summary>Does it work on a phone?</summary><div class="a"><p>Yes. The editor has a narrow-screen layout and runs in a phone browser that supports WebGL2; if the device or browser does not support WebGL2, the editor cannot render. Keyboard shortcuts do not apply on a phone — switching looks and exporting are on-screen controls. The interface is Chinese and English, auto-selected by country and switchable from the toolbar.</p></div></details>
+<details><summary>Does it work offline?</summary><div class="a"><p>There is no offline-mode switch, so what happens depends on the browser cache. The first visit needs a connection to load the app assets, and the first RAW open downloads about 3.4 MB of decoder. Once those resources are committed to the browser cache, reopening the page without a connection will usually still load — provided the cache has not been cleared. After a cache clear, or on a different browser or device, they have to be downloaded again.</p></div></details>
+<details><summary>Is there a library or a batch mode?</summary><div class="a"><p>No. This is a single-frame editor: one photo at a time, with no catalogue, ratings, keywords, batch queue or sync. For batch processing or a long-term library, desktop software is the right category; the <a href="/en/alternatives/lightroom-web">Lightroom comparison</a> explains where this tool stops.</p></div></details>
+<details><summary>Where do imported LUTs get stored?</summary><div class="a"><p>In the browser's IndexedDB, under “My LUTs”; merged LUTs are kept in the same place, and interface preferences live in localStorage. They are not uploaded and do not sync between devices. Clearing site data removes them, so download a .cube if you want to keep a merged look.</p></div></details></div>
+
+<div class="cta">
+  <h2>Try it in the browser</h2>
+  <p>Open a RAW, grade it, stack a look, export a JPEG — all on your machine, with no upload and no account.</p>
+  <a class="btn" href="/">Open the editor</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/en/about">About & privacy</a><a href="/en/privacy">Privacy</a><a href="/en/guides/">All guides</a><a href="/en/get-luts">LUT sources</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
+</body>
+</html>

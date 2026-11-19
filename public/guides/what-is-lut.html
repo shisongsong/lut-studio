@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>LUT 是什么：1D、3D、.cube 与 LOG 输入</title>
+<meta name="description" content="LUT 是输入颜色换成输出颜色的查找表。讲清 1D 与 3D 的区别、.cube 里的 LUT_3D_SIZE、厂商 LOG LUT 的输入前提，以及强度滑块和裁切高光。">
+<link rel="canonical" href="https://lut.openanthropic.com/guides/what-is-lut">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/guides/what-is-lut">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/guides/what-is-lut">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/guides/what-is-lut">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LUT 是什么：1D、3D、.cube 与 LOG 输入">
+<meta property="og:description" content="LUT 是输入颜色换成输出颜色的查找表。讲清 1D 与 3D 的区别、.cube 里的 LUT_3D_SIZE、厂商 LOG LUT 的输入前提，以及强度滑块和裁切高光。">
+<meta property="og:url" content="https://lut.openanthropic.com/guides/what-is-lut">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/home-desktop.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LUT 是什么：1D、3D、.cube 与 LOG 输入">
+<meta name="twitter:description" content="LUT 是输入颜色换成输出颜色的查找表。讲清 1D 与 3D 的区别、.cube 里的 LUT_3D_SIZE、厂商 LOG LUT 的输入前提，以及强度滑块和裁切高光。">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/home-desktop.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "https://lut.openanthropic.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "指南",
+      "item": "https://lut.openanthropic.com/guides/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "LUT 是一张颜色对照表，不是一层滤镜",
+      "item": "https://lut.openanthropic.com/guides/what-is-lut"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "LUT 是什么：1D 与 3D、.cube 格式与 LOG 输入",
+  "description": "查找表的基础：1D 与 3D 的区别、.cube 里的 LUT_3D_SIZE、厂商 LOG LUT 的输入前提，以及强度混合与高光裁切。",
+  "inLanguage": "zh-CN",
+  "mainEntityOfPage": "https://lut.openanthropic.com/guides/what-is-lut",
+  "url": "https://lut.openanthropic.com/guides/what-is-lut",
+  "image": "https://lut.openanthropic.com/photos/home-desktop.jpg",
+  "datePublished": "2026-11-19",
+  "dateModified": "2026-11-19",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": "指南"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "LUT 和滤镜、预设有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "LUT 是一张固定的颜色映射表，只有「强度」这一个可调项，调完就不能再改它的内部逻辑；预设（比如 .xmp）存的是一组滑块参数，加载后还能继续调。这个编辑器不支持 .xmp 预设，彩色风格以 LUT 的形式进来：内置 look 或你导入的 .cube。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "普通照片直接套厂商 LOG LUT，为什么画面发暗发硬？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "因为 LOG LUT 假设输入是 LOG 编码。LOG 把暗部抬得很高，普通 sRGB 照片的暗部码值比 LUT 预期的低得多，它就会把画面当成比实际更暗的场景来处理，结果偏暗、暗部发死、颜色错位。先把输入色彩空间切到对应的 F-Log 或 V-Log，再套这支 LUT，结果才对。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "LUT 能救回已经过曝的高光吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不能。LUT 只重映射每个像素现有的颜色，已经被裁到 1.0 的通道没有可恢复的层次，所有死白像素只会被映射成同一个固定值。要保住高光，必须在 LUT 之前处理：保留高于白的场景数据，再用单调的色调映射压回可见范围，这也是这个编辑器先显影 RAW、后套 LUT 的原因。"
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+</style>
+</head>
+<body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/guides/">指南</a><a href="/looks">64 款 LUT</a><a href="/alternatives/lightroom-web">对比 Lightroom</a><a href="/faq">常见问题</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/en/guides/what-is-lut" hreflang="en">EN</a>
+</div></header>
+<article class="wrap">
+<div class="wrap">
+  <p class="crumbs"><a href="/">首页</a><span>/</span><a href="/guides/">指南</a><span>/</span>LUT 是一张颜色对照表，不是一层滤镜</p><p class="kicker">指南 · LUT 基础</p>
+  <h1>LUT 是一张颜色对照表，不是一层滤镜</h1>
+  <p class="lede">LUT（look-up table，查找表）把一组输入颜色换成另一组输出颜色。1D 和 3D 能做的事差很远，厂商 LUT 还要求输入是 LOG 编码；前提弄错，画面会发暗、发硬而且偏色。</p>
+  <p class="crumbs"><span>更新 2026-11-19</span><span>7 分钟</span></p>
+</div>
+<h2 id="what">一张表：输入颜色进，输出颜色出</h2>
+<p>3D LUT 是一块立方体数据，三条轴都是 0–1 的 RGB 取值，边长 n 表示每个通道被切成 n 个节点，所以整块表有 n³ 个节点。渲染时，像素的 RGB 在立方体里定位，读出周围 8 个节点的值，用三线性插值算出一个新的 RGB。它不改变结构、不改变锐度，只改变颜色落在哪儿。</p>
+<p>行业通用的交换格式是 <code>.cube</code>，纯文本：</p>
+<pre><code>TITLE "奶油高光"
+LUT_3D_SIZE 33
+DOMAIN_MIN 0 0 0
+DOMAIN_MAX 1 1 1
+0.07830 0.07540 0.07112
+…</code></pre>
+<p><code>LUT_3D_SIZE 33</code> 表示边长 33，文件里就要有 35,937 行 RGB 数值；<code>DOMAIN_MIN</code> / <code>DOMAIN_MAX</code> 声明输入范围，通常是 0–1。数据行的顺序是 R 变化最快、其次 G、最后 B。1D LUT 用 <code>LUT_1D_SIZE</code>，行数少得多：n 行 RGB 数值，三个通道各查一条曲线。</p>
+<p>这个编辑器支持 3D LUT（<code>LUT_3D_SIZE</code> 2–128）和 1D LUT，导入时会在本地解析：<code>.cube</code> 是一段文本，可能带 UTF-8 BOM；解析后存进浏览器的 IndexedDB，文件不经过任何服务器（细节见<a href="/privacy">隐私说明</a>）。1D 会被烘到一张 33³ 的网格上，这样渲染器只需要处理一种数据。</p>
+
+<h2 id="1d-3d">1D 和 3D 差在哪</h2>
+<table>
+  <thead><tr><th></th><th>1D LUT</th><th>3D LUT</th></tr></thead>
+  <tbody>
+    <tr><td>数据</td><td>每个通道一张曲线，n 个采样点</td><td>n³ 个 RGB 三元组，33³ 是 35,937 个</td></tr>
+    <tr><td>怎么查表</td><td>三个通道各查各的：f(R)、g(G)、h(B)</td><td>用 RGB 一起定位，三线性插值</td></tr>
+    <tr><td>能做什么</td><td>黑位、白位、gamma、单通道偏移这类逐通道曲线</td><td>任意颜色映射：色相旋转、去饱和、胶片式交叉染色、色域压缩</td></tr>
+    <tr><td>做不到什么</td><td>跨通道效果：单独抽掉某个色相、把彩色转成黑白</td><td>不增加信息；节点之间仍然靠插值得到</td></tr>
+  </tbody>
+</table>
+<p>关键区别在「通道之间能不能互相影响」。1D LUT 对 R、G、B 分别算，红色通道的结果永远不会参考绿色；胶片那种红往青里跑、蓝色高光偏暖的交叉染色，以及把画面真正压成黑白（三个通道按亮度重新分配），都必须有 3D LUT 才能表达。所以内置的 64 款 look 全部是 33³ 的立方体，<a href="/guides/lut-size">测量它们的精度</a>时量的也是 3D 立方体。</p>
+
+<h2 id="log">为什么厂商 LUT 要 LOG 输入，直接套普通照片会怎样</h2>
+<p>LOG 是一种把场景亮度摊开的编码：它把暗部抬起来，让 0–1 的码值装下远超显示范围的动态范围，而不是像 sRGB 那样按显示对比度分配。相机厂商发布的 F-Log、F-Log2、V-Log LUT，都是针对「已经按对应 LOG 曲线编码的输入」设计的——表里的每个输入码值都对应一个明确的场景亮度。</p>
+<p>普通照片是显示编码的 sRGB。同一档暗部亮度，在 LOG 编码里的码值比 sRGB 里高得多。把 LOG LUT 直接套上去，相当于告诉它「这些暗部比你想象的暗得多」，出来的画面就会整体发暗、暗部发死，颜色也会因为查表位置错位而偏掉或过饱和。这不是 LUT 做错了，是输入条件不成立。</p>
+<p>这个编辑器在套 LUT 之前有一个输入色彩空间选项：sRGB、F-Log、F-Log2、V-Log。选 LOG 时，它先把显示值转回线性，再按对应 LOG 的公开传递函数重新编码，然后才查表；导入的 .cube 文件名或标题里带 F-Log / V-Log 时，这个选项会自动切过去。色域仍按 sRGB 处理，所以厂商 LUT 的结果是接近，而不是逐字节一致。</p>
+
+<h2 id="strength">强度滑块到底在混什么</h2>
+<p>这一步的公式很简单：<code>mix(v, lut(v), strength)</code>。强度 0 时输出等于输入，100 时输出完全等于查表结果，中间就是两个数值之间的一条直线。它不是「把 LUT 的参数改小」，而是按比例把原图和调色结果兑在一起。</p>
+<p>所以重口味的 look 拉到 50% 不会变成一款温和的 look，只会变成一张「一半原色、一半风格」的画面：对比被稀释，饱和度显得更平。厂商 LOG LUT 用在普通照片上时，编辑器给的建议强度是 30–60%，原因就在这儿——先小剂量找回一点风格，别指望一张为 LOG 设计的表在 sRGB 上等效。</p>
+<p>叠两款 look 时，每一层都各自混一次，A 的结果是 B 的输入；这套顺序和混合方式会被原样烘进合并出来的 .cube，具体做法见<a href="/guides/merge-lut">合并 LUT</a>。</p>
+
+<h2 id="cannot">LUT 救不回已经死白的高光</h2>
+<p>LUT 是逐像素换色：它读一个现有的 RGB，吐出另一个 RGB。如果一个像素的三个通道都已经卡在 1.0，它在表里只能被映射成某个固定的输出值——整块死白区域都会变成同一种颜色，里面本来有的天空层次、云、灯泡边缘，LUT 一个也变不出来。同理，它也修不了白平衡失准的片子：单个通道被裁掉之后，那个通道的信息已经没了。查表时输入还会被截断（clamp）到 0–1，超过 1 的数据在 LUT 这一层不被考虑。</p>
+<p>这就是为什么这个编辑器先跑完整条 RAW 管线：RAW 按 16 位解码，保留 4 档高于白的场景余量，显示变换用 darktable 的 <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a>——在 0…∞ 上单调、渐近逼近白点而不裁切，高光是被压缩进可见范围，而不是被砍掉。显影完、映射到显示空间之后，LUT 才接手。处理顺序见<a href="/guides/raw-in-browser">在浏览器里打开 RAW</a>。</p>
+
+<h2 id="pipeline">在这台编辑器里，LUT 排在管线的哪一步</h2>
+<ol>
+  <li><strong>解码与显影。</strong>RAW 在 Web Worker 里解成 16 位场景线性帧，曝光、白平衡、高光阴影都在线性空间处理，真实的高于白数据还在。</li>
+  <li><strong>显示变换。</strong>sigmoid 把场景线性压缩到 0–1 的显示值，保持单调，不裁切。</li>
+  <li><strong>输入色彩空间（可选）。</strong>套厂商 LOG LUT 时，把显示值按对应 LOG 曲线重新编码。</li>
+  <li><strong>LUT。</strong>A 槽位按强度混合，开了双 LUT 再走 B 槽位；两者都按 <code>mix(v, lut(v), s)</code> 执行。</li>
+  <li><strong>导出。</strong>JPEG 按 50 / 75 / 100% 源图长边渲染，和屏幕共用同一条管线。</li>
+</ol>
+<dl class="facts">
+  <div><dt>3D 立方体</dt><dd>33³ = 35,937 个节点</dd></div>
+  <div><dt>导入格式</dt><dd>.cube：LUT_3D_SIZE 2–128，1D 也支持</dd></div>
+  <div><dt>输入色彩空间</dt><dd>sRGB / F-Log / F-Log2 / V-Log</dd></div>
+  <div><dt>强度</dt><dd>0–100% 的线性 mix，不是参数插值</dd></div>
+</dl>
+<p>看懂这几个前提，再回头用 <a href="/looks">64 款内置 look</a> 或导入自己的 .cube，就大致能预判一个 LUT 在你手头的素材上是否成立。想直接验证，打开<a href="/">编辑器</a>拖一张 RAW 进去，把同一款 look 的强度从 100 拉到 0 看一遍就行。</p>
+<nav class="crumbs" style="display:flex;gap:12px;margin-top:44px" aria-label="上下篇"><a class="btn ghost" href="/guides/raw-in-browser">← 上一篇</a></nav>
+<div class="cta">
+  <h2>在浏览器里试一次</h2>
+  <p>打开 RAW、调色、套 LUT、导出 JPEG —— 全程在本机完成，不上传，也不需要账号。</p>
+  <a class="btn" href="/">打开编辑器</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/about">关于与隐私</a><a href="/privacy">隐私政策</a><a href="/guides/">全部指南</a><a href="/get-luts">LUT 下载来源</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
+</body>
+</html>

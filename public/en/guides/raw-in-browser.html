@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>Open and develop RAW files in the browser (no upload)</title>
+<meta name="description" content="Open NEF/CR2/ARW/DNG in the browser: 16-bit scene-linear development, a darkroom panel, 64 LUT looks and full-resolution export. Nothing is uploaded.">
+<link rel="canonical" href="https://lut.openanthropic.com/en/guides/raw-in-browser">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/guides/raw-in-browser">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/guides/raw-in-browser">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/guides/raw-in-browser">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Open and develop RAW files in the browser (no upload)">
+<meta property="og:description" content="Open NEF/CR2/ARW/DNG in the browser: 16-bit scene-linear development, a darkroom panel, 64 LUT looks and full-resolution export. Nothing is uploaded.">
+<meta property="og:url" content="https://lut.openanthropic.com/en/guides/raw-in-browser">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/develop-desktop.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Open and develop RAW files in the browser (no upload)">
+<meta name="twitter:description" content="Open NEF/CR2/ARW/DNG in the browser: 16-bit scene-linear development, a darkroom panel, 64 LUT looks and full-resolution export. Nothing is uploaded.">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/develop-desktop.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://lut.openanthropic.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Guides",
+      "item": "https://lut.openanthropic.com/en/guides/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Open a RAW in the browser and develop it like a darkroom",
+      "item": "https://lut.openanthropic.com/en/guides/raw-in-browser"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "How to open and develop a RAW file in the browser",
+  "description": "How in-browser RAW decoding works, which camera formats are supported, the processing steps and measured numbers.",
+  "inLanguage": "en",
+  "mainEntityOfPage": "https://lut.openanthropic.com/en/guides/raw-in-browser",
+  "url": "https://lut.openanthropic.com/en/guides/raw-in-browser",
+  "image": "https://lut.openanthropic.com/photos/develop-desktop.jpg",
+  "datePublished": "2026-11-19",
+  "dateModified": "2026-11-19",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": "Guides"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "Develop a RAW photo in the browser",
+  "description": "Open, develop and grade a RAW file and export a full-resolution JPEG without installing anything.",
+  "image": "https://lut.openanthropic.com/photos/develop-desktop.jpg",
+  "totalTime": "PT3M",
+  "inLanguage": "en",
+  "step": [
+    {
+      "@type": "HowToStep",
+      "position": 1,
+      "name": "Drop in a RAW",
+      "text": "Drag a NEF / CR2 / CR3 / ARW / DNG / RAF into the window, or press PHOTO. Decoding happens in a Web Worker on your machine; the file is never uploaded."
+    },
+    {
+      "@type": "HowToStep",
+      "position": 2,
+      "name": "Start from auto exposure",
+      "text": "A RAW opens with an exposure computed from the scene: the 95th percentile sits near sensor white and midtones stay below about 0.39 of white. Turn it off to start at 0."
+    },
+    {
+      "@type": "HowToStep",
+      "position": 3,
+      "name": "Develop it",
+      "text": "Temperature, tint, exposure, contrast, highlights, shadows, whites and blacks all operate in scene-linear space. The highlights slider compresses real above-white sensor data instead of darkening pixels that were already clipped."
+    },
+    {
+      "@type": "HowToStep",
+      "position": 4,
+      "name": "Apply a look",
+      "text": "Pick one of 64 built-in looks, dial its strength, stack a second one, or import your own .cube."
+    },
+    {
+      "@type": "HowToStep",
+      "position": 5,
+      "name": "Export",
+      "text": "Write a JPEG at 50 / 75 / 100 % of the source long edge. 100 % renders the in-memory full-resolution frame in tiles."
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Does processing a RAW in the browser upload the photo?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Decoding, developing and export all happen in a local Web Worker and on the GPU; there is no upload endpoint. The only network requests are the app assets and a /api/geo country lookup used to pick the interface language."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why is the preview limited to 4096 px?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sending a larger linear frame to the GPU as one texture is noticeably slower. The preview is capped at 4096 px on the long edge, while export still renders the in-memory full-resolution frame in tiles, so the JPEG is full resolution."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I use Lightroom presets?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Not .xmp presets. Import a look as .cube, or build the grade with the built-in looks and the develop panel."
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+</style>
+</head>
+<body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/en/guides/">Guides</a><a href="/en/looks">64 looks</a><a href="/en/alternatives/lightroom-web">vs Lightroom</a><a href="/en/faq">FAQ</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/guides/raw-in-browser" hreflang="zh-CN">中文</a>
+</div></header>
+<article class="wrap">
+<div class="wrap">
+  <p class="crumbs"><a href="/">Home</a><span>/</span><a href="/en/guides/">Guides</a><span>/</span>Open a RAW in the browser and develop it like a darkroom</p><p class="kicker">GUIDE · RAW</p>
+  <h1>Open a RAW in the browser and develop it like a darkroom</h1>
+  <p class="lede">NEF, CR2, CR3, ARW, DNG and RAF files can be dropped straight into the browser window. Decoding, developing, grading and exporting all happen on this machine — the photo is never uploaded.</p>
+  <p class="crumbs"><span>Updated 2026-11-19</span><span>6 min read</span></p>
+</div>
+<figure class="figure"><img src="/photos/develop-desktop.jpg" width="1600" height="1000" alt="The develop panel in LUT ARCHIVE with white balance, light, presence and noise reduction sliders" loading="lazy"><figcaption>The develop panel: a RAW opens neutral, with no look in the way, and the histogram follows the current development.</figcaption></figure>
+
+<h2 id="why">Why a browser can develop a RAW</h2>
+<p>RAW processing is a numeric pipeline: unpack, demosaic, white balance, colour matrix, tone map, output. None of that requires a desktop app. A modern browser brings the two capabilities that matter — WebAssembly for the heavy decoding, WebGL2 for mapping 16-bit scene-linear data to the screen at interactive speed.</p>
+<p>LUT ARCHIVE compiles <a href="https://github.com/ybouane/flashraw" rel="noopener">flashraw</a> to WebAssembly and runs unpacking, AHD demosaicing, camera white balance and the camera colour matrix in a Web Worker. The decode keeps 16 bits and four stops of scene headroom above white, then re-encodes the frame as scene-linear half floats for the GPU. That headroom is why the highlights slider behaves like a raw processor rather than a JPEG editor: it compresses real above-white sensor data back into visible gradation instead of darkening pixels that were clipped before it ever saw them.</p>
+<p>The display transform is darktable's <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a> (jandren, merged for darktable 4.2): monotone on 0…∞, asymptotic to the white target instead of clipping, with parameters fitted in closed form. It was checked end to end against darktable 5.6.2: the same linear TIFF rendered through darktable's sigmoid matches this implementation to within 0.0008 across the whole −12…+8 EV sweep.</p>
+
+<h2 id="formats">What it opens</h2>
+<table>
+  <thead><tr><th>Type</th><th>Formats</th></tr></thead>
+  <tbody>
+    <tr><td>RAW</td><td>NEF / NRW (including HE and HE* compression), CR2, CR3, ARW, SRF, SR2, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ, X3F</td></tr>
+    <tr><td>Images</td><td>JPEG, PNG, WebP, AVIF, HEIC/HEIF, TIFF</td></tr>
+    <tr><td>Look-up tables</td><td>.cube, both 3D (<code>LUT_3D_SIZE</code> 2–128) and 1D</td></tr>
+  </tbody>
+</table>
+<p>If a RAW cannot be unpacked at all, the app falls back to the camera JPEG embedded in the file — including 45 MP-class bodies whose frames the decoder returns truncated. That beats showing half a black frame, and it beats failing outright.</p>
+
+<h2 id="how">One pass through the app</h2>
+<ol>
+  <li><strong>Drop the file in.</strong> Unpacking, demosaicing and preview generation each show a named stage with a live clock instead of a fake animation.</li>
+  <li><strong>Check the auto exposure.</strong> For RAW it is computed in the scene domain: the 95th percentile sits near sensor white and midtones stay below about 0.39 of white, so a dim interior comes out lit instead of muddy. The AUTO button turns it off.</li>
+  <li><strong>Develop.</strong> White balance, light and presence sliders plus noise reduction; the eyedropper picks a neutral from the photo. Everything runs in linear space, and the preview and the export share the same pipeline.</li>
+  <li><strong>Apply a look.</strong> 64 built-in looks with adjustable strength, a second slot for stacking, and local .cube import that survives a reload in IndexedDB.</li>
+  <li><strong>Export.</strong> JPEG at 50 / 75 / 100 % of the source long edge; 100 % renders the in-memory full-resolution frame in tiles, past the GPU texture limit.</li>
+</ol>
+
+<h2 id="numbers">Measured numbers</h2>
+<dl class="facts">
+  <div><dt>26 MP NEF</dt><dd>about 1.2 s to a 5568×3712 linear frame</dd></div>
+  <div><dt>Preview</dt><dd>4096 px long edge; the full frame stays in memory for export</dd></div>
+  <div><dt>Tone check</dt><dd>max difference 0.0008 vs darktable 5.6.2</dd></div>
+  <div><dt>Upload</dt><dd>zero bytes — files are only read locally</dd></div>
+</dl>
+
+<h2 id="limits">What it does not do</h2>
+<p>This is a single-frame darkroom, not an asset manager: no library, no batch sync, no cloud catalogue, no AI masks. The preview is capped at 4096 px on the long edge because pushing a 20 MP+ linear frame to the GPU wholesale is both slow and memory-hungry; export is not capped. The first RAW you open downloads about 3.4 MB of decoder, cached afterwards.</p>
+<p>If you need a full post-production workflow — catalogues, batch processing, printing — desktop software is still the right tool. If you want to take one RAW, develop it to taste and leave with a full-resolution JPEG on whatever machine you are on, the browser is enough.</p>
+<nav class="crumbs" style="display:flex;gap:12px;margin-top:44px" aria-label="Previous and next"><a class="btn ghost" href="/en/guides/merge-lut">← Previous</a><a class="btn ghost" href="/en/guides/what-is-lut">Next →</a></nav>
+<div class="cta">
+  <h2>Try it in the browser</h2>
+  <p>Open a RAW, grade it, stack a look, export a JPEG — all on your machine, with no upload and no account.</p>
+  <a class="btn" href="/">Open the editor</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/en/about">About & privacy</a><a href="/en/privacy">Privacy</a><a href="/en/guides/">All guides</a><a href="/en/get-luts">LUT sources</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>在浏览器里打开 RAW 并显影（不上传、不装软件）</title>
+<meta name="description" content="浏览器里直接打开 NEF/CR2/ARW/DNG 等 RAW：16 位显影、暗房面板、64 款 LUT、全分辨率导出，照片不上传。">
+<link rel="canonical" href="https://lut.openanthropic.com/guides/raw-in-browser">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/guides/raw-in-browser">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/guides/raw-in-browser">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/guides/raw-in-browser">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在浏览器里打开 RAW 并显影（不上传、不装软件）">
+<meta property="og:description" content="浏览器里直接打开 NEF/CR2/ARW/DNG 等 RAW：16 位显影、暗房面板、64 款 LUT、全分辨率导出，照片不上传。">
+<meta property="og:url" content="https://lut.openanthropic.com/guides/raw-in-browser">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/develop-desktop.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="在浏览器里打开 RAW 并显影（不上传、不装软件）">
+<meta name="twitter:description" content="浏览器里直接打开 NEF/CR2/ARW/DNG 等 RAW：16 位显影、暗房面板、64 款 LUT、全分辨率导出，照片不上传。">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/develop-desktop.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "https://lut.openanthropic.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "指南",
+      "item": "https://lut.openanthropic.com/guides/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "在浏览器里打开 RAW，并按暗房方式处理",
+      "item": "https://lut.openanthropic.com/guides/raw-in-browser"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "在浏览器里打开 RAW 并显影",
+  "description": "浏览器内 RAW 解码的原理、支持的相机格式、处理步骤与实测数据。",
+  "inLanguage": "zh-CN",
+  "mainEntityOfPage": "https://lut.openanthropic.com/guides/raw-in-browser",
+  "url": "https://lut.openanthropic.com/guides/raw-in-browser",
+  "image": "https://lut.openanthropic.com/photos/develop-desktop.jpg",
+  "datePublished": "2026-11-19",
+  "dateModified": "2026-11-19",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": "指南"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "在浏览器里处理 RAW 照片",
+  "description": "不安装软件，在浏览器里打开 RAW、显影、套 LUT 并导出全分辨率 JPEG。",
+  "image": "https://lut.openanthropic.com/photos/develop-desktop.jpg",
+  "totalTime": "PT3M",
+  "inLanguage": "zh-CN",
+  "step": [
+    {
+      "@type": "HowToStep",
+      "position": 1,
+      "name": "拖入 RAW",
+      "text": "把 NEF / CR2 / CR3 / ARW / DNG / RAF 等文件拖进窗口，或者点左下角的 PHOTO。解码在本机 Web Worker 里完成，文件不会被上传。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 2,
+      "name": "先看自动曝光",
+      "text": "RAW 打开时会按场景亮度算一个曝光：95% 分位靠近传感器白，中间调留在约 0.39 白以下。想手动就从 0 开始。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 3,
+      "name": "用冲洗面板显影",
+      "text": "色温、色调、曝光、对比度、高光、阴影、白色、黑色都在场景线性空间里算；高光压缩的是真实的高于白的数据，不是把已经裁切的白再压暗。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 4,
+      "name": "套一个 LUT",
+      "text": "64 款内置 look 可以调强度，也可以叠第二支，或者导入自己的 .cube。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 5,
+      "name": "导出",
+      "text": "按源图长边的 50 / 75 / 100% 导出 JPEG，100% 用内存里的原始帧分块渲染。"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "浏览器处理 RAW 会泄露照片吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不会。解码、显影、导出都在本机的 Web Worker 和 GPU 里完成，文件没有上传接口。唯一的网络请求是应用资源本身，以及用来选择界面语言的 /api/geo 国家查询。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么预览只到 4096 px？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "更大尺寸的线性帧整块传 GPU 会明显变卡。预览限制在长边 4096 px，而导出时仍然使用内存里的全分辨率帧分块渲染，所以导出的 JPEG 是完整分辨率。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "支持 Lightroom 的预设吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不支持 .xmp 预设。可以把 LUT 以 .cube 导入，或者用内置 look 加上冲洗面板自己调。"
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+</style>
+</head>
+<body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/guides/">指南</a><a href="/looks">64 款 LUT</a><a href="/alternatives/lightroom-web">对比 Lightroom</a><a href="/faq">常见问题</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/en/guides/raw-in-browser" hreflang="en">EN</a>
+</div></header>
+<article class="wrap">
+<div class="wrap">
+  <p class="crumbs"><a href="/">首页</a><span>/</span><a href="/guides/">指南</a><span>/</span>在浏览器里打开 RAW，并按暗房方式处理</p><p class="kicker">指南 · RAW</p>
+  <h1>在浏览器里打开 RAW，并按暗房方式处理</h1>
+  <p class="lede">NEF、CR2、CR3、ARW、DNG、RAF 都可以直接拖进浏览器窗口。解码、显影、调色、导出全部在这台机器上完成，照片不需要上传到任何地方。</p>
+  <p class="crumbs"><span>更新 2026-11-19</span><span>6 分钟</span></p>
+</div>
+<figure class="figure"><img src="/photos/develop-desktop.jpg" width="1600" height="1000" alt="LUT ARCHIVE 的冲洗面板：RAW 打开后显示白平衡、光线、偏好与降噪滑块" loading="lazy"><figcaption>冲洗面板：RAW 打开时是中性状态，LUT 不挡在中间；直方图跟随当前显影实时更新。</figcaption></figure>
+
+<h2 id="why">浏览器为什么能做 RAW 显影</h2>
+<p>RAW 处理本质上是一条数值管线：拆包、去马赛克、白平衡、色彩矩阵、色调映射、输出。这些步骤不需要桌面应用，现代浏览器两样能力就够了——WebAssembly 负责解码这类重计算，WebGL2 负责把 16 位场景线性数据实时映射到屏幕。</p>
+<p>LUT ARCHIVE 把 <a href="https://github.com/ybouane/flashraw" rel="noopener">flashraw</a> 编译成 WebAssembly，在 Web Worker 里完成解包、AHD 去马赛克、相机白平衡和相机色彩矩阵。解码结果保留 16 位和 4 档高于白的场景余量，再编码成场景线性半浮点交给 GPU——这就是高光滑块能像 RAW 处理器一样工作、而不是像 JPEG 编辑器那样把白色压成灰的原因。</p>
+<p>显示变换用的是 darktable 的 <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a>（jandren，darktable 4.2 起合入），在 0…∞ 上单调、渐近逼近白点而不裁切，参数用闭式解拟合。端到端对照 darktable 5.6.2 做过验证：同一帧线性 TIFF 走 darktable 的 sigmoid，与本实现整条 −12…+8 EV 扫描的最大差是 0.0008。</p>
+
+<h2 id="formats">支持哪些文件</h2>
+<table>
+  <thead><tr><th>类型</th><th>格式</th></tr></thead>
+  <tbody>
+    <tr><td>RAW</td><td>NEF / NRW（含 HE、HE* 压缩）、CR2、CR3、ARW、SRF、SR2、DNG、RAF、ORF、RW2、PEF、SRW、3FR、ERF、KDC、MOS、IIQ、X3F</td></tr>
+    <tr><td>普通图像</td><td>JPEG、PNG、WebP、AVIF、HEIC/HEIF、TIFF</td></tr>
+    <tr><td>色彩查找表</td><td>.cube，3D（<code>LUT_3D_SIZE</code> 2–128）与 1D 都支持</td></tr>
+  </tbody>
+</table>
+<p>如果某个 RAW 完全拆不开，会退回到文件里内嵌的相机 JPEG——包括解码器返回截断数据的 45 MP 级机型。这比显示半张黑图好，也比直接报错好。</p>
+
+<h2 id="how">一次完整的处理流程</h2>
+<ol>
+  <li><strong>拖入文件。</strong>浏览器会显示解包、去马赛克、生成预览几个阶段，带实时进度，不是一块假动画。</li>
+  <li><strong>看自动曝光。</strong>RAW 的自动曝光在场景域里算：95% 分位靠近传感器白，中间调不超过约 0.39 白，所以暗的室内会被提亮，而不是停留在灰蒙蒙的状态。AUTO 按钮可以关掉。</li>
+  <li><strong>冲洗面板。</strong>白平衡、光线、偏好三组滑块，外加降噪；吸管可以直接点画面里的中性灰。所有调整都在线性空间里做，预览和导出走同一条管线。</li>
+  <li><strong>套 LUT。</strong>64 款内置 look，强度可调，可以叠第二支；导入的 .cube 会存在浏览器本地，下次还在。</li>
+  <li><strong>导出。</strong>按源图长边的 50 / 75 / 100% 写 JPEG；100% 用内存里的全分辨率帧分块渲染，绕过 GPU 纹理上限。</li>
+</ol>
+
+<h2 id="numbers">实测数据</h2>
+<dl class="facts">
+  <div><dt>26 MP NEF</dt><dd>约 1.2 秒解码成 5568×3712 线性帧</dd></div>
+  <div><dt>预览</dt><dd>长边 4096 px，全分辨率帧留在内存里供导出</dd></div>
+  <div><dt>色调验证</dt><dd>与 darktable 5.6.2 最大差 0.0008</dd></div>
+  <div><dt>上传</dt><dd>0 字节：文件只在本机读取</dd></div>
+</dl>
+
+<h2 id="limits">它不做什么</h2>
+<p>这是一台单张处理的暗房，不是资产管理系统：没有图库、批量同步、云端目录，也没有 AI 蒙版。预览解码长边限制在 4096 px，因为把 20 MP 以上的线性帧整块传给 GPU 既慢又占显存；导出不受这个限制。第一次打开 RAW 需要下载约 3.4 MB 的解码器，之后会命中缓存。</p>
+<p>如果你要的是一整套后期工作流（目录、批量、打印），桌面软件仍然更合适；如果你只想在任意一台电脑上把一张 RAW 调到满意并导出一张全分辨率 JPEG，浏览器已经够用。</p>
+<nav class="crumbs" style="display:flex;gap:12px;margin-top:44px" aria-label="上下篇"><a class="btn ghost" href="/guides/merge-lut">← 上一篇</a><a class="btn ghost" href="/guides/what-is-lut">下一篇 →</a></nav>
+<div class="cta">
+  <h2>在浏览器里试一次</h2>
+  <p>打开 RAW、调色、套 LUT、导出 JPEG —— 全程在本机完成，不上传，也不需要账号。</p>
+  <a class="btn" href="/">打开编辑器</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/about">关于与隐私</a><a href="/privacy">隐私政策</a><a href="/guides/">全部指南</a><a href="/get-luts">LUT 下载来源</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
+</body>
+</html>

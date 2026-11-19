@@ -9,6 +9,11 @@
   "routes": [{ "pattern": "lut.openanthropic.com", "custom_domain": true }],
   "assets": {
     "directory": "./public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // The Worker owns URLs (clean URLs, 301s, 404). Without run_worker_first the
+    // assets layer answers first with its own 307s; with the default
+    // auto-trailing-slash it also rewrites `.html` before the Worker can map it.
+    "run_worker_first": true,
+    "html_handling": "none"
   }
 }

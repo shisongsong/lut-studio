@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>合并 LUT：把两款 look 烘成一个 .cube</title>
+<meta name="description" content="两款 look 调好强度后烘成一个 33³ 的 .cube，存进「我的 LUT」并下载，Resolve、Premiere、Photoshop 都能直接用。">
+<link rel="canonical" href="https://lut.openanthropic.com/guides/merge-lut">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/guides/merge-lut">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/guides/merge-lut">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/guides/merge-lut">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="合并 LUT：把两款 look 烘成一个 .cube">
+<meta property="og:description" content="两款 look 调好强度后烘成一个 33³ 的 .cube，存进「我的 LUT」并下载，Resolve、Premiere、Photoshop 都能直接用。">
+<meta property="og:url" content="https://lut.openanthropic.com/guides/merge-lut">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/dual.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="合并 LUT：把两款 look 烘成一个 .cube">
+<meta name="twitter:description" content="两款 look 调好强度后烘成一个 33³ 的 .cube，存进「我的 LUT」并下载，Resolve、Premiere、Photoshop 都能直接用。">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/dual.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "https://lut.openanthropic.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "指南",
+      "item": "https://lut.openanthropic.com/guides/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "把两支 LUT 合成一支，带出浏览器",
+      "item": "https://lut.openanthropic.com/guides/merge-lut"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "合并 LUT：把两款 look 烘成一个 .cube",
+  "description": "把叠加的两支 LUT 按强度合成一个 33³ 的 .cube，下载后可在 Resolve、Premiere、Photoshop 里直接使用。",
+  "inLanguage": "zh-CN",
+  "mainEntityOfPage": "https://lut.openanthropic.com/guides/merge-lut",
+  "url": "https://lut.openanthropic.com/guides/merge-lut",
+  "image": "https://lut.openanthropic.com/photos/dual.jpg",
+  "datePublished": "2026-11-19",
+  "dateModified": "2026-11-19",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": "指南"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "把两支 LUT 合并成一个 .cube 并导出",
+  "description": "在浏览器里叠加两款 look、调好强度、烘成一个 33³ .cube，存进「我的 LUT」并导出给其他软件使用。",
+  "image": "https://lut.openanthropic.com/photos/dual.jpg",
+  "totalTime": "PT2M",
+  "inLanguage": "zh-CN",
+  "step": [
+    {
+      "@type": "HowToStep",
+      "position": 1,
+      "name": "先挑 A 槽的 look",
+      "text": "在底部胶片条里选一款内置 look，或者「我的 LUT」里导入的 .cube。A 是栈里的第一层。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 2,
+      "name": "打开双 LUT，再挑 B 槽",
+      "text": "点工具栏的「双 LUT」打开第二个槽位，给 B 选另一款 look。B 作用在 A 的结果上。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 3,
+      "name": "分别定强度",
+      "text": "A、B 各有一条强度滑轨，B 默认 60%。合并会把当前强度原样烘进立方体：屏幕上是什么样，导出就是什么样。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 4,
+      "name": "按「合并 LUT」",
+      "text": "一次做两件事：把 A、B 按顺序烘成一个 33³ 立方体（35,937 个节点），并存进浏览器的「我的 LUT」。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 5,
+      "name": "在「我的 LUT」里确认",
+      "text": "合并结果的名字是「A + B」，和导入的 .cube 放在一起，刷新页面之后还在。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 6,
+      "name": "下载 .cube，拿去别的软件用",
+      "text": "合并的同时自动下载 33³ 的 .cube。在 Resolve / Premiere / Photoshop 里把强度设成 100%，看到的就是刚才屏幕上的结果。"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "合并是把两个 LUT 的数值相加吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不是。它按槽位顺序执行 mix(v, lut(v), s)：A 的输出是 B 的输入，每一步都是原值和查表结果之间的线性混合，再整体裁到 0–1。合并结果与「两支数值相加再除以二」是两回事，后者在颜色上通常没有意义。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么同一枚 .cube 在 Premiere 里看起来和网页不一样？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "先确认两件事：宿主里的 LUT 强度是 100%，输入素材是显示编码（sRGB）而不是 LOG。宿主软件在 LUT 之前还有自己的色彩管理和色调映射，所以画面不会逐像素相同；但如果这两点都满足，色调走向会一致。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "能合并 1D LUT 吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "能。导入时 1D LUT 会被烘焙成 33³ 的 3D 立方体（逐通道曲线映射到 RGB 三个轴），合并走的是同一条路径，所以导出的永远是 3D 33³ 的 .cube。"
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+</style>
+</head>
+<body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/guides/">指南</a><a href="/looks">64 款 LUT</a><a href="/alternatives/lightroom-web">对比 Lightroom</a><a href="/faq">常见问题</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/en/guides/merge-lut" hreflang="en">EN</a>
+</div></header>
+<article class="wrap">
+<div class="wrap">
+  <p class="crumbs"><a href="/">首页</a><span>/</span><a href="/guides/">指南</a><span>/</span>把两支 LUT 合成一支，带出浏览器</p><p class="kicker">指南 · 合并 LUT</p>
+  <h1>把两支 LUT 合成一支，带出浏览器</h1>
+  <p class="lede">这个编辑器可以同时叠两款 look：A 是底，B 叠在 A 的结果上，各自有强度。合并 LUT 会把这份叠加原样烘成一个 33³ 的 .cube，存进「我的 LUT」，同时下载到本地。</p>
+  <p class="crumbs"><span>更新 2026-11-19</span><span>5 分钟</span></p>
+</div>
+<figure class="figure"><img src="/photos/dual.jpg" width="1400" height="875" alt="LUT ARCHIVE 编辑器打开双 LUT 时的界面，A 与 B 两个槽位分别选了一款 look" loading="lazy"><figcaption>双 LUT 状态：A、B 各自有强度滑轨，「合并 LUT」把当前的叠加烘成一个立方体。</figcaption></figure>
+
+<h2 id="why">为什么要把两支 LUT 烘成一支</h2>
+<p>最直接的用处是交付。Resolve、Premiere、Photoshop 的 LUT 槽位一次只认一个查找表；把 A + B 的叠加烘成一个 .cube，别人只要加载这一个文件，就能得到和你一样的调色，不需要知道你用了哪两款 look、强度各是多少。</p>
+<p>第二个用处是留档。合并结果会存进浏览器的「我的 LUT」，和导入的 .cube 放在一起，之后还能像普通 look 一样被选中、被再次叠加。你可以把它当成「把当前这套调色冻结下来」的按钮。</p>
+<p>第三个用处是一致性。合并执行的就是渲染器用的那条公式，不是另写一套近似算法，所以它不会在屏幕和导出文件之间引入第二套色彩逻辑。</p>
+
+<h2 id="math">合并到底算了什么</h2>
+<p>每个槽位做一次带强度的混合，A 先执行、B 后执行：</p>
+<pre><code>v = 输入颜色
+for 槽位 in [A, B]:
+  s = 强度 / 100
+  t = trilinear_sample(槽位.lut, v)
+  v = v + (t - v) * s        // 即 mix(v, lut(v), s)
+输出 = clamp(v, 0, 1)</code></pre>
+<p>这就是着色器里的 <code>applyLut</code>：<code>mix(c, texture(lut, clamp(c,0,1)).rgb, s)</code>。合并时对 33³ 网格里的每个节点跑一遍同样的过程，把结果写成一个新的 33³ 立方体。源立方体用三线性插值读取，输出每个通道量化到 1/255——和网页里 LUT 纹理的精度完全一样。</p>
+<p>经测试，把 A、B 的强度都放在 100% 去合并，再用这枚 .cube 在宿主软件里按 100% 强度渲染，画面和屏幕上的一致：两边算的是同一条式子、同一个节点网格、同一套量化。<a href="/guides/lut-size">LUT 精度实测</a>里解释过为什么 33³ 就是这批 look 的母版尺寸。</p>
+
+<h2 id="file">导出的 .cube 里有什么</h2>
+<p>文件是纯文本，四行文件头加 35,937 行 RGB 数值：</p>
+<pre><code>TITLE "A + B"
+LUT_3D_SIZE 33
+DOMAIN_MIN 0 0 0
+DOMAIN_MAX 1 1 1
+0.07830 0.07540 0.07112
+…</code></pre>
+<p><code>TITLE</code> 是「A + B」这样的名字，<code>LUT_3D_SIZE 33</code> 告诉宿主软件立方体边长，<code>DOMAIN_MIN</code> / <code>DOMAIN_MAX</code> 声明输入范围是 0–1。数据行按 R 最快、其次 G、最后 B 的顺序排列，每行三个五位小数。33³ 的 .cube 是几百 KB 的文本文件——仓库里每一款内置 look 的 .cube 就在 840 KB 上下。</p>
+
+<h2 id="order">顺序不能反，也不能当平均</h2>
+<p>A 先跑 B 后跑，和 B 先跑 A 后跑不是同一个结果：B 的输入是 A 处理过的颜色，换过来它面对的输入分布就变了。两支各 50% 的叠加也不等于「平均两支 LUT」——每一层都是对上一层的输出做一次线性混合，颜色被推了两次，方向和单层完全不同。</p>
+<p>这也是为什么合并前要先在屏幕上把强度调好：合并只是把当前状态固定下来，它不会替你做取舍。想要另一个顺序，把 B 放 A、A 放 B 再合并一次即可。</p>
+
+<h2 id="reuse">合并后的 LUT 还能继续用吗</h2>
+<p>可以。它出现在「我的 LUT」分类里，可以再当 A 或 B，和其他 look 继续叠。只挑一款 look 也能直接合并，那等于把这款内置 look 导出成 .cube，不需要打开双 LUT。</p>
+<p>要注意每合并一次，输出都会重新量化到 8 位。叠三层时，正确做法是先把两款合成一款，再把结果和第三款合成，而不是反复拿中间文件来回烘；每多烘一次，舍入误差就多累积一次（哪怕很小）。</p>
+
+<h2 id="use">在 Resolve / Premiere / Photoshop 里怎么用</h2>
+<p>把下载的 .cube 载入宿主软件的 LUT 槽位：Resolve 的颜色节点、Premiere 的 Lumetri、Photoshop 的 Color Lookup 图层都能直接读。<strong>强度设成 100%</strong>——合并时 A、B 的强度已经烘进数值里，在宿主里再往下拉，等于在已经调好的画面上又加了一层减淡。</p>
+<p>还有一点要匹配：这枚 .cube 是在显示编码（sRGB）空间里烘焙的，喂给它的画面也应该是显示编码的普通素材。如果输入是 F-Log、V-Log 这类 LOG 素材，要先做一次输入转换，否则结果会偏——原理和厂商 LOG LUT 一样，写在 <a href="/guides/what-is-lut">LUT 是什么</a>里。这也是这个编辑器先把 <a href="/guides/raw-in-browser">16 位 RAW 显影管线</a>跑完、再把 LUT 放在显示变换之后的原因。</p>
+<p>打开<a href="/">编辑器</a>，拖一张照片进来，选两款 look、调好强度、按一下合并，就能得到你自己的第一枚 .cube。</p>
+<nav class="crumbs" style="display:flex;gap:12px;margin-top:44px" aria-label="上下篇"><a class="btn ghost" href="/guides/lut-size">← 上一篇</a><a class="btn ghost" href="/guides/raw-in-browser">下一篇 →</a></nav>
+<div class="cta">
+  <h2>在浏览器里试一次</h2>
+  <p>打开 RAW、调色、套 LUT、导出 JPEG —— 全程在本机完成，不上传，也不需要账号。</p>
+  <a class="btn" href="/">打开编辑器</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/about">关于与隐私</a><a href="/privacy">隐私政策</a><a href="/guides/">全部指南</a><a href="/get-luts">LUT 下载来源</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
+</body>
+</html>

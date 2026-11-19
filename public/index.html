@@ -4,7 +4,68 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0b">
-<title>LUT ARCHIVE — darkroom</title>
+<title>LUT ARCHIVE — 浏览器里的 RAW 暗房</title>
+<meta name="description" content="在浏览器里打开 RAW 并显影：16 位场景线性管线、64 款 LUT、全分辨率 JPEG 导出，照片不上传、不需要账号。">
+<link rel="canonical" href="https://lut.openanthropic.com/">
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LUT ARCHIVE — 浏览器里的 RAW 暗房">
+<meta property="og:description" content="打开 RAW、按暗房方式显影、套 64 款 LUT、导出全分辨率 JPEG。照片只在本机处理，不需要账号。">
+<meta property="og:url" content="https://lut.openanthropic.com/">
+<meta property="og:image" content="https://lut.openanthropic.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LUT ARCHIVE — 浏览器里的 RAW 暗房">
+<meta name="twitter:description" content="打开 RAW、显影、套 LUT、导出全分辨率 JPEG，全程本地处理。">
+<meta name="twitter:image" content="https://lut.openanthropic.com/og.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "@id": "https://lut.openanthropic.com/#app",
+      "name": "LUT ARCHIVE",
+      "url": "https://lut.openanthropic.com/",
+      "applicationCategory": "PhotoApplication",
+      "operatingSystem": "Any (WebGL2 browser)",
+      "browserRequirements": "Requires WebGL2",
+      "isAccessibleForFree": true,
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "license": "https://opensource.org/license/mit",
+      "inLanguage": ["zh-CN", "en"],
+      "description": "A browser-based RAW darkroom: 16-bit scene-linear development, 64 LUT looks, dual-LUT stacking, .cube import/export and full-resolution JPEG export. Photos are processed locally and never uploaded.",
+      "featureList": [
+        "In-browser RAW decoding (NEF, CR2, CR3, ARW, DNG, RAF and more)",
+        "16-bit scene-linear pipeline with darktable sigmoid display transform",
+        "64 built-in LUT looks, dual-LUT stacking and .cube export",
+        "Full-resolution JPEG export",
+        "Local processing, no account, no upload"
+      ],
+      "screenshot": "https://lut.openanthropic.com/photos/home-desktop.jpg"
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://lut.openanthropic.com/#org",
+      "name": "LUT ARCHIVE",
+      "url": "https://lut.openanthropic.com/",
+      "logo": "https://lut.openanthropic.com/favicon.svg",
+      "sameAs": ["https://github.com/shisongsong/lut-studio"]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://lut.openanthropic.com/#site",
+      "name": "LUT ARCHIVE",
+      "url": "https://lut.openanthropic.com/",
+      "inLanguage": ["zh-CN", "en"],
+      "publisher": { "@id": "https://lut.openanthropic.com/#org" }
+    }
+  ]
+}
+</script>
 <!-- The hero photo and the LUT pack are the two things the first paint waits
      for; start both before the module graph is even requested. -->
 <link rel="preload" as="image" href="/photos/demo.webp" fetchpriority="high">
@@ -267,10 +328,13 @@ a.tbtn{text-decoration:none}
 .dev-pick{width:26px;height:22px;border:1px solid rgba(255,255,255,.16);display:grid;place-items:center;color:var(--muted);font-size:10px;line-height:1;transition:.15s}
 .dev-pick:hover{color:#fff;border-color:rgba(255,255,255,.5)}
 .dev-pick.on{color:#141414;background:var(--accent);border-color:var(--accent)}
-.dev-row{display:grid;grid-template-columns:56px 1fr 36px;align-items:center;gap:10px;padding:5px 0;cursor:pointer}
+.dev-row{display:grid;grid-template-columns:56px 1fr 36px;align-items:center;gap:10px;padding:5px 0;cursor:pointer;touch-action:pan-y;-webkit-user-select:none;user-select:none}
 .dev-row span{font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;color:rgba(242,241,236,.72)}
 .dev-row b{font-family:var(--mono);font-size:8.5px;font-weight:400;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
-.dev-row input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;outline:none;cursor:pointer;margin:0}
+/* The row drives the slider (see bindSliderGesture): the native control would
+   jump to the first touch point even when the gesture is a vertical scroll.
+   pan-y lets that vertical swipe scroll the rail; the horizontal axis is ours. */
+.dev-row input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;outline:none;cursor:pointer;margin:0;touch-action:pan-y;pointer-events:none}
 .dev-row input[type=range]::-webkit-slider-runnable-track{height:1px;background:rgba(255,255,255,.3)}
 .dev-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;border-radius:50%;background:var(--ink);border:0;margin-top:-5px;box-shadow:0 0 0 3px rgba(9,9,10,.55)}
 .dev-row input[type=range]::-moz-range-track{height:1px;background:rgba(255,255,255,.3)}
@@ -330,6 +394,14 @@ a.tbtn{text-decoration:none}
 </style>
 </head>
 <body>
+<noscript>
+<div style="position:fixed;inset:0;z-index:99;background:#0a0a0b;color:#f2f1ec;padding:9vh 24px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',system-ui,sans-serif;overflow:auto">
+  <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;color:#d9c7a3">LUT ARCHIVE</p>
+  <h1 style="font-weight:300;font-size:28px;line-height:1.15;max-width:20ch">浏览器里的 RAW 暗房 / A RAW darkroom in your browser</h1>
+  <p style="max-width:52ch;line-height:1.8;color:rgba(242,241,236,.72)">这个编辑器需要 JavaScript 和 WebGL2。它在本机解码 RAW、显影、套用 64 款 LUT 并导出全分辨率 JPEG，照片不会上传。你可以在下面的指南里读到它是怎么工作的。</p>
+  <p style="line-height:2.2"><a href="/guides/raw-in-browser" style="color:#f2f1ec">在浏览器里打开 RAW</a> · <a href="/guides/lut-size" style="color:#f2f1ec">LUT 精度实测</a> · <a href="/looks" style="color:#f2f1ec">64 款 look</a> · <a href="/faq" style="color:#f2f1ec">常见问题</a></p>
+</div>
+</noscript>
 <div class="app" id="app">
   <div class="field" id="field">
     <!-- 40px inline thumbnail painted before any asset arrives, so a slow
@@ -351,6 +423,8 @@ a.tbtn{text-decoration:none}
   <header class="topbar">
     <div class="brand"><span class="dot" id="accentDot"></span>LUT ARCHIVE</div>
     <div class="top-actions">
+      <a class="tbtn" href="/guides/">指南</a>
+      <a class="tbtn" href="/looks">LUT 目录</a>
       <a class="tbtn" href="https://github.com/shisongsong/lut-studio" id="githubLink" target="_blank" rel="noopener">GitHub</a>
       <button class="tbtn" id="langBtn">EN</button>
     </div>
@@ -2691,6 +2765,60 @@ async function detectGeo(){
   } catch { /* keep navigator language */ }
 }
 
+/**
+ * Touch on a native range jumps the thumb to wherever the finger landed — even
+ * when the whole gesture was meant to scroll the develop rail. Preventing the
+ * pointerdown does not stop it either (the value is applied from touchstart by
+ * the control itself). So the input gives up pointer input and the row drives
+ * it instead:
+ *   - touch/pen: axis lock. A drag must move horizontally before it edits
+ *     anything; a vertical swipe is left to the rail's scroller.
+ *   - mouse: click-to-position plus drag, matching what the native control did.
+ * Keyboard and assistive tech still use the real input.
+ */
+function bindSliderGesture(input){
+  const row = input.closest('.dev-row') || input;
+  const valueAt = (clientX) => {
+    const r = input.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - r.left) / Math.max(1, r.width)));
+    return Number(input.min) + (Number(input.max) - Number(input.min)) * ratio;
+  };
+  const apply = (clientX) => {
+    const next = valueAt(clientX);
+    if (String(next) === input.value) return;
+    input.value = String(next); // the range clamps to min/max and snaps to step
+    if (input.value === '') input.value = input.min;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  let drag = null;
+  row.addEventListener('pointerdown', (e) => {
+    if (e.button > 0) return;
+    const r = input.getBoundingClientRect();
+    if (e.clientY < r.top - 8 || e.clientY > r.bottom + 8) return;
+    drag = { x: e.clientX, y: e.clientY, active: e.pointerType === 'mouse' };
+    if (e.pointerType === 'mouse') {
+      e.preventDefault(); // no text selection while dragging the row
+      input.focus({ preventScroll: true });
+      apply(e.clientX);
+    }
+  });
+  row.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.active) {
+      if (Math.abs(dy) > 6 && Math.abs(dy) >= Math.abs(dx)) { drag = null; return; } // the panel scrolls
+      if (Math.abs(dx) < 4) return;
+      drag.active = true;
+    }
+    if (e.cancelable) e.preventDefault();
+    apply(e.clientX);
+  });
+  const end = () => { drag = null; };
+  row.addEventListener('pointerup', end);
+  row.addEventListener('pointercancel', end);
+  row.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') end(); });
+}
+
 function bind(){
   window.addEventListener('resize', () => { sizeCanvases(); drawBase(); render({ instant: true }); updateQualityDims(); applySplitVarsRef?.(); });
   el.photoBtn.addEventListener('click', () => el.fileInput.click());
@@ -2715,6 +2843,7 @@ function bind(){
   });
   el.toneBtn.addEventListener('click', () => setDevelop(!state.develop));
   el.devClose.addEventListener('click', () => setDevelop(false));
+  el.devBody.querySelectorAll('input[data-dev]').forEach(bindSliderGesture);
   el.devBody.addEventListener('input', (e) => {
     const input = e.target.closest('input[data-dev]');
     if (!input) return;

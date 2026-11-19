@@ -4,8 +4,41 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0a0b">
-<title>获取 LUT — LUT Archive</title>
-<meta name="description" content="How to get official Panasonic, FUJIFILM, Canon, Nikon and Sony LUTs and import them into LUT Archive. The app bundles 44 generated looks and imports any .cube locally.">
+<title>获取 LUT — 相机厂商官方 LUT 与导入方法</title>
+<meta name="description" content="松下、富士、佳能、尼康、索尼的官方 LUT 下载地址，以及把 .cube 导入浏览器暗房的方法。应用自带 64 款自研 look，支持导入任意 .cube。">
+<link rel="canonical" href="https://lut.openanthropic.com/get-luts">
+<meta property="og:type" content="article">
+<meta property="og:title" content="获取 LUT — 相机厂商官方 LUT 与导入方法">
+<meta property="og:description" content="松下、富士、佳能、尼康、索尼官方 LUT 下载来源，以及导入浏览器暗房的步骤。">
+<meta property="og:url" content="https://lut.openanthropic.com/get-luts">
+<meta property="og:image" content="https://lut.openanthropic.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "headline": "获取 LUT — 相机厂商官方 LUT 与导入方法",
+      "description": "松下、富士、佳能、尼康、索尼的官方 LUT 下载地址，以及把 .cube 导入浏览器暗房的方法。",
+      "inLanguage": "zh-CN",
+      "url": "https://lut.openanthropic.com/get-luts",
+      "mainEntityOfPage": "https://lut.openanthropic.com/get-luts",
+      "datePublished": "2026-11-17",
+      "dateModified": "2026-11-19",
+      "author": { "@type": "Organization", "name": "LUT ARCHIVE", "url": "https://lut.openanthropic.com/" },
+      "publisher": { "@type": "Organization", "name": "LUT ARCHIVE", "url": "https://lut.openanthropic.com/" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "LUT ARCHIVE", "item": "https://lut.openanthropic.com/" },
+        { "@type": "ListItem", "position": 2, "name": "获取 LUT", "item": "https://lut.openanthropic.com/get-luts" }
+      ]
+    }
+  ]
+}
+</script>
 <style>
 :root{
   --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.56); --faint:rgba(242,241,236,.32);
@@ -56,6 +89,7 @@ footer a:hover{color:var(--ink)}
     <a class="brand" href="/">LUT ARCHIVE</a>
     <nav class="nav">
       <a href="/">编辑器</a>
+      <a href="/guides/">指南</a>
       <a href="https://github.com/shisongsong/lut-studio" target="_blank" rel="noopener">GitHub</a>
     </nav>
   </header>
@@ -63,8 +97,10 @@ footer a:hover{color:var(--ink)}
   <p class="kicker">LUT Sources</p>
   <h1>获取 LUT</h1>
   <p class="lede">
-    LUT Archive 自带 44 个自研 look，全部由 <code>scripts/looks.mjs</code> 的调色配方生成，
+    LUT Archive 自带 64 个自研 look，全部由 <code>scripts/looks.mjs</code> 的调色配方生成，
     MIT 授权，可以直接下载成 <code>.cube</code> 用在 Resolve / Premiere / Photoshop 里。
+    不清楚 LUT 的 1D / 3D 区别和 LOG 输入前提，先看 <a href="/guides/what-is-lut">LUT 是什么</a>；
+    想看这 64 个 look 的具体风格，<a href="/looks">LUT 目录</a> 里有全部名称和适用场景。
   </p>
   <p class="lede">
     厂商官方 LUT（松下、富士、佳能、尼康、索尼）是免费下载的，但条款只允许本机个人使用，
@@ -84,6 +120,8 @@ footer a:hover{color:var(--ink)}
     先把照片按该 log 曲线重编码再套 LUT——这样官方 LUT 才会按设计的样子出图。
     色域仍按 sRGB 处理，所以色相会有轻微偏差，不是逐字节一致。
     底部那一排的 <code>sRGB / F-Log / F-Log2 / V-Log</code> 按钮可以手动切换。
+    想在别的软件里复现同一套观感，可以先在 <a href="/">编辑器</a> 里把两层 look
+    <a href="/guides/merge-lut">合并成一个 .cube</a> 再下载。
   </div>
   <div class="note" style="margin-top:12px">
     RAW（NEF / CR2 / CR3 / ARW / DNG / RAF 等）可以直接上传，而且是真冲洗：应用内置了
@@ -153,13 +191,13 @@ footer a:hover{color:var(--ink)}
     它们仅限本机个人使用。把这些文件放进公开仓库属于再分发，会让仓库面临下架风险。
   </p>
   <p>
-    所以 LUT Archive 的做法是：<strong>内置的 44 个 look 全部自研、MIT 可分发；第三方 LUT 由用户自己下载后本地导入。</strong>
+    所以 LUT Archive 的做法是：<strong>内置的 64 个 look 全部自研、MIT 可分发；第三方 LUT 由用户自己下载后本地导入。</strong>
     功能上两者完全一样——都能当 A/B 轨用，都能调强度。
   </p>
 
-  <h2>下载内置的 44 个 LUT</h2>
+  <h2>下载内置的 64 个 LUT</h2>
   <p>
-    仓库里的 <code>luts-src/</code> 就是全部 44 个 33³ <code>.cube</code> 文件，文件名即 look id。
+    仓库里的 <code>luts-src/</code> 就是全部 64 个 33³ <code>.cube</code> 文件，文件名即 look id。
     也可以本地重新生成：
   </p>
   <ol>
