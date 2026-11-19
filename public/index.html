@@ -641,7 +641,10 @@ const state = {
   // user sees their own RAW, not somebody else's LUT.
   tone: { exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0, temp: 0, tint: 0, vibrance: 0, saturation: 0 },
   autoEV: 0,
-  noLook: false,
+  // The app opens on the ungraded frame: the demo used to land with Cinema Noir
+  // applied, which made "what you get out of the box" a colour grade nobody
+  // asked for.
+  noLook: true,
   develop: false,
   picking: false,
   rawMeta: null,
@@ -1984,18 +1987,30 @@ function visibleLooks(){
   return state.cat === 'all' ? all : all.filter(l => l.cat === state.cat);
 }
 
+/**
+ * Show only the chips in the selected category. The original chip is not a look
+ * — it is the "no LUT" state — so it stays visible in every category; hiding it
+ * made it impossible to get back to the ungraded photo without resetting the
+ * filter first.
+ */
+function applyCatFilter(){
+  const visible = new Set(visibleLooks().map(l => l.id));
+  el.film.querySelectorAll('.chip').forEach(c => {
+    c.hidden = c.dataset.id !== '__none' && !visible.has(c.dataset.id);
+  });
+}
+
 function setCat(cat){
   state.cat = cat;
   buildCats();
-  const visible = new Set(visibleLooks().map(l => l.id));
-  el.film.querySelectorAll('.chip').forEach(c => { c.hidden = !visible.has(c.dataset.id); });
+  applyCatFilter();
   el.film.scrollTo({ left: 0 });
   // A category is a browsing filter, nothing more: it must never replace the look
   // that is currently applied. The active chip may end up hidden (the look lives in
   // another category) — that is fine, the grade stays on the photo until the user
   // picks another chip.
   const focus = state.dual.enabled && state.activeSlot === 'B' ? state.dual.b : state.look;
-  if (visible.has(focus)) centerChip(focus);
+  if (visibleLooks().some(l => l.id === focus)) centerChip(focus);
 }
 
 class CubeError extends Error {
@@ -2178,6 +2193,9 @@ function buildFilm(){
   el.film.appendChild(frag);
   el.metaLooks.textContent = `${all.length} LOOKS`;
   el.introSub.textContent = `${LOOKS.length} LOOKS / OPEN SOURCE`;
+  // buildFilm() starts from a clean strip, so a filter that was active before
+  // an import/delete would otherwise silently reset.
+  applyCatFilter();
   // Go through the same debounce as every other refresh: the initial render()
   // right after this would otherwise trigger a second full thumbnail pass.
   refreshFilmThumbsSoon();
