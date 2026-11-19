@@ -155,8 +155,19 @@ export function applyColor(rgb, color) {
  *
  * This stage puts every look on that footing, so the per-look recipes only have
  * to describe their character, not fight a milky base.
+ *
+ * It used to run at sat 1.70 / black 0.035. That matched one very flat reference
+ * on paper but not the pack in practice: +70 % shared chroma and a 3.5 % black
+ * lift on all 64 looks made warm scenes read as a single saturated yellow house
+ * grade (a sunny frame came out noticeably warmer than the source even under
+ * looks that should stay neutral). ETERNA is one of the flattest stocks there
+ * is, so a one-reference fit is not a pack-wide calibration. The anchors stay;
+ * shared chroma is back at +35 %, which is what the reference actually measured
+ * once each recipe's own saturation is counted, and the black point sits at 2 %.
+ * Per-look colour casts (Kodak Gold, Warm Sun, Golden Film…) are intentional and
+ * still warm; the rest keep the neutrals where the photo put them.
  * ------------------------------------------------------------------------- */
-const FINISH = { black: 0.035, knee: 0.62, rolloff: 0.88, sat: 1.70 };
+const FINISH = { black: 0.020, knee: 0.62, rolloff: 0.88, sat: 1.35 };
 
 function finishChannel(v, k) {
   const x = clamp01((v - k.black) / (1 - k.black));
@@ -343,7 +354,7 @@ export const GRADES = [
   {
     id: 'cinema-teal', name: '电影', category: '电影',
     color: C.cinemaTeal,
-    finish: { sat: 1.64 },
+    finish: { sat: 1.46 },
     fn: ([r, g, b]) => {
       let c = [contrast(r, 1.14), contrast(g, 1.12), contrast(b, 1.10)];
       c = sat(c[0], c[1], c[2], 0.86);

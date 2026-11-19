@@ -164,6 +164,16 @@ Acros 100), **Ricoh** (GR positive / negative / high-contrast B&W / teal) and
 the stock's documented behaviour — tone curve, colour cast, highlight shoulder,
 channel cross-talk — rather than copying a vendor file.
 
+Every look also passes through one shared finish stage (black point, highlight
+shoulder, +35 % chroma) so the recipes only describe character instead of
+fighting a milky base. That stage used to run at +70 % chroma, calibrated against
+one very flat reference; on warm scenes the whole pack then read as a single
+saturated yellow grade, so it was brought back to the measured range. Looks that
+are warm on purpose (Kodak Gold 200, Warm Sun, Golden Film, Warm Interior) still
+move greys warm and say so in their name; the cool ones (Cinema Blue, Cool Shade,
+Blue Dusk, Tungsten Night, Hasselblad Cool, Documentary) move them cool; the rest
+keep neutrals neutral.
+
 Stack up to two looks with the `DUAL LUT` button. **合并 LUT / MERGE** bakes the
 current stack (each layer mixed in by its strength, exactly as the shader
 composes it) into a single 33³ `.cube`, downloads it, and stores the same grade
