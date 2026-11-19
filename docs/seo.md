@@ -55,6 +55,13 @@ in `wrangler.jsonc`):
 | `/guides` | 301 → `/guides/` |
 | `/get-luts.html` | 301 → `/get-luts` |
 | unknown path | the inline 404 page, status 404 |
+| `/google<16 hex>.html` | served byte-for-byte, no redirect (GSC verification) |
+
+Google Search Console verifies a URL-prefix property by fetching
+`https://host/google<16 hex>.html` exactly; the generic `.html` → clean-URL 301
+can make that check fail, so the Worker exempts that one filename pattern and
+serves it with `cache-control: no-store`. Keep the file in `public/` — removing
+it drops the verification.
 
 `_headers`/`_redirects` files are not used: the Worker is the only router.
 

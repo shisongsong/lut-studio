@@ -64,7 +64,12 @@ export default {
     }
 
     // One canonical form per page: /index.html and /foo.html both redirect to
-    // the clean URL a crawler should index.
+    // the clean URL a crawler should index. Google Search Console verification
+    // files are the exception: the verifier fetches the exact `.html` URL and a
+    // 301 there can fail ownership. Serve them byte-for-byte instead.
+    if (/^\/google[0-9a-f]{16}\.html$/.test(path)) {
+      return withHeaders(await env.ASSETS.fetch(request), { 'cache-control': 'no-store' });
+    }
     if (path === '/index.html') return REDIRECT(`/${url.search}`);
     if (path.endsWith('.html')) {
       const clean = path.slice(0, -5) || '/';
