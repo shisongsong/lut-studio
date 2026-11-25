@@ -174,6 +174,17 @@ funnel step), that wins.
   submitted. Watch: it should rank for install-shaped queries long before the
   look pages rank for stock names, and it funnels into `/download`.
 
+- **Daily trend log (shipped 2026-11-25):** `node scripts/traffic-report.mjs --append`
+  refreshes today's row in `docs/traffic-history.csv` (day, PV, UV, new visitors,
+  crawler hits, top path, top referrer, LCP/INP/CLS p75, JS errors). Idempotent
+  per day, so a second run replaces the row. The report now also retries a failed
+  D1 query once and **refuses to append** when any query failed — a partial row
+  ("no crawlers" when the query actually errored) is worse than no row.
+- **Reduced motion (shipped 2026-11-25):** the intro used the Web Animations API
+  and ignored `prefers-reduced-motion` while the CSS animations already honoured
+  it. `playIntro()` now skips the blur/scale zoom entirely under that setting
+  (verified with Playwright emulation: 0 animations on `#field`/`#film` and the
+  intro marked done immediately, vs 1+1 animations in the default mode).
 - **Monitoring accuracy (shipped 2026-11-25):** `bot_hits.status` used to be a
   hard-coded 200, so a crawler walking into a 404 was invisible. The Worker now
   logs the status it actually returned (verified in production: a Googlebot-UA

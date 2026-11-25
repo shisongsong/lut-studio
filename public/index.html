@@ -4218,6 +4218,12 @@ async function loadRaw(file){
 }
 
 function playIntro(){
+  // The CSS animations already opt out under prefers-reduced-motion; these two
+  // use the Web Animations API and have to check it themselves (a full-frame
+  // blur/scale zoom is exactly what the setting is asking to skip).
+  let reduced = false;
+  try { reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { /* older browser */ }
+  if (reduced) { el.intro.classList.add('done'); return; }
   el.field.animate([{ transform: 'scale(1.06)', filter: 'blur(10px) brightness(.7)' }, { transform: 'scale(1.02)', filter: 'blur(0) brightness(1)' }], { duration: 1100, easing: 'cubic-bezier(.2,0,0,1)' });
   setTimeout(() => el.intro.classList.add('done'), 900);
   el.film.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 700, delay: 450, easing: 'cubic-bezier(.2,0,0,1)', fill: 'both' });

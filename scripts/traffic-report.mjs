@@ -10,6 +10,7 @@
 //   node scripts/traffic-report.mjs --days 30
 //   node scripts/traffic-report.mjs --json     # machine-readable, for a cron diff
 //   node scripts/traffic-report.mjs --prune    # delete rows older than 180 days
+//   node scripts/traffic-report.mjs --append   # also update docs/traffic-history.csv
 //
 // Days are ASIA/SHANGHAI (UTC+8) calendar days, computed at write time, so
 // "yesterday" here is the same yesterday the owner saw.
@@ -27,24 +28,37 @@ const argDays = Number(args[args.indexOf('--days') + 1]);
 const DAYS = Number.isFinite(argDays) && argDays > 0 ? Math.min(365, argDays) : 7;
 const AS_JSON = args.includes('--json');
 const PRUNE = args.includes('--prune');
+// --append writes (or refreshes) today's row in docs/traffic-history.csv so the
+// daily run leaves a git-diffable trend next to the ledger entry.
+const APPEND = args.includes('--append');
+const HISTORY = new URL('../docs/traffic-history.csv', import.meta.url);
+
+// A failed query must not look like an empty table: the report would quietly
+// claim "no crawlers" or "no pages" and a run that appends to the history file
+// would write a wrong row. One retry, then flag the run as incomplete.
+let queryFailures = 0;
 
 async function query(sql) {
-  try {
-    const { stdout } = await run(
-      'npx',
-      ['wrangler', 'd1', 'execute', DB, '--remote', '--json', '--command', sql],
-      { maxBuffer: 40 * 1024 * 1024 }
-    );
-    const start = stdout.indexOf('[');
-    if (start < 0) return [];
-    const parsed = JSON.parse(stdout.slice(start));
-    // --json returns [{results: [...]}, ...]; a multi-statement call returns one
-    // entry per statement, we only ever send one.
-    return parsed[0]?.results || [];
-  } catch (error) {
-    console.error(`query failed: ${String(error.message).split('\n')[0]}`);
-    return [];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { stdout } = await run(
+        'npx',
+        ['wrangler', 'd1', 'execute', DB, '--remote', '--json', '--command', sql],
+        { maxBuffer: 40 * 1024 * 1024 }
+      );
+      const start = stdout.indexOf('[');
+      if (start < 0) return [];
+      const parsed = JSON.parse(stdout.slice(start));
+      // --json returns [{results: [...]}, ...]; a multi-statement call returns one
+      // entry per statement, we only ever send one.
+      return parsed[0]?.results || [];
+    } catch (error) {
+      if (attempt === 0) continue;
+      queryFailures++;
+      console.error(`query failed: ${String(error.message).split('\n')[0]}`);
+    }
   }
+  return [];
 }
 
 const num = (value) => Number(value) || 0;
@@ -79,6 +93,40 @@ function addDays(day, n) {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
+}
+
+/**
+ * One CSV row per day, idempotent: a second run on the same day replaces the
+ * row instead of stacking duplicates. Enough columns to see a trend at a glance
+ * and small enough to read in a diff.
+ */
+async function appendHistory(report) {
+  const fs = await import('node:fs/promises');
+  const header = 'day,pv,uv,new_visitors,crawler_hits,top_path,top_referrer,lcp_p75_ms,inp_p75_ms,cls_p75,js_errors\n';
+  const top = report.topPaths[0];
+  const ref = report.referrers[0];
+  const row = [
+    report.day,
+    report.window.pv,
+    report.window.uv,
+    report.daily.reduce((sum, d) => sum + d.newVisitors, 0),
+    report.window.botHits,
+    (top ? top.path : '').replace(/,/g, '%2C'),
+    (ref ? ref.host : '').replace(/,/g, '%2C'),
+    report.vitals.lcp?.p75 ?? '',
+    report.vitals.inp?.p75 ?? '',
+    report.vitals.cls?.p75 == null ? '' : (report.vitals.cls.p75 / 1000).toFixed(3),
+    report.jsErrors.reduce((sum, e) => sum + e.n, 0),
+  ].join(',');
+  let text = header;
+  try {
+    text = await fs.readFile(HISTORY, 'utf8');
+    if (!text.endsWith('\n')) text += '\n';
+  } catch { /* first run */ }
+  const lines = text.split('\n').filter((line, i) => i === 0 || (line && !line.startsWith(`${report.day},`)));
+  lines.push(row);
+  await fs.writeFile(HISTORY, lines.join('\n') + '\n');
+  console.log(`history: docs/traffic-history.csv updated for ${report.day}`);
 }
 
 async function main() {
@@ -152,6 +200,13 @@ async function main() {
     crawlErrors: crawlErrors.map((r) => ({ bot: r.bot, path: r.path, status: num(r.status), hits: num(r.hits) })),
     vitals: summarizeVitals(vitalsRows),
   };
+
+  if (queryFailures > 0) {
+    console.warn(`\n! ${queryFailures} quer${queryFailures === 1 ? 'y' : 'ies'} failed — this report is incomplete`);
+    if (APPEND) console.warn('  history file not written (a partial row is worse than none)');
+  } else if (APPEND) {
+    await appendHistory(report);
+  }
 
   if (AS_JSON) {
     console.log(JSON.stringify(report, null, 2));
