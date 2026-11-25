@@ -6,7 +6,7 @@ export default {
   hub: null,
   priority: 0.6,
   changefreq: 'monthly',
-  updated: '2026-11-19',
+  updated: '2026-11-20',
   image: '/photos/home-desktop.jpg',
   jsonLd: (lang) => [
     orgLd(),
@@ -19,7 +19,7 @@ export default {
           : 'An open-source photo editor that runs a complete RAW pipeline in the browser.',
       path: lang === 'zh' ? '/about' : '/en/about',
       image: '/photos/home-desktop.jpg',
-      updated: '2026-11-19',
+      updated: '2026-11-20',
       hub: lang === 'zh' ? '关于' : 'About',
     }),
   ],
@@ -33,7 +33,8 @@ export default {
 
 <h2 id="pipeline">管线</h2>
 <p>RAW 在 Web Worker 里解码：<a href="https://github.com/ybouane/flashraw" rel="noopener">flashraw</a> 编译成 WebAssembly，负责解包、AHD 去马赛克、相机白平衡和相机色彩矩阵。解码按 16 位并保留高于白的 4 档场景余量，再编码成场景线性的半浮点数据给 GPU。显示变换用 darktable 的 sigmoid，逐通道加保色相，参数闭式拟合。高光之所以能压回来，是因为那些数据在解码时就没有被丢掉。</p>
-<p>显影面板里的曝光、对比度、高光、阴影、白色、黑色都是在场景线性空间里做的线性运算；预览和导出共用同一条管线。导出时 100% 使用内存里的全分辨率帧分块渲染，导出的 JPEG 和屏幕上看到的一致。</p>
+<p>曝光和白平衡在线性光下乘性调整。六个色调滑块不再是写死的公式：解码时 Worker 已经量出这张照片自己的 EV 分位数（p0.1 到 p99.9），滑块的作用位置就落在实测区域上——高光在实测 p75 以上收紧，阴影以实测下四分位为中心并在实测 p1 处锁住黑场，白色/黑色只动各自那一端的实测范围，对比度绕实测中位数做斜率。全局与局部两条曲线在 CPU 上生成成 1024 项对数亮度 LUT（着色器按像素 EV 与引导图 EV 分别采样再相加），单调性和最小局部斜率都有数值保证，因此任何滑块组合都不会把画面折叠成色带；滑块为零时曲线是恒等映射，打开时校准好的基准画面不受影响。RAW 解码保留的 4 档高于白的余量也在这里被用于高光压缩：降高光是降低对数域的斜率，而不是把阈值以上统一压成同一块白。</p>
+<p>自动色调用同一套实测锚点：相机风格开启时保留相机曝光，用百分位启发式给出目标位置，再按实际渲染直方图求解阴影/高光/白色/黑色滑块（不宣称复刻 Lightroom Auto）。曝光滑块是相对“打开时自动曝光”的偏移，0 表示保持打开时的亮度。预览和导出共用同一条管线，100% 导出以分块方式读取内存里的全分辨率帧。</p>
 
 <h2 id="looks">LUT</h2>
 <p>内置的 64 款 look 来自 <code>scripts/looks.mjs</code> 里的原始配方，生成 33³ 的立方体，打包时按行存差值再 gzip，整个包 1.34 MB，用到哪支解哪支。同一批 look 也以标准 <code>.cube</code> 文件形式放在仓库里，可以直接拿到 Resolve、Premiere、Photoshop 里用。它们是对相应胶片或相机风格的近似，不是厂商发布的 LUT 数据。</p>
@@ -64,7 +65,8 @@ export default {
 
 <h2 id="pipeline">Pipeline</h2>
 <p>The RAW is decoded in a Web Worker: <a href="https://github.com/ybouane/flashraw" rel="noopener">flashraw</a> compiled to WebAssembly handles unpacking, AHD demosaicing, camera white balance and the camera colour matrix. The decode keeps 16 bits and four stops of scene headroom above white, then re-encodes the frame as scene-linear half floats for the GPU. The display transform is darktable's sigmoid, applied per channel with hue preservation and a closed-form parameter fit. Highlights can be recovered because that data was never discarded during decoding.</p>
-<p>Exposure, contrast, highlights, shadows, whites and blacks in the develop panel are all linear operations in scene-linear space, and the preview and the export share the same pipeline. At 100 % the export renders the in-memory full-resolution frame in tiles, so the JPEG matches what was on screen.</p>
+<p>Exposure and white balance multiply the scene-linear RAW data. The six tone sliders are not fixed formulas: while decoding, the Worker already measures this photo's own EV percentiles (p0.1 to p99.9), and each slider places its band in that measured range — highlights tighten above the measured p75, shadows open around the measured lower quartile with the black point locked at the measured p1, whites/blacks move only their own measured ends, contrast pivots on the measured median. The global and local curves are built on the CPU as 1024-entry log-luminance LUTs (the shader samples the pixel EV and the blurred guide EV and adds both), and monotonicity plus a minimum local slope are enforced numerically, so no slider combination can fold the image into banded tones. At zero the curve is the identity, which leaves the calibrated base rendering untouched. The four stops of headroom kept by the decode are used here for highlight compression: lowering highlights reduces the log-domain slope rather than clamping everything above a threshold to one white.</p>
+<p>Auto Tone uses the same measured anchors: it takes a target placement from a percentile heuristic, then solves shadows/highlights/whites/blacks against the actual rendered histogram and never darkens or further clips the frame. The exposure slider is an offset from the as-opened auto exposure (0 keeps the baseline). At 100 % the export renders the in-memory full-resolution frame in tiles, so the JPEG matches the displayed pipeline.</p>
 
 <h2 id="looks">LUTs</h2>
 <p>The 64 built-in looks come from the original recipes in <code>scripts/looks.mjs</code>, baked to 33³ cubes and packed as per-row deltas plus gzip: 1.34 MB for the whole pack, decoded per look on demand. The same looks ship as standard <code>.cube</code> files in the repository, ready for Resolve, Premiere or Photoshop. They approximate the named film stocks and camera profiles; they are not vendor-published LUT data.</p>

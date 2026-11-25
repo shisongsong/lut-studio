@@ -69,8 +69,8 @@
   "mainEntityOfPage": "https://lut.openanthropic.com/en/about",
   "url": "https://lut.openanthropic.com/en/about",
   "image": "https://lut.openanthropic.com/photos/home-desktop.jpg",
-  "datePublished": "2026-11-19",
-  "dateModified": "2026-11-19",
+  "datePublished": "2026-11-20",
+  "dateModified": "2026-11-20",
   "author": {
     "@type": "Organization",
     "name": "LUT ARCHIVE",
@@ -216,13 +216,14 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
   <p class="crumbs"><a href="/">Home</a><span>/</span>A darkroom that runs in the browser</p><p class="kicker">ABOUT</p>
   <h1>A darkroom that runs in the browser</h1>
   <p class="lede">LUT ARCHIVE does RAW decoding, development and LUT grading entirely in the browser. There is no server-side rendering, no account, and the photo never leaves your device.</p>
-  <p class="crumbs"><span>Updated 2026-11-19</span></p>
+  <p class="crumbs"><span>Updated 2026-11-20</span></p>
 </div>
 <p>It exists for one specific situation: you have a RAW, you are on a machine that is not yours, you do not want to install a whole desktop application for one photo, and you would rather not upload it to a cloud drive or an online converter. Open the page, drop the file in, develop it, export it.</p>
 
 <h2 id="pipeline">Pipeline</h2>
 <p>The RAW is decoded in a Web Worker: <a href="https://github.com/ybouane/flashraw" rel="noopener">flashraw</a> compiled to WebAssembly handles unpacking, AHD demosaicing, camera white balance and the camera colour matrix. The decode keeps 16 bits and four stops of scene headroom above white, then re-encodes the frame as scene-linear half floats for the GPU. The display transform is darktable's sigmoid, applied per channel with hue preservation and a closed-form parameter fit. Highlights can be recovered because that data was never discarded during decoding.</p>
-<p>Exposure, contrast, highlights, shadows, whites and blacks in the develop panel are all linear operations in scene-linear space, and the preview and the export share the same pipeline. At 100 % the export renders the in-memory full-resolution frame in tiles, so the JPEG matches what was on screen.</p>
+<p>Exposure and white balance multiply the scene-linear RAW data. The six tone sliders are not fixed formulas: while decoding, the Worker already measures this photo's own EV percentiles (p0.1 to p99.9), and each slider places its band in that measured range — highlights tighten above the measured p75, shadows open around the measured lower quartile with the black point locked at the measured p1, whites/blacks move only their own measured ends, contrast pivots on the measured median. The global and local curves are built on the CPU as 1024-entry log-luminance LUTs (the shader samples the pixel EV and the blurred guide EV and adds both), and monotonicity plus a minimum local slope are enforced numerically, so no slider combination can fold the image into banded tones. At zero the curve is the identity, which leaves the calibrated base rendering untouched. The four stops of headroom kept by the decode are used here for highlight compression: lowering highlights reduces the log-domain slope rather than clamping everything above a threshold to one white.</p>
+<p>Auto Tone uses the same measured anchors: it takes a target placement from a percentile heuristic, then solves shadows/highlights/whites/blacks against the actual rendered histogram and never darkens or further clips the frame. The exposure slider is an offset from the as-opened auto exposure (0 keeps the baseline). At 100 % the export renders the in-memory full-resolution frame in tiles, so the JPEG matches the displayed pipeline.</p>
 
 <h2 id="looks">LUTs</h2>
 <p>The 64 built-in looks come from the original recipes in <code>scripts/looks.mjs</code>, baked to 33³ cubes and packed as per-row deltas plus gzip: 1.34 MB for the whole pack, decoded per look on demand. The same looks ship as standard <code>.cube</code> files in the repository, ready for Resolve, Premiere or Photoshop. They approximate the named film stocks and camera profiles; they are not vendor-published LUT data.</p>

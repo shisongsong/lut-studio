@@ -23,7 +23,7 @@ export default {
   kind: 'guide',
   priority: 0.8,
   changefreq: 'monthly',
-  updated: '2026-11-19',
+  updated: '2026-11-20',
   readMinutes: 7,
   image: '/photos/home-desktop.jpg',
   jsonLd: (lang) => [
@@ -36,7 +36,7 @@ export default {
           : 'Which half of Lightroom a free browser tool can replace, which half it cannot, and which tool fits which job.',
       path: lang === 'zh' ? '/alternatives/lightroom-web' : '/en/alternatives/lightroom-web',
       image: '/photos/home-desktop.jpg',
-      updated: '2026-11-19',
+      updated: '2026-11-20',
       hub: lang === 'zh' ? '工具对比' : 'Comparisons',
     }),
   ],
@@ -46,7 +46,7 @@ export default {
     kicker: '对比 · Lightroom',
     h1: '浏览器里有免费的 Lightroom 替代品吗？',
     lede: '一半有，一半没有。单张 RAW 的显影、调色和导出，浏览器可以免费做完；Lightroom 的另一半是目录、批量和云端图库，这部分目前没有免费的浏览器替代品，这个工具也不假装自己能做。',
-    body: `<figure class="figure"><img src="/photos/home-desktop.jpg" width="1400" height="875" alt="LUT ARCHIVE 在浏览器里的编辑界面：左侧是冲洗面板，底部是 look 胶片条，画布上是一张正在显影的照片" loading="lazy"><figcaption>浏览器里的编辑器：显影面板、look 胶片条和画布在同一个页面里，没有安装步骤。</figcaption></figure>
+    body: `<figure class="figure"><img src="/photos/home-desktop.jpg" width="1400" height="875" alt="LUT ARCHIVE 在浏览器里的编辑界面：左侧是色调面板，底部是 look 胶片条，画布上是一张正在显影的照片" loading="lazy"><figcaption>浏览器里的编辑器：显影面板、look 胶片条和画布在同一个页面里，没有安装步骤。</figcaption></figure>
 
 <h2 id="answer">有免费的浏览器版 Lightroom 吗？</h2>
 <p>有，但只覆盖一半的活。Lightroom 同时是两样东西：一台 RAW 显影器，和一套围绕目录（catalogue）与云端图库建立的工作流。浏览器能免费做前一半——打开单张 RAW、按暗房方式显影、套 LUT、导出 JPEG，不安装、不注册、照片不离开本机。后一半——图库、批量、跨设备同步——没有免费的浏览器方案能替代，本文介绍的这个工具也不做。</p>
@@ -66,10 +66,10 @@ export default {
 <p>表里没有排名，只有边界。“仅桌面”不是缺点，“仅浏览器”也不是优点——它们决定了你能在什么地方打开文件，以及这个工具是为什么样的工作流设计的。</p>
 
 <h2 id="does">这个浏览器暗房实际能做到什么</h2>
-<p>它是一台单帧暗房。<a href="/guides/raw-in-browser">在浏览器里打开 RAW</a> 之后，解码交给 Web Worker 里的 flashraw，16 位场景线性数据在 GPU 上显影，显示变换用的是 darktable 的 sigmoid，与 darktable 5.6.2 做过端到端对照，最大差 0.0008。这些是能在仓库里复现的实现，不是宣传语。</p>
+<p>它是一台单帧暗房。<a href="/guides/raw-in-browser">在浏览器里打开 RAW</a> 之后，解码交给 Web Worker 里的 flashraw，16 位场景线性数据在 GPU 上显影，显示变换用 darktable 的 sigmoid。合成线性 EV 阶梯通过 darktable 5.6.2 CLI 做了像素级参考测试，观测最大线性误差为 0.0014772；这是曲线验证，不是完整 RAW 或 Lightroom Auto 等价验证。</p>
 <ul>
   <li><strong>RAW 解码</strong>：NEF / NRW（含 HE、HE* 压缩）、CR2、CR3、ARW、SRF、SR2、DNG、RAF、ORF、RW2、PEF、SRW、3FR、ERF、KDC、MOS、IIQ、X3F；拆不开时退回文件内嵌的相机 JPEG。</li>
-  <li><strong>显影</strong>：白平衡、曝光、对比度、高光、阴影、白色、黑色都在场景线性空间里计算；RAW 打开时先给一个按场景亮度算的自动曝光。</li>
+  <li><strong>显影</strong>：白平衡与曝光在线性光下处理；六个色调滑块按这张照片自己实测的 EV 分位数放置作用范围（高光收紧实测顶部、阴影打开实测下部并锁住黑场、白色/黑色只动各自端点、对比度绕实测中位数），曲线在 CPU 上生成为单调 LUT，着色器按像素 EV 与引导图 EV 分别采样；RAW 打开时另有按场景亮度计算的自动曝光，曝光滑块是相对它的偏移。</li>
   <li><strong>LUT</strong>：64 款内置 look，可调强度、可叠第二支、可合并成一个 <code>.cube</code>，也能导入自己的 .cube。完整清单在 <a href="/looks">LUT 目录</a>。</li>
   <li><strong>导出</strong>：JPEG 按源图长边的 50 / 75 / 100% 三档输出，100% 用内存里的全分辨率帧分块渲染。</li>
   <li><strong>隐私</strong>：没有账号，没有上传，没有统计脚本；唯一的网络请求是应用资源和用来选界面语言的 <code>/api/geo</code> 国家码查询。</li>
@@ -132,10 +132,10 @@ ${faqBody(ALT_FAQ_ZH)}
 <p>Nothing in the table is a ranking, only a boundary. "Desktop only" is not a flaw and "browser only" is not a feature — the two decide where you can open the file and what workflow the tool was built around.</p>
 
 <h2 id="does">What this browser darkroom actually does</h2>
-<p>It is a single-frame darkroom. <a href="/en/guides/raw-in-browser">Open a RAW in the browser</a> and flashraw decodes it in a Web Worker; the 16-bit scene-linear frame is developed on the GPU, and the display transform is darktable's sigmoid, checked end to end against darktable 5.6.2 to within 0.0008. Those are implementation facts you can reproduce from the repository, not claims.</p>
+<p>It is a single-frame darkroom. <a href="/en/guides/raw-in-browser">Open a RAW in the browser</a> and flashraw decodes it in a Web Worker; the 16-bit scene-linear frame is developed on the GPU, using darktable's sigmoid display transform. A synthetic linear EV ramp is pixel-compared against darktable 5.6.2 CLI output with an observed maximum linear error of 0.0014772; this checks the curve, not a full camera RAW pipeline or Lightroom Auto equivalence.</p>
 <ul>
   <li><strong>RAW decoding</strong>: NEF / NRW (including HE and HE* compression), CR2, CR3, ARW, SRF, SR2, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ, X3F; if a file cannot be unpacked, the camera JPEG embedded in it is used instead.</li>
-  <li><strong>Development</strong>: white balance, exposure, contrast, highlights, shadows, whites and blacks all computed in scene-linear space; a RAW opens with an auto exposure derived from the scene.</li>
+  <li><strong>Development</strong>: white balance and exposure operate in linear light; every tone slider places its band from this photo's measured EV percentiles (highlights tighten the measured top, shadows open the measured bottom while locking the black point, whites/blacks move only their measured ends, contrast pivots on the measured median) and the curve is built as a monotone LUT; a RAW also opens with scene-derived auto exposure, and the exposure slider is an offset from it.</li>
   <li><strong>LUTs</strong>: 64 built-in looks with adjustable strength, a second slot for stacking, a merge into one <code>.cube</code>, and local .cube import. The full list is in the <a href="/en/looks">look catalogue</a>.</li>
   <li><strong>Export</strong>: JPEG at 50 / 75 / 100 % of the source long edge; 100 % renders the in-memory full-resolution frame in tiles.</li>
   <li><strong>Privacy</strong>: no account, no upload, no analytics; the only network requests are app assets and a <code>/api/geo</code> country lookup used to pick the interface language.</li>

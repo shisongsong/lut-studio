@@ -87,20 +87,13 @@ button{background:none;border:0;cursor:pointer}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
 .app{position:fixed;inset:0;overflow:hidden;overflow:clip}
-.field{position:absolute;inset:-2%;transform:scale(1.02);transition:transform .6s cubic-bezier(.2,0,0,1)}
+.field{position:absolute;inset:-2%;transform:translateY(calc(-1 * var(--stage-lift,0px))) scale(1.02);transition:transform .6s cubic-bezier(.2,0,0,1)}
 .field img,.field canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.field .layer{clip-path:inset(0 0 0 calc(var(--split,.5)*100%));transition:opacity .22s linear}
+.field .layer{transition:opacity .22s linear}
 .field .layer.off{opacity:0}
 .scrim{position:absolute;inset:0;pointer-events:none;background:
   linear-gradient(180deg,rgba(5,5,6,.55) 0%,rgba(5,5,6,0) 18%,rgba(5,5,6,0) 62%,rgba(5,5,6,.92) 100%),
   linear-gradient(90deg,rgba(5,5,6,.35) 0%,rgba(5,5,6,0) 30%)}
-.split{position:absolute;inset:0;pointer-events:none}
-.split-line{position:absolute;top:0;bottom:0;left:calc(var(--split,.5)*100%);width:1px;background:rgba(255,255,255,.55);box-shadow:0 0 22px rgba(0,0,0,.45)}
-.split-handle{position:absolute;top:50%;left:calc(var(--split,.5)*100%);transform:translate(-50%,-50%);width:44px;height:44px;border:1px solid rgba(255,255,255,.5);background:rgba(12,12,14,.3);backdrop-filter:blur(10px);color:#fff;display:grid;place-items:center;pointer-events:auto;cursor:ew-resize;touch-action:none;transition:transform .15s,background .15s}
-.split-handle:hover{transform:translate(-50%,-50%) scale(1.06);background:rgba(12,12,14,.5)}
-.split-handle span{font-size:14px;line-height:1}
-.tag{position:absolute;top:64px;font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:rgba(255,255,255,.7)}
-.tag.before{left:22px}.tag.after{right:22px}
 
 .topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:22px 24px;z-index:5;mix-blend-mode:normal}
 .brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10px;letter-spacing:.16em}
@@ -182,14 +175,11 @@ a.tbtn{text-decoration:none}
 .intro-wait{margin-top:2px;font-family:var(--mono);font-size:7px;letter-spacing:.24em;color:rgba(242,241,236,.42);opacity:0;animation:fadein .8s ease 1.4s forwards}
 @keyframes fadein{to{opacity:1}}
 
-.toast{position:fixed;left:50%;bottom:70px;transform:translate(-50%,8px);background:rgba(18,18,20,.94);border:1px solid rgba(255,255,255,.14);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.04em;padding:9px 12px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:60}
+.toast{position:fixed;left:50%;bottom:70px;transform:translate(-50%,8px);max-width:calc(100vw - 28px);background:rgba(18,18,20,.94);border:1px solid rgba(255,255,255,.14);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.04em;line-height:1.45;padding:9px 12px;text-align:center;overflow-wrap:anywhere;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:60}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .drop{position:fixed;inset:10px;border:1px dashed rgba(255,255,255,.5);background:rgba(8,8,9,.86);display:none;place-items:center;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#fff;z-index:25}
 .drop.on{display:grid}
 
-
-/* split hit zone: only the line + handle can be dragged */
-.split-hit{position:absolute;top:0;bottom:0;left:calc(var(--split,.5)*100%);width:44px;transform:translateX(-50%);pointer-events:auto;cursor:ew-resize;touch-action:none;z-index:2}
 
 /* quick actions */
 .quick{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:2px 0 0}
@@ -201,7 +191,6 @@ a.tbtn{text-decoration:none}
 .quick button.on{color:var(--accent);border-color:var(--accent)}
 
 @media(max-width:820px){
-  .split-hit{width:52px}
   .quick{gap:14px;padding-bottom:2px}
   .quick button{font-size:7.5px}
 }
@@ -224,8 +213,6 @@ a.tbtn{text-decoration:none}
   .chip{width:76px}
   .chip canvas{width:76px;height:51px}
   .chip .nm{font-size:7.5px}
-  .tag{display:none}
-  .tag.before{left:14px}.tag.after{right:14px}
   .film{margin-right:-14px}
 }
 
@@ -278,27 +265,13 @@ a.tbtn{text-decoration:none}
 /* no look: the strength rail has nothing to drive, and the big title only
    competes with the develop panel. */
 .app.nolook .strengths{display:none}
-/* The before/after divider only means something once a look is applied: on the
-   original both halves are the same frame, so it was a line across the photo. */
-.app.nolook .split,.app.nolook .tag{display:none}
-/* Clean view: the photo and one exit pill, nothing else. */
-.app.clean .topbar,.app.clean .bottom,.app.clean .split,.app.clean .tag,
-.app.clean .strengths,.app.clean .devpanel{display:none!important}
-/* Hiding the divider is not enough: the graded layer is still clipped at the
-   split position, so the photo carried a hard vertical seam. Clean view shows
-   the full after-side. */
-.app.clean .field .layer{clip-path:none!important}
-.clean-exit{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:30;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(242,241,236,.82);background:rgba(9,9,10,.55);border:1px solid rgba(255,255,255,.22);padding:9px 13px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:.5;transition:opacity .2s,background .2s,border-color .2s}
-.clean-exit:hover{opacity:1;background:rgba(9,9,10,.85);border-color:rgba(255,255,255,.5)}
-.clean-exit[hidden]{display:none!important}
-.tbtn.icon{display:grid;place-items:center;width:18px;height:18px;padding:0;border-bottom:0}
-.tbtn.icon svg{display:block}
+/* Clean view: the photo and nothing else. Tap the photo again to leave. */
+.app.clean .topbar,.app.clean .bottom,.app.clean .strengths,.app.clean .devpanel{display:none!important}
 @media(max-width:560px){.top-actions a.tbtn.sub{display:none}}
 .app.develop .look-line{display:none}
 
 /* long-press compare */
 .app.comparing .layer{opacity:0!important}
-.app.comparing .split-line,.app.comparing .split-handle{opacity:0}
 
 /* high-contrast strength rails over any photo */
 .strengths{background:rgba(8,8,9,.46);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.14);padding:10px 9px;border-radius:2px}
@@ -327,6 +300,7 @@ a.tbtn{text-decoration:none}
 .devpanel{z-index:9;background:rgba(9,9,10,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);display:flex;flex-direction:column;border-left:1px solid var(--line)}
 .devpanel[hidden]{display:none}
 .dev-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,.09);flex:none}
+.dev-head>div:first-child{min-width:0}
 .dev-title{margin:0;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.18em}
 .dev-sub{display:block;margin-top:5px;font-family:var(--mono);font-size:7.5px;letter-spacing:.08em;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
 .dev-actions{display:flex;align-items:center;gap:6px;flex:none}
@@ -373,17 +347,19 @@ a.tbtn{text-decoration:none}
   .app.develop .field{right:336px}
   .app.develop .topbar{right:336px}
   .app.develop .bottom{right:336px}
-  .app.develop .split{right:336px}
-  .app.develop .split-hit{width:44px}
-  .app.develop .tag.after{right:calc(336px + 22px)}
   .app.develop .strengths{right:calc(336px + 20px)}
 }
 @media(max-width:820px){
   .devpanel{position:absolute;left:0;right:0;bottom:0;height:min(54vh,460px);border-left:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -18px 44px rgba(0,0,0,.55)}
   .app.develop .field{bottom:min(54vh,460px)}
-  .app.develop .split{bottom:min(54vh,460px)}
   .app.develop .bottom{display:none}
-  .dev-head{padding:11px 14px 8px}
+  .dev-head{padding:10px 12px 7px;gap:6px;flex-wrap:wrap}
+  /* The Camera look button appears asynchronously and is wordy in English; if
+     the actions cannot wrap they push the fixed-width sheet wider than the
+     viewport, and mobile Chrome shrinks the whole page to fit (the layout
+     viewport changed from 408 to 443 px). Let the header wrap instead. */
+  .dev-actions{flex-wrap:wrap;justify-content:flex-end;row-gap:4px}
+  .dev-btn{padding:5px 6px}
   .dev-sub{max-width:196px}
   .dev-body{padding:0 14px max(16px,env(safe-area-inset-bottom))}
   .dev-row{grid-template-columns:46px 1fr 30px;padding:4px 0}
@@ -434,13 +410,6 @@ a.tbtn{text-decoration:none}
     <canvas class="layer off" id="layerB"></canvas>
   </div>
   <div class="scrim"></div>
-  <span class="tag before mono">BEFORE</span>
-  <span class="tag after mono">AFTER</span>
-  <div class="split" id="split">
-    <div class="split-hit" id="splitHit"></div>
-    <div class="split-line"></div>
-    <button class="split-handle" id="splitHandle" aria-label="拖动对比"><span>↔</span></button>
-  </div>
 
   <header class="topbar">
     <div class="brand"><span class="dot" id="accentDot"></span>LUT ARCHIVE</div>
@@ -448,7 +417,6 @@ a.tbtn{text-decoration:none}
       <a class="tbtn" href="/guides/">指南</a>
       <a class="tbtn sub" href="/looks">LUT 目录</a>
       <a class="tbtn" href="https://github.com/shisongsong/lut-studio" id="githubLink" target="_blank" rel="noopener">GitHub</a>
-      <button class="tbtn icon" id="cleanBtn" title="纯净模式（H，Esc 退出） / Clean view" aria-label="纯净模式"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><path d="M1 4.5V1h3.5M8.5 1H12v3.5M12 8.5V12H8.5M4.5 12H1V8.5"/></svg></button>
       <button class="tbtn" id="langBtn">EN</button>
     </div>
   </header>
@@ -462,7 +430,7 @@ a.tbtn{text-decoration:none}
           <span class="en"><span class="cat" id="lookCat">CINEMA</span> · <span id="lookEn">CINEMA TEAL</span></span>
         </div>
       </div>
-      <div class="hint" id="hint">DRAG THE LINE · LONG-PRESS RIGHT TO SEE ORIGINAL · H CLEAN VIEW</div>
+      <div class="hint" id="hint">轻点图像进入纯净模式 · 长按看原图 · 双指缩放</div>
     </div>
     <div class="strengths" id="strengths">
       <div class="strength" id="strengthA">
@@ -480,12 +448,11 @@ a.tbtn{text-decoration:none}
     <div class="filmwrap"><div class="film" id="film"></div></div>
     <div class="quick">
       <button id="photoBtn">PHOTO</button>
-      <button id="fitBtn">FILL</button>
       <button id="zoomBtn" class="zoom" title="缩放 / Zoom">100%</button>
       <button id="dualBtn" class="dual">DUAL LUT</button>
       <button id="logBtn" title="输入曲线 / input curve">sRGB</button>
       <button id="autoBtn" class="auto" title="RAW 自动亮度 / RAW auto brightness" hidden>AUTO</button>
-      <button id="toneBtn">冲洗</button>
+      <button id="toneBtn">色调</button>
       <button id="mergeBtn" title="合并当前单/双 LUT 并保存下载">合并 LUT</button>
       <button id="importBtn">导入 LUT</button>
       <button id="exportBtn" class="quick-export">导出 ↗</button>
@@ -516,13 +483,14 @@ a.tbtn{text-decoration:none}
   </div>
 </div>
 
-<aside class="devpanel" id="devPanel" hidden aria-label="冲洗 / Develop">
+<aside class="devpanel" id="devPanel" hidden aria-label="色调 / Develop">
   <div class="dev-head">
     <div>
-      <h2 class="dev-title" id="devTitle">冲洗</h2>
+      <h2 class="dev-title" id="devTitle">色调</h2>
       <span class="dev-sub" id="devSub">RAW · AS SHOT</span>
     </div>
     <div class="dev-actions">
+      <button class="dev-btn" id="devCamLook" hidden title="相机风格 / Camera look">相机风格</button>
       <button class="dev-btn" id="devAuto" title="自动色调 / Auto tone">自动色调</button>
       <button class="dev-btn" id="devReset">重置</button>
       <button class="icon-x" id="devClose" aria-label="关闭">×</button>
@@ -586,7 +554,6 @@ a.tbtn{text-decoration:none}
   </div>
 </div>
 
-<button class="clean-exit" id="cleanExit" hidden>退出纯净模式</button>
 <input type="file" id="fileInput" accept="image/*,.jpg,.jpeg,.png,.webp,.avif,.heic,.heif,.tif,.tiff,.nef,.nrw,.cr2,.cr3,.arw,.srf,.sr2,.dng,.raf,.orf,.rw2,.pef,.srw,.3fr,.erf,.kdc,.mos,.iiq,.x3f" hidden>
 <input type="file" id="importInput" multiple hidden>
 <div class="busy" id="busy" hidden aria-live="polite" aria-busy="true">
@@ -607,28 +574,30 @@ a.tbtn{text-decoration:none}
 
 <script type="module">
 import { LOOKS, LUT_EDGE } from '/js/looks.js';
-import { LookRenderer, computeViewRect } from '/js/renderer.js';
+import { LookRenderer, computeViewRect, LLF_WEIGHT } from '/js/renderer.js';
 import { t, displayName, displayMeta, CAT_EN } from '/js/i18n.js';
 import { loadLuts, saveLut, deleteLut } from '/js/lut-store.js';
 import { developRaw, extractRawPreview, RawUnsupported } from '/js/raw.js';
+import { imageStats, buildCameraLookCurve, cameraLookGains } from '/js/camera-look.js';
+import { neutralAutoValues, cameraAutoTargets, solveCameraAutoTone } from '/js/auto-tone.js';
+import { evStats } from '/js/tone-curve.js';
 
 const $ = (s) => document.querySelector(s);
 const el = {
   app: $('#app'), field: $('#field'), base: $('#base'), layerA: $('#layerA'), layerB: $('#layerB'),
-  split: $('#split'), splitHit: $('#splitHit'), splitHandle: $('#splitHandle'), film: $('#film'), lookNo: $('#lookNo'),
+  bottom: $('.bottom'), film: $('#film'), lookNo: $('#lookNo'),
   lookName: $('#lookName'), lookCat: $('#lookCat'), lookEn: $('#lookEn'), hint: $('#hint'),
   strengthA: $('#strengthA'), strengthB: $('#strengthB'), trackA: $('#trackA'), trackB: $('#trackB'),
   fillA: $('#fillA'), fillB: $('#fillB'), knobA: $('#knobA'), knobB: $('#knobB'),
   strengthVal: $('#strengthVal'), strengthBVal: $('#strengthBVal'), slotLabels: [...document.querySelectorAll('.slot-label')],
-  photoBtn: $('#photoBtn'), fitBtn: $('#fitBtn'), dualBtn: $('#dualBtn'),
+  photoBtn: $('#photoBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
   langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), mergeBtn: $('#mergeBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'), zoomBtn: $('#zoomBtn'),
   busy: $('#busy'), busyTitle: $('#busyTitle'), busySteps: $('#busySteps'), busyTrack: $('#busyTrack'), busyFill: $('#busyFill'), busySub: $('#busySub'), busyClock: $('#busyClock'),
   loadPillFill: $('#loadPillFill'), loadPillPct: $('#loadPillPct'),
-  devPanel: $('#devPanel'), devTitle: $('#devTitle'), devSub: $('#devSub'), devBody: $('#devBody'), devAuto: $('#devAuto'), devReset: $('#devReset'), devClose: $('#devClose'), devPick: $('#devPick'), devHint: $('#devHint'), devHist: $('#devHist'), lqip: $('#lqip'), loadPill: $('#loadPill'), loadPillText: $('#loadPillText'),
+  devPanel: $('#devPanel'), devTitle: $('#devTitle'), devSub: $('#devSub'), devBody: $('#devBody'), devAuto: $('#devAuto'), devCamLook: $('#devCamLook'), devReset: $('#devReset'), devClose: $('#devClose'), devPick: $('#devPick'), devHint: $('#devHint'), devHist: $('#devHist'), lqip: $('#lqip'), loadPill: $('#loadPill'), loadPillText: $('#loadPillText'),
   importSheet: $('#importSheet'), importClose: $('#importClose'), importPick: $('#importPick'),
-  cleanBtn: $('#cleanBtn'), cleanExit: $('#cleanExit'),
   profileSheet: $('#profileSheet'), profileTitle: $('#profileTitle'), profileStatus: $('#profileStatus'), profileList: $('#profileList'), profileNote: $('#profileNote'), profileClose: $('#profileClose'),
   exportSheet: $('#exportSheet'), exportClose: $('#exportClose'), qualityList: $('#qualityList'), exportConfirm: $('#exportConfirm'),
   q50Dims: $('#q50Dims'), q75Dims: $('#q75Dims'), q100Dims: $('#q100Dims'),
@@ -636,9 +605,9 @@ const el = {
 const state = {
   look: LOOKS[3].id,
   strength: 100,
-  split: 0.5,
-  // Fit, not fill, by default: opening a photo should show the whole frame.
-  fit: localStorage.getItem('lut.fit') === 'cover' ? 'cover' : 'contain',
+  // Fit is the only framing: zoom and pan cover inspection, so the old
+  // fill/cover toggle is gone.
+  fit: 'contain',
   // Interactive inspection view: zoom is relative to the fit framing, and cx/cy
   // is the centre of the visible image rectangle in image uv coordinates.
   view: { zoom: 1, cx: 0.5, cy: 0.5 },
@@ -649,8 +618,9 @@ const state = {
   // true when the input curve was chosen by hand in the profile sheet instead
   // of being derived from the imported LUT that is currently applied.
   logManual: false,
-  // Presentation mode: all chrome hidden, one small exit pill left on screen.
+  // Presentation mode: all chrome hidden; a tap on the photo leaves it.
   clean: false,
+  cleanHadDevelop: false,
   // RAW auto-brightness: brightness only, computed at decode time, applied as a
   // linear exposure in the shader so the toggle is instant and export matches.
   autoBright: localStorage.getItem('lut.autoBright') !== '0',
@@ -662,6 +632,13 @@ const state = {
   // user sees their own RAW, not somebody else's LUT.
   tone: { exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0, temp: 0, tint: 0, vibrance: 0, saturation: 0 },
   autoEV: 0,
+  // Frozen exposure reference for the BEFORE side; later edits must not move it.
+  baseExposure: 0,
+  // Camera-preview look: estimate the camera's own JPEG rendition from the
+  // embedded preview so a RAW opens looking like the camera/phone gallery.
+  // The neutral scene-referred development stays one click away.
+  cameraLook: localStorage.getItem('lut.cameraLook') !== '0',
+  cameraLookCurve: null,
   // The app opens on the ungraded frame: the demo used to land with Cinema Noir
   // applied, which made "what you get out of the box" a colour grade nobody
   // asked for.
@@ -682,8 +659,136 @@ const state = {
 let renderer, source, luts, layers = [el.layerA, el.layerB], active = 0, accent = '#d9c7a3';
 let sourceName = 'Positano';
 let pressTimer = 0;
-let applySplitVarsRef = null;
+// Single-tap clean-view toggle: a short delay lets a double-tap (zoom) or a
+// long-press (original) win instead of fighting it.
+let cleanTapTimer = 0;
+let cleanTapAt = 0;
+let cleanCooldownUntil = 0;
+let longPressFired = false;
 let filmThumbTimer = 0;
+let localToneWorker = null;
+let localToneSourceSeq = 0;
+let localToneRequestSeq = 0;
+let localToneTimer = 0;
+let localTonePending = null;
+let localToneDesiredKey = '';
+let localToneAppliedKey = '';
+
+function localToneKeyFor(src = source, tone = state.tone) {
+  if (src?.kind !== 'linear' || !src.guide?.evMap) return '';
+  return `${src.localToneSourceId || 0}:${exposureNow().toFixed(3)}:${Math.round(tone.shadows || 0)}:${Math.round(tone.highlights || 0)}`;
+}
+
+function settleLocalTone(pending, value = false) {
+  if (!pending?.resolve) return;
+  const resolve = pending.resolve;
+  pending.resolve = null;
+  resolve(value);
+}
+
+function invalidateLocalToneMap(src = null) {
+  clearTimeout(localToneTimer);
+  localToneTimer = 0;
+  if (localTonePending) settleLocalTone(localTonePending, false);
+  localTonePending = null;
+  localToneDesiredKey = '';
+  localToneAppliedKey = '';
+  if (src && src.kind === 'linear') src.localToneSourceId = ++localToneSourceSeq;
+  renderer?.setLocalMap(null, '');
+}
+
+function getLocalToneWorker() {
+  if (localToneWorker) return localToneWorker;
+  localToneWorker = new Worker('/js/local-tone-worker.js', { type: 'module' });
+  localToneWorker.onmessage = ({ data }) => {
+    const pending = localTonePending;
+    if (!pending || data.id !== pending.id) return;
+    localTonePending = null;
+    if (data.ok && data.key === localToneDesiredKey && source === pending.source) {
+      renderer.setLocalMap({ w: data.width, h: data.height, data: new Float32Array(data.delta) }, data.key);
+      localToneAppliedKey = data.key;
+      settleLocalTone(pending, true);
+      render({ instant: true });
+    } else {
+      if (!data.ok) console.warn('[local tone] LLF failed', data.message);
+      settleLocalTone(pending, false);
+    }
+  };
+  localToneWorker.onerror = (event) => {
+    console.warn('[local tone] worker failed', event);
+    if (localTonePending) settleLocalTone(localTonePending, false);
+    localTonePending = null;
+    localToneWorker?.terminate();
+    localToneWorker = null;
+    renderer?.setLocalMap(null, '');
+  };
+  return localToneWorker;
+}
+
+function postLocalToneMap(pending) {
+  if (localTonePending !== pending || source !== pending.source || pending.key !== localToneDesiredKey) return;
+  try {
+    const guide = pending.source.guide;
+    const evMap = guide.evMap.slice();
+    pending.id = ++localToneRequestSeq;
+    getLocalToneWorker().postMessage({
+      id: pending.id, key: pending.key, width: guide.w, height: guide.h,
+      evMap: evMap.buffer, ...pending.controls,
+    }, [evMap.buffer]);
+  } catch (error) {
+    console.warn('[local tone] could not start LLF worker', error);
+    localTonePending = null;
+    settleLocalTone(pending, false);
+  }
+}
+
+function requestLocalToneMap({ immediate = false } = {}) {
+  const src = source;
+  // The adaptive guide curve owns the slider response now; the old fixed-pivot
+  // LLF map would double-apply it (and pop in asynchronously). LLF_WEIGHT is 0,
+  // so skip the worker entirely instead of computing a map nobody samples.
+  if (!renderer || src?.kind !== 'linear' || !src.guide?.evMap || LLF_WEIGHT <= 0) {
+    localToneDesiredKey = '';
+    localToneAppliedKey = '';
+    if (localTonePending) settleLocalTone(localTonePending, false);
+    localTonePending = null;
+    clearTimeout(localToneTimer);
+    renderer?.setLocalMap(null, '');
+    return Promise.resolve(false);
+  }
+  const tone = state.tone;
+  const key = localToneKeyFor(src, tone);
+  localToneDesiredKey = key;
+  if (key === localToneAppliedKey) return Promise.resolve(true);
+  if (localTonePending?.key === key) {
+    if (immediate && localTonePending.id === 0) {
+      clearTimeout(localToneTimer);
+      postLocalToneMap(localTonePending);
+    }
+    return localTonePending.promise;
+  }
+  clearTimeout(localToneTimer);
+  if (localTonePending) settleLocalTone(localTonePending, false);
+  localTonePending = null;
+
+  const controls = {
+    exposure: exposureNow(),
+    shadows: Number(tone.shadows) || 0,
+    highlights: Number(tone.highlights) || 0,
+  };
+  if (controls.shadows === 0 && controls.highlights === 0) {
+    renderer.setLocalMap(null, key);
+    localToneAppliedKey = key;
+    return Promise.resolve(true);
+  }
+  let resolve;
+  const promise = new Promise((done) => { resolve = done; });
+  const pending = { key, source: src, controls, promise, resolve, id: 0 };
+  localTonePending = pending;
+  if (immediate) postLocalToneMap(pending);
+  else localToneTimer = setTimeout(() => postLocalToneMap(pending), 32);
+  return promise;
+}
 
 /** Small helpers with hard timeouts: a stalled mobile link must not hang the UI. */
 function loadImageWithTimeout(url, timeout = 90000){
@@ -1186,7 +1291,7 @@ function autoNrFromSigma(sigma) {
 let nrRecalcTimer = 0;
 function recalcNr(force = false) {
   if (!source) return state.detail.nrAuto;
-  const sigma = estimateNoise(source, state.tone.exposure || 0);
+  const sigma = estimateNoise(source, exposureNow());
   state.detail.sigma = sigma;
   state.detail.nrAuto = autoNrFromSigma(sigma);
   if (force) state.detail.manual = false;
@@ -1334,22 +1439,31 @@ function buildToneGuide(canvas){
 
   const data = new Uint8Array(gw * gh);
   for (let i = 0; i < data.length; i++) data[i] = Math.round(((ev[i] + 10) / 18) * 255);
-  return { w: gw, h: gh, data };
+  // The unblurred EV map is also the measured tonal distribution the Basic
+  // sliders anchor to (same contract as the RAW path). `linear: false` tells the
+  // curve builder the source has no scene headroom above display white.
+  const scene = evStats(ev, { linear: false });
+  return { w: gw, h: gh, data, scene };
 }
 
 function updateToneGuide(src){
   if (!renderer) return;
+  invalidateLocalToneMap(src);
   // Linear RAW frames come with a guide built in the worker (from the actual
   // scene-linear data, headroom included); JPEG/demo sources build one here.
   if (src && src.kind === 'linear') {
     renderer.setGuide(src.guide || null);
+    src.scene = src.scene || src.guide?.scene || null;
     return;
   }
   try {
-    renderer.setGuide(buildToneGuide(src.canvas || src));
+    const guide = buildToneGuide(src.canvas || src);
+    renderer.setGuide(guide);
+    src.scene = guide.scene;
   } catch (err) {
     console.warn('[tone guide] could not be built', err);
     renderer.setGuide(null);
+    src.scene = null;
   }
 }
 
@@ -1519,6 +1633,27 @@ async function mergeLutStack(){
   toast(t(state.lang, 'mergeDone'));
 }
 
+/**
+ * Phone stage position. A landscape photo is letterboxed inside the full-bleed
+ * stage, so it centres behind the bottom chrome and reads as sitting too low.
+ * Lift the contained frame by half the bottom bar so it centres in the part of
+ * the screen the photo actually owns. Portrait/high photos already fill the
+ * stage vertically (nothing to lift), and the Develop sheet / clean view resize
+ * the stage themselves.
+ */
+function updateStageLift(){
+  let lift = 0;
+  if (matchMedia('(max-width:820px)').matches && source && state.userPhoto && !state.clean && !state.develop) {
+    const w = el.field.clientWidth, h = el.field.clientHeight;
+    const imgAspect = source.width / Math.max(1, source.height);
+    if (imgAspect > w / Math.max(1, h)) {
+      const letterbox = (h - w / imgAspect) / 2;
+      lift = Math.min(letterbox - 2, (el.bottom?.offsetHeight || 0) / 2);
+    }
+  }
+  el.field.style.setProperty('--stage-lift', `${Math.max(0, Math.round(lift))}px`);
+}
+
 function sizeCanvases(dprCap = 2){
   // The photo stage is the field itself: when the Develop rail is open the field
   // is inset, so measuring the viewport would stretch the render outside it.
@@ -1528,6 +1663,7 @@ function sizeCanvases(dprCap = 2){
   const dpr = Math.min(devicePixelRatio || 1, dprCap);
   for (const l of layers) { l.width = Math.round(w * dpr); l.height = Math.round(h * dpr); }
   if (el.base) { el.base.width = Math.round(w * dpr); el.base.height = Math.round(h * dpr); }
+  updateStageLift();
 }
 
 function drawBase(){
@@ -1545,11 +1681,11 @@ function drawBase(){
 function adjFor(){
   const t = state.tone;
   return {
-    // AUTO tone measures the frame without the local detail stage: a local
-    // operator changes the histogram, and feeding that back into Auto turned
-    // into a loop (more detail -> more contrast -> more detail).
-    noDetail: !!state.measuring,
-    exposure: t.exposure,
+    exposure: exposureNow(),
+    // Measured scene distribution: every Basic-panel slider anchor is placed
+    // from it (see js/tone-curve.js), so the same slider value behaves the same
+    // on a night frame, a sunny frame and a dim indoor frame.
+    scene: source?.scene || null,
     contrast: t.contrast,
     temp: t.temp,
     tint: t.tint,
@@ -1563,14 +1699,19 @@ function adjFor(){
     blacks: t.blacks,
     nr: (state.detail.nr || 0) / 100,
     nrColor: Math.min(1, (state.detail.nr || 0) / 100 * 1.25),
+    localToneKey: localToneKeyFor(),
+    // Per-photo camera-preview look (RAW only, hidden toggle in the panel).
+    camLook: !!state.cameraLook && !!state.cameraLookCurve,
   };
 }
 
 /** The BEFORE side: the photo as loaded, with the RAW baseline only. */
 function adjBase(){
   return {
-    exposure: state.tone.exposure,
-    contrast: 0, temp: 0, logMode: 0,
+    exposure: state.baseExposure,
+    scene: source?.scene || null,
+    contrast: 0, temp: 0, logMode: 0, noLocalTone: true,
+    camLook: !!state.cameraLook,
   };
 }
 
@@ -1618,6 +1759,37 @@ window.__ltView = () => ({
   previewW: source && source.preview ? source.preview.w : null,
   sourceW: source && source.width,
   sourceH: source && source.height,
+  fit: state.fit,
+  stage: stageSize(),
+  rect: source ? currentRect() : null,
+});
+
+/**
+ * Read-only tone introspection: the slider values, the measured scene summary
+ * behind the adaptive model, and the fitted camera-look curve. Used by the tone
+ * regression harness and when diagnosing a photo by hand.
+ */
+window.__ltTone = () => ({
+  tone: { ...state.tone },
+  autoEV: state.autoEV,
+  baseExposure: state.baseExposure,
+  exposureApplied: exposureNow(),
+  autoBright: state.autoBright,
+  cameraLook: state.cameraLook,
+  camLookCurve: state.cameraLookCurve ? Array.from(state.cameraLookCurve) : null,
+  camSatBands: renderer ? renderer.camSatBands : null,
+  camSat: renderer ? renderer.camSat : null,
+  camWb: renderer ? renderer.camWb : null,
+  camStatsBands: source?.cameraStats?.bands || null,
+  camFitDebug: state.cameraFitDebug || null,
+  camStats: source?.cameraStats || null,
+  detail: { ...state.detail },
+  source: source ? {
+    kind: source.kind,
+    width: source.width,
+    height: source.height,
+    scene: source.scene || null,
+  } : null,
 });
 
 /** Preview texture, no upload: one pointer swap. */
@@ -1676,6 +1848,7 @@ function ensureNativeTile(){
 
 function render({ instant = false } = {}){
   if (!renderer || !source) return;
+  requestLocalToneMap();
   const target = layers[active ^ 1], prev = layers[active];
   if (!target.width) sizeCanvases();
   ensureNativeTile();
@@ -1703,6 +1876,7 @@ function renderSoon(){
 
 function renderDirect(){
   if (!renderer || !source) return;
+  requestLocalToneMap();
   const visible = layers.find(l => !l.classList.contains('off')) || layers[0];
   ensureNativeTile();
   renderer.render(currentStack(), adjFor(), visible.width, visible.height, state.fit, state.view);
@@ -1763,7 +1937,10 @@ function samplePhotoCanvas(canvas, vis){
 
 function updateZoomUI(){
   const zoom = state.view.zoom;
-  if (zoom > 1.01) el.field.style.transform = 'scale(1.02)';
+  // Drop any inline transform (the desktop parallax writes one while the view is
+  // at 100%): the stylesheet transform carries the phone stage lift, and an
+  // inline scale() would silently erase it after the first zoom.
+  el.field.style.transform = '';
   if (el.zoomBtn) {
     el.zoomBtn.textContent = `${Math.round(zoom * 100)}%`;
     el.zoomBtn.classList.toggle('on', zoom > 1.01);
@@ -2522,6 +2699,17 @@ function setLogModeFromSheet(value){
 
 const DEV_KEYS = ['temp', 'tint', 'exposure', 'contrast', 'highlights', 'shadows', 'whites', 'blacks', 'vibrance', 'saturation'];
 
+/**
+ * Exposure actually applied to the render = the camera/as-shot baseline the
+ * photo was opened with plus the user's slider offset. Keeping the slider as an
+ * offset is why 0 always means "as opened" and ±5 EV is symmetric: it used to
+ * write the absolute exposure, so a photo auto-exposed at +1.9 EV had its
+ * exposure range silently shifted to -6.9..+3.1 EV.
+ */
+function exposureNow() {
+  return (Number(state.baseExposure) || 0) + (Number(state.tone.exposure) || 0);
+}
+
 function devValueText(key, v) {
   if (key === 'exposure') return (v > 0 ? '+' : '') + Number(v).toFixed(1);
   return v > 0 ? `+${v}` : String(v);
@@ -2566,6 +2754,7 @@ function updateDevLang() {
   el.devHint.textContent = t(state.lang, 'devHint');
   el.devPick.title = t(state.lang, 'pickHint');
   el.devAuto.title = t(state.lang, 'autoToneTitle');
+  updateCamLookUI();
   el.devBody.querySelectorAll('[data-dev-label]').forEach((n) => {
     n.textContent = t(state.lang, 'dev_' + n.dataset.devLabel);
   });
@@ -2574,20 +2763,29 @@ function updateDevLang() {
 }
 
 /**
- * Clean view. Everything that is not the photo disappears, including the
- * before/after divider; a single dim pill stays in the corner so the state is
- * not a trap. Esc leaves, H toggles.
+ * Clean view: the photo and nothing else. A tap (or click) on the photo enters
+ * it, another tap leaves; Esc and H still work for keyboards. The develop panel
+ * is remembered and restored on exit, so entering clean view is not a one-way
+ * door.
  */
 function setClean(on){
-  state.clean = !!on;
+  on = !!on;
+  if (state.clean === on) return;
+  state.clean = on;
   el.app.classList.toggle('clean', state.clean);
-  el.cleanBtn.classList.toggle('on', state.clean);
-  el.cleanExit.hidden = !state.clean;
-  if (state.clean) {
+  if (on) {
+    state.cleanHadDevelop = state.develop;
     if (state.develop) setDevelop(false);
     if (el.profileSheet && !el.profileSheet.hidden) el.profileSheet.hidden = true;
+    if (el.exportSheet && !el.exportSheet.hidden) el.exportSheet.hidden = true;
+    if (el.importSheet && !el.importSheet.hidden) el.importSheet.hidden = true;
     toast(t(state.lang, 'cleanHint'), 2800);
+  } else {
+    const restore = state.cleanHadDevelop;
+    state.cleanHadDevelop = false;
+    if (restore) setDevelop(true);
   }
+  updateStageLift();
 }
 
 function setDevelop(open) {
@@ -2605,7 +2803,6 @@ function setDevelop(open) {
     sizeCanvases();
     drawBase();
     render({ instant: true });
-    if (applySplitVarsRef) applySplitVarsRef();
   });
 }
 
@@ -2618,14 +2815,17 @@ function beginPhoto(autoEV = 0) {
   state.autoEV = autoEV;
   state.rawExposure = autoEV;
   for (const k of DEV_KEYS) state.tone[k] = 0;
-  state.tone.exposure = state.autoBright ? autoEV : 0;
+  // The slider is an offset from the as-opened baseline (0.0 EV shown), not the
+  // absolute exposure the pipeline applies.
+  state.tone.exposure = 0;
+  state.baseExposure = state.autoBright ? autoEV : 0;
   syncAutoBtn();
   syncDevUI();
 }
 
 function resetDevelop() {
   for (const k of DEV_KEYS) state.tone[k] = 0;
-  state.tone.exposure = state.autoBright ? state.autoEV : 0;
+  state.tone.exposure = 0;
   state.detail.manual = false;
   recalcNr(true);
   syncDevUI();
@@ -2634,79 +2834,122 @@ function resetDevelop() {
 }
 
 /**
- * Percentiles of the *displayed* camera render (auto exposure applied, no LUT,
- * no tone) — the measuring stick AUTO tone works from. Sampling the raw decode
- * would ignore the exposure the shader is actually applying.
+ * Percentiles of the full-frame *displayed* render (auto exposure applied, no
+ * LUT or tone) — the measuring stick AUTO tone works from. Sampling the raw decode
+ * would ignore the exposure and display transform the shader is actually applying.
  */
-function measureTone() {
-  if (!source) return null;
-  const stage = el.base && el.base.width > 8 ? el.base : null;
+function measureTone({ withLook = false, withTone = false, forceLook = false, size = 240, withNr = false } = {}) {
+  if (!source || !renderer) return null;
   const c = document.createElement('canvas');
-  c.width = 240;
-  c.height = Math.max(2, Math.round(240 * source.height / source.width));
+  c.width = Math.max(64, size | 0);
+  c.height = Math.max(2, Math.round(c.width * source.height / source.width));
   const ctx = c.getContext('2d', { willReadFrequently: true });
-  if (stage) {
-    // Draw only the photo itself: with the default Fit view the stage canvas has
-    // black letterbox bars, and letting those into the histogram made AUTO tone
-    // believe every frame was much darker than it is.
-    const rect = source
-      ? computeViewRect(source.width, source.height, stage.width, stage.height, state.fit, state.view)
-      : { x: 0, y: 0, w: 1, h: 1 };
-    const fx0 = Math.max(0, (0 - rect.x) / rect.w), fx1 = Math.min(1, (1 - rect.x) / rect.w);
-    const fy0 = Math.max(0, (0 - rect.y) / rect.h), fy1 = Math.min(1, (1 - rect.y) / rect.h);
-    if (fx1 <= fx0 || fy1 <= fy0) return null;
-    ctx.drawImage(stage, fx0 * stage.width, fy0 * stage.height,
-      (fx1 - fx0) * stage.width, (fy1 - fy0) * stage.height, 0, 0, c.width, c.height);
-  } else if (source.kind === 'linear') return null;
-  else ctx.drawImage(source.canvas, 0, 0, c.width, c.height);
+  // Measure the full photo, never the current Fit/Fill crop or zoomed viewport.
+  // RAW can be showing a native-resolution tile while zoomed; switch back to its
+  // preview texture for this small full-frame render, then normal rendering will
+  // reactivate the tile if the current view needs it.
+  if (source.kind === 'linear') restorePreviewTexture();
+  // Keep the local detail stage out of its own histogram measurement.
+  const measureAdjust = {
+    ...adjBase(), exposure: exposureNow(), noDetail: true, noLocalTone: true,
+    camLook: (forceLook || (withLook && state.cameraLook)) && !!state.cameraLookCurve,
+    // The camera-look fit must measure through the same denoise the stage uses:
+    // the chroma denoise lowers the visible saturation (night reference: 0.35
+    // measured without NR vs 0.30 with it), so fitting without it left the
+    // rendered photo visibly flatter than the reference JPEG.
+    ...(withNr ? {
+      nr: (state.detail.nr || 0) / 100,
+      nrColor: Math.min(1, (state.detail.nr || 0) / 100 * 1.25),
+    } : {}),
+    // Baseline measurements leave the tone sliders out; the camera-look solve
+    // must measure the sliders it is choosing, through the same display curve.
+    ...(withTone ? {
+      contrast: state.tone.contrast, highlights: state.tone.highlights,
+      shadows: state.tone.shadows, whites: state.tone.whites, blacks: state.tone.blacks,
+    } : {}),
+  };
+  renderer.render([], measureAdjust, c.width, c.height, 'cover', null);
+  ctx.drawImage(renderer.canvas, 0, 0, c.width, c.height);
   const d = ctx.getImageData(0, 0, c.width, c.height).data;
   const hist = new Uint32Array(256);
-  let n = 0;
+  let n = 0, chromaSum = 0, chromaCount = 0, rSum = 0, gSum = 0, bSum = 0, rgbCount = 0, lumaSum = 0;
+  const bands = [0, 1, 2, 3].map(() => ({ n: 0, chroma: 0, r: 0, g: 0, b: 0 }));
   for (let i = 0; i < d.length; i += 4) {
-    const l = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) | 0;
+    const R = d[i], G = d[i + 1], B = d[i + 2];
+    const l = (0.2126 * R + 0.7152 * G + 0.0722 * B) | 0;
     hist[l > 255 ? 255 : l]++;
+    lumaSum += 0.2126 * R + 0.7152 * G + 0.0722 * B;
     n++;
+    const mx = Math.max(R, G, B), mn = Math.min(R, G, B);
+    const ch = mx > 8 ? (mx - mn) / mx : 0;
+    if (mx > 8) { chromaSum += ch; chromaCount++; }
+    if (l > 12) { rSum += R; gSum += G; bSum += B; rgbCount++; }
+    const bi = l < 64 ? 0 : l < 128 ? 1 : l < 192 ? 2 : 3;
+    bands[bi].n++;
+    bands[bi].chroma += ch;
+    bands[bi].r += R;
+    bands[bi].g += G;
+    bands[bi].b += B;
   }
   const pct = (p) => {
     let acc = 0;
     for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= n * p) return v; }
     return 255;
   };
-  return { p1: pct(.01), p5: pct(.05), p25: pct(.25), p50: pct(.5), p75: pct(.75), p95: pct(.95), p995: pct(.995) };
+  return {
+    p1: pct(.01), p5: pct(.05), p25: pct(.25), p50: pct(.5), p75: pct(.75), p95: pct(.95), p99: pct(.99), p995: pct(.995),
+    hist,
+    bands: bands.map((band) => ({
+      n: band.n / n,
+      chroma: band.n ? band.chroma / band.n : 0,
+      rgb: band.n ? [band.r / band.n, band.g / band.n, band.b / band.n] : [0, 0, 0],
+    })),
+    chroma: chromaCount ? chromaSum / chromaCount : 0,
+    // Whole-frame luma mean (letterbox-free for this cover render) — the one
+    // brightness number Auto Tone's no-darkening contract is written against.
+    lumaMean: n ? lumaSum / n : 0,
+    mean: rgbCount ? [rSum / rgbCount, gSum / rgbCount, bSum / rgbCount] : [0, 0, 0],
+  };
 }
 
-function applyAutoTone() {
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const tn = state.tone;
-  // Lightroom's Auto places the exposure as well; do that first so the
-  // histogram this measures is the frame Auto is actually shaping.
-  tn.exposure = state.autoEV || 0;
-  state.measuring = true;
-  drawBase();
-  const m = measureTone();
-  state.measuring = false;
-  if (!m) return;
-  const spread = (m.p75 - m.p25) / 255;
-  // Values calibrated against Lightroom Mobile's Auto on the night reference
-  // frame under the sigmoid display transform, fitted on 100% exports: the
-  // final render lands within ±3 display levels of LR's export on every
-  // percentile (mean 57.9 vs 58.2, p50 45 vs 47, p95 165 vs 166, p99 240 vs
-  // 237). Contrast steepens the mid-tone S (the sigmoid curve owns the
-  // mid-grey slope), highlights place the top, shadows open the frame,
-  // whites/blacks finish the end points.
-  tn.contrast = Math.round(clamp((0.61 - spread) * 100, -10, 60));
-  tn.highlights = -Math.round(clamp((m.p95 - 140) * 0.94, 20, 80));
-  tn.shadows = Math.round(clamp((28.5 - m.p5) * 0.7 + 4.4, 0, 55));
-  tn.whites = Math.round(clamp((m.p95 - 205) * 0.5 + 5.5, -20, 30));
-  // Blacks place the darks at a display floor of ~2/255 instead of crushing
-  // them: the sigmoid already sets a black target, so this only trims the
-  // distance to it (and never digs a hole below it).
-  tn.blacks = Math.round(clamp((2 - m.p1) / 255 / 0.216 * 100, -30, 8));
+/** Write Auto Tone's slider values into the panel and repaint once. */
+function commitAutoTone() {
   recalcNr();
   syncDevUI();
   drawBase();
   render({ instant: true });
   toast(t(state.lang, 'autoToneDone'));
+}
+
+function applyAutoTone() {
+  // The curve anchors itself on this photo's measured percentiles, so the same
+  // placement contract can be solved in both development modes: the calibrated
+  // percentile heuristic supplies the *target* placement, then the four zone
+  // sliders are solved against the rendered result (never darker, never more
+  // clipped than the frame Auto started from).
+  const tn = state.tone;
+  const zero = { contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0 };
+  const setTone = (v) => {
+    tn.contrast = v.contrast; tn.highlights = v.highlights;
+    tn.shadows = v.shadows; tn.whites = v.whites; tn.blacks = v.blacks;
+  };
+  const hasLook = !!(state.cameraLook && state.cameraLookCurve);
+  setTone(zero);
+  const neutral = measureTone();
+  if (!neutral) return;
+  const hint = neutralAutoValues(neutral);
+  setTone(hint);
+  const ref = measureTone({ withTone: true });
+  setTone(zero);
+  const base = measureTone({ withLook: hasLook });
+  if (!ref || !base) { setTone(zero); commitAutoTone(); return; }
+  const targets = cameraAutoTargets(base, ref);
+  const { values } = solveCameraAutoTone({
+    measure: (v) => { setTone(v); return measureTone({ withLook: hasLook, withTone: true }); },
+    base, targets,
+  });
+  setTone(values);
+  commitAutoTone();
 }
 
 function togglePick(force) {
@@ -2761,15 +3004,6 @@ function pickWhite(e) {
   toast(`${t(state.lang, 'picked')} · ${temp > 0 ? '+' : ''}${temp} / ${tint > 0 ? '+' : ''}${tint}`, 2600);
 }
 
-function setFit(fit){
-  state.fit = fit;
-  localStorage.setItem('lut.fit', fit);
-  resetViewForPhoto();
-  el.fitBtn.textContent = t(state.lang, fit === 'contain' ? 'fill' : 'fit');
-  drawBase();
-  render({ instant: true });
-}
-
 function applyLang(lang, { persist = true } = {}){
   state.lang = lang;
   if (persist) localStorage.setItem('lut.lang', lang);
@@ -2778,14 +3012,12 @@ function applyLang(lang, { persist = true } = {}){
   if (el.autoBtn) syncAutoBtn();
   updateDevLang();
   el.photoBtn.textContent = t(lang, 'photo');
-  el.fitBtn.textContent = t(lang, state.fit === 'contain' ? 'fill' : 'fit');
   updateZoomUI();
   el.exportBtn.textContent = `${t(lang, 'export')} ↗`;
   el.hint.textContent = t(lang, 'hint');
   el.importBtn.textContent = t(lang, 'importLut');
   if (el.mergeBtn) el.mergeBtn.textContent = t(lang, 'mergeLut');
   updateLogUI();
-  if (el.cleanExit) el.cleanExit.textContent = t(lang, 'cleanExit');
   if (el.profileSheet && !el.profileSheet.hidden) renderProfileSheet();
   el.dualBtn.childNodes[0].nodeValue = `${t(lang, state.dual.enabled ? 'dualOn' : 'dual')} `;
   el.exportSheet.querySelector('header span').textContent = t(lang, 'exportTitle');
@@ -2827,6 +3059,7 @@ function selectQuality(q){
 
 async function exportImage(quality){
   if (!source) return;
+  await requestLocalToneMap({ immediate: true });
   const stack = currentStack();
   const adj = adjFor();
   const scale = quality / 100;
@@ -2993,12 +3226,10 @@ function bindSliderGesture(input){
 }
 
 function bind(){
-  window.addEventListener('resize', () => { sizeCanvases(); drawBase(); render({ instant: true }); updateQualityDims(); applySplitVarsRef?.(); });
+  window.addEventListener('resize', () => { sizeCanvases(); drawBase(); render({ instant: true }); updateQualityDims(); });
   el.photoBtn.addEventListener('click', () => el.fileInput.click());
   el.fileInput.addEventListener('change', () => { const f = el.fileInput.files?.[0]; if (f) loadFile(f); el.fileInput.value = ''; });
   el.exportBtn.addEventListener('click', openExport);
-  el.cleanBtn.addEventListener('click', () => setClean(!state.clean));
-  el.cleanExit.addEventListener('click', () => setClean(false));
   el.logBtn.addEventListener('click', () => {
     el.profileSheet.hidden = false;
     renderProfileSheet();
@@ -3040,6 +3271,12 @@ function bind(){
     renderSoon();
     if (key === 'exposure' && !state.detail.manual) scheduleNrRecalc();
   });
+  el.devCamLook.addEventListener('click', () => {
+    state.cameraLook = !state.cameraLook;
+    localStorage.setItem('lut.cameraLook', state.cameraLook ? '1' : '0');
+    updateCamLookUI();
+    render({ instant: true });
+  });
   el.devReset.addEventListener('click', resetDevelop);
   el.devAuto.addEventListener('click', applyAutoTone);
   el.devPick.addEventListener('click', () => togglePick());
@@ -3047,14 +3284,14 @@ function bind(){
   el.autoBtn.addEventListener('click', () => {
     state.autoBright = !state.autoBright;
     localStorage.setItem('lut.autoBright', state.autoBright ? '1' : '0');
-    state.tone.exposure = state.autoBright ? state.autoEV : 0;
+    state.baseExposure = state.autoBright ? state.autoEV : 0;
     syncAutoBtn();
     syncDevUI();
     drawBase();
     recalcNr();
-    render();
+    if (source?.cameraStats) fitCameraLookFromStats();
+    else render();
   });
-  el.fitBtn.addEventListener('click', () => setFit(state.fit === 'cover' ? 'contain' : 'cover'));
   el.langBtn.addEventListener('click', () => applyLang(state.lang === 'zh' ? 'en' : 'zh'));
 
   // ---------- zoom / pan on the photo stage ----------
@@ -3073,9 +3310,33 @@ function bind(){
     pinch = { d0: Math.max(14, pDist(a, b)), z0: state.view.zoom, rect: currentRect(), frac0: clientFrac(pMid(a, b)) };
     pan = null;
     clearTimeout(pressTimer);
+    clearTimeout(cleanTapTimer);
     state.comparing = false;
     el.app.classList.remove('comparing');
     beginViewGesture();
+  };
+
+  // A single tap / click on the photo toggles clean view. It waits one beat so
+  // a double-tap (zoom) or a long-press (original) wins instead of fighting it;
+  // while already clean, the next tap leaves immediately. Only user photos do
+  // this — the landing demo keeps its chrome.
+  const scheduleCleanTap = () => {
+    if (!source || state.picking) return;
+    const now = performance.now();
+    clearTimeout(cleanTapTimer);
+    if (state.clean) {
+      // Leaving is immediate; the short cooldown swallows the second tap of a
+      // double-tap so it cannot bounce straight back into clean view.
+      cleanCooldownUntil = now + 320;
+      setClean(false);
+      return;
+    }
+    if (now < cleanCooldownUntil) return;
+    cleanTapTimer = setTimeout(() => {
+      if (state.interacting || state.comparing || state.picking || !source || state.clean) return;
+      cleanTapAt = performance.now();
+      setClean(true);
+    }, 350);
   };
 
   el.field.addEventListener('pointerdown', (e) => {
@@ -3083,6 +3344,7 @@ function bind(){
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     viewAnimToken++;
     clearTimeout(viewSettleTimer);
+    clearTimeout(cleanTapTimer);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { el.field.setPointerCapture(e.pointerId); } catch { /* older Safari */ }
     if (pointers.size === 2) { beginPinch(); e.preventDefault(); return; }
@@ -3141,17 +3403,25 @@ function bind(){
     }
     if (pointers.size === 0) {
       const moved = !!(pan && pan.moved);
+      const pressed = !!(longPressFired || state.comparing);
       pan = null;
+      longPressFired = false;
       if (moved) { endViewGesture(); return; }
+      if (pressed) return;
       if (e.pointerType !== 'mouse' && zoomable()) {
         const now = performance.now();
         if (lastTap && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 44) {
           lastTap = null;
+          clearTimeout(cleanTapTimer);
+          // A double-tap that raced the clean-view timer: undo the toggle first
+          // so a zoom never runs behind a hidden UI.
+          if (state.clean && now - cleanTapAt < 900) setClean(false);
           toggleZoomAt(clientFrac(e));
-        } else {
-          lastTap = { x: e.clientX, y: e.clientY, t: now };
+          return;
         }
+        lastTap = { x: e.clientX, y: e.clientY, t: now };
       }
+      scheduleCleanTap();
       return;
     }
     // another finger is still down: hand over to a fresh pan
@@ -3168,6 +3438,7 @@ function bind(){
     if (!zoomable()) return;
     e.preventDefault();
     viewAnimToken++;
+    clearTimeout(cleanTapTimer);
     const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.0032 : 0.0016));
     const target = zoomTarget(clientFrac(e), state.view.zoom * factor);
     beginViewGesture();
@@ -3178,6 +3449,8 @@ function bind(){
   el.field.addEventListener('dblclick', (e) => {
     if (!zoomable() || performance.now() - lastTouchTapAt < 500) return;
     e.preventDefault();
+    clearTimeout(cleanTapTimer);
+    if (state.clean && performance.now() - cleanTapAt < 900) setClean(false);
     toggleZoomAt(clientFrac(e));
   });
 
@@ -3201,51 +3474,26 @@ function bind(){
     await exportImage(q);
   });
 
-  // split: only handle / hit strip. The split lives on the photo stage, which
-  // shrinks when the Develop rail opens, so all positions are measured against
-  // the stage instead of the viewport.
-  const splitStage = () => el.split.getBoundingClientRect();
-  const applySplitVars = () => {
-    const s = el.split.getBoundingClientRect();
-    const f = el.field.getBoundingClientRect();
-    // Keep the layer clip inside the same stage even though .field overhangs by 2%
-    // and shrinks when the Develop rail opens.
-    const fSplit = f.width > 0 ? (s.left + state.split * s.width - f.left) / f.width : state.split;
-    el.split.style.setProperty('--split', state.split);
-    el.field.style.setProperty('--split', String(Math.max(0, Math.min(1, fSplit))));
-  };
-  const setSplit = (v) => {
-    state.split = Math.max(.02, Math.min(.98, v));
-    applySplitVars();
-  };
-  applySplitVarsRef = applySplitVars;
-  const startSplit = (e) => {
-    state.interacting = true;
-    el.splitHit.setPointerCapture?.(e.pointerId);
-    e.preventDefault();
-    const move = (ev) => { const s = splitStage(); setSplit((ev.clientX - s.left) / Math.max(1, s.width)); };
-    const up = () => { state.interacting = false; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-  };
-  el.splitHit.addEventListener('pointerdown', startSplit);
-  el.splitHandle.addEventListener('pointerdown', startSplit);
-  el.splitHandle.addEventListener('dblclick', () => setSplit(.5));
-
-  // long-press right side to see original
+  // Long-press the photo to see the original (BEFORE); release to go back.
+  // Compare is a photo gesture: starting it from a slider, the filmstrip or a
+  // panel made the whole preview flash while editing.
   el.app.addEventListener('pointerdown', (e) => {
     if (state.interacting) return;
-    // Compare is a photo gesture: starting it from a slider, the filmstrip or a
-    // panel made the whole preview flash while editing.
     if (!e.target.closest('#field')) return;
-    if (e.target.closest('.split-hit, .split-handle')) return;
-    const s = splitStage();
-    const splitX = s.left + state.split * s.width;
-    if (e.clientX <= splitX) return;
+    longPressFired = false;
     clearTimeout(pressTimer);
-    pressTimer = setTimeout(() => { if (state.interacting) return; state.comparing = true; el.app.classList.add('comparing'); }, 220);
+    clearTimeout(cleanTapTimer);
+    pressTimer = setTimeout(() => {
+      if (state.interacting || !source) return;
+      longPressFired = true;
+      state.comparing = true;
+      el.app.classList.add('comparing');
+    }, 420);
   });
-  const endPress = () => { clearTimeout(pressTimer); state.comparing = false; el.app.classList.remove('comparing'); };
+  const endPress = () => {
+    clearTimeout(pressTimer);
+    if (state.comparing) { state.comparing = false; el.app.classList.remove('comparing'); }
+  };
   window.addEventListener('pointerup', endPress);
   window.addEventListener('pointercancel', endPress);
   window.addEventListener('blur', endPress);
@@ -3439,7 +3687,6 @@ function afterSourceChanged(name){
   el.metaName.textContent = sourceName.toUpperCase();
   el.metaDims.textContent = `${source.width} × ${source.height}`;
   resetViewForPhoto();
-  el.fitBtn.textContent = t(state.lang, state.fit === 'contain' ? 'fill' : 'fit');
   sizeCanvases();
   drawBase();
   render({ instant: true });
@@ -3451,10 +3698,117 @@ function afterSourceChanged(name){
   render({ instant: true });
 }
 
+function clearCameraLook(){
+  cameraLookToken++;
+  state.cameraLookCurve = null;
+  renderer?.setCameraLook(null);
+  updateCamLookUI();
+}
+
+let camLookBtnShown = null;
+function updateCamLookUI(){
+  const btn = el.devCamLook;
+  if (!btn) return;
+  const available = !!state.cameraLookCurve;
+  const wasShown = camLookBtnShown;
+  camLookBtnShown = available;
+  btn.hidden = !available;
+  btn.classList.toggle('on', available && state.cameraLook);
+  btn.textContent = t(state.lang, 'camLook');
+  btn.title = t(state.lang, 'camLookTitle');
+  // The button appears asynchronously (after the embedded preview is measured).
+  // On a phone the panel header can wrap because of it, which changes the sheet
+  // height; re-run the stage layout so the photo always sits above the sheet.
+  if (wasShown !== null && wasShown !== available && state.develop) {
+    requestAnimationFrame(() => {
+      sizeCanvases();
+      drawBase();
+      render({ instant: true });
+      updateStageLift();
+    });
+  }
+}
+
+let cameraLookToken = 0;
+
+/**
+ * Re-fit the camera look against the current neutral baseline. Runs after AUTO
+ * changes the base exposure, so the fitted curve keeps matching the camera JPEG
+ * instead of silently mismatching the new baseline.
+ */
+function fitCameraLookFromStats(){
+  const camStats = source?.cameraStats;
+  if (!camStats || !renderer) { clearCameraLook(); return; }
+  const base = measureTone({ size: 480, withNr: true });
+  if (!base) return;
+  const ours = [base.p1, base.p5, base.p25, base.p50, base.p75, base.p95, base.p995];
+  const curve = buildCameraLookCurve(ours, camStats.percentiles);
+  if (!curve) { state.cameraLookCurve = null; renderer.setCameraLook(null); updateCamLookUI(); return; }
+  const gains = cameraLookGains(base, camStats);
+  state.cameraLookCurve = curve;
+  // Match the camera JPEG's overall saturation by measuring the *actual*
+  // rendered result: the tone curve redistributes luminance and the white
+  // balance changes chroma, so the pre-render chroma ratio is not what ends up
+  // on screen (the night reference stayed ~15 % desaturated). Two measured
+  // passes close the loop; the shader receives the converged scalar gain.
+  let sat = 1;
+  renderer.setCameraLook(curve, { sat, wb: gains.wb });
+  for (let pass = 0; pass < 3; pass++) {
+    const look = measureTone({ forceLook: true, size: 480, withNr: true });
+    if (!look || !(look.chroma > 1e-4) || !(camStats.chroma > 1e-4)) break;
+    const next = Math.max(0.60, Math.min(1.85, sat * (camStats.chroma / look.chroma)));
+    state.cameraFitDebug = { pass, sat, measured: look.chroma, target: camStats.chroma, next };
+    if (Math.abs(next - sat) < 0.005) { sat = next; break; }
+    sat = next;
+    renderer.setCameraLook(curve, { sat, wb: gains.wb });
+  }
+  renderer.setCameraLook(curve, { sat, wb: gains.wb });
+  state.cameraLookCurve = curve;
+  updateCamLookUI();
+  if (state.cameraLook) render({ instant: true });
+}
+
+/**
+ * Estimate the camera's own JPEG rendition and upload it as a display-luminance
+ * curve. The reference is the JPEG the camera embedded in the RAW file, so this
+ * needs no screenshots and no per-camera corpus; only the two histograms are
+ * compared, so preview size/crop differences do not matter.
+ */
+async function prepareCameraLook(buffer){
+  const token = ++cameraLookToken;
+  if (!buffer || !renderer || !source || source.kind !== 'linear') { clearCameraLook(); return; }
+  try {
+    const preview = await extractRawPreview(buffer, 1024);
+    if (!preview || token !== cameraLookToken || !renderer || !source || source.kind !== 'linear') {
+      if (preview?.bitmap?.close) preview.bitmap.close();
+      return;
+    }
+    // 480 px statistics from a 1024 px decode: the same single-downsample
+    // smoothing the stage render gets at its measurement size. Reading the
+    // camera JPEG at 160 px averaged highlight peaks away (night reference: p95
+    // read as 159 instead of the true ~176-180), which made the fitted curve
+    // leave the camera-look highlights ~20 levels too dark.
+    const W = 480, H = Math.max(8, Math.round(480 * preview.height / preview.width));
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(preview.bitmap, 0, 0, W, H);
+    preview.bitmap.close?.();
+    const camStats = imageStats(ctx.getImageData(0, 0, W, H).data, W, H);
+    if (!source || token !== cameraLookToken) return;
+    // Keep only small summary statistics: the RAW buffer itself is large.
+    source.cameraStats = camStats;
+    fitCameraLookFromStats();
+  } catch (err) {
+    console.warn('[camera look] could not estimate the camera rendition', err);
+  }
+}
+
 function applyCanvasImage(img, name, note){
   state.userPhoto = true;
   el.lqip?.remove();
   releaseSource(source);
+  clearCameraLook();
   source = makeCanvasSource(img);
   renderer.setSource(source);
   updateToneGuide(source);
@@ -3467,7 +3821,7 @@ function applyCanvasImage(img, name, note){
  * floats (highlight headroom intact), a GPU preview and the adaptive-tone guide;
  * the full-resolution frame stays on the main thread for 100% exports.
  */
-function applyLinearRaw(out, name, note){
+function applyLinearRaw(out, name, note, buffer = null){
   state.userPhoto = true;
   el.lqip?.remove();
   releaseSource(source);
@@ -3478,11 +3832,20 @@ function applyLinearRaw(out, name, note){
     height: out.height,
     guide: out.guide,
     preview: out.preview,
+    scene: out.scene || out.guide?.scene || null,
   };
   renderer.setSource(source);
-  renderer.setGuide(out.guide);
+  updateToneGuide(source);
+  clearCameraLook();
   afterSourceChanged(name);
   toast(note || t(state.lang, 'photoLoaded'));
+  // The embedded camera JPEG is the reference for the look. Estimate it after
+  // the first neutral render and the develop-panel layout have settled: decoding
+  // the preview is main-thread work and must not delay the opening animation.
+  if (buffer) {
+    const target = source;
+    setTimeout(() => { if (source === target) prepareCameraLook(buffer); }, 280);
+  }
 }
 
 async function loadFile(file){
@@ -3571,7 +3934,7 @@ async function loadRaw(file){
         : '';
       const tag = out.linear ? ` · ${t(state.lang, 'rawLinear')}` : '';
       const note = `${t(state.lang, 'rawDeveloped')}${who} · ${bits}${ev}${tag} · ${(out.ms / 1000).toFixed(1)}s`;
-      if (out.linear) applyLinearRaw(out, file.name, note);
+      if (out.linear) applyLinearRaw(out, file.name, note, buffer);
       else applyCanvasImage(out.bitmap, file.name, note);
       // A RAW is something you develop, not a wallpaper: land in the develop panel
       // with the camera's own render and no LUT in the way.
@@ -3593,16 +3956,6 @@ async function loadRaw(file){
 }
 
 function playIntro(){
-  const start = performance.now();
-  const tick = (now) => {
-    const t = Math.min(1, (now - start) / 800);
-    const eased = 1 - Math.pow(1 - t, 3);
-    const v = 1 + (0.5 - 1) * eased;
-    el.split.style.setProperty('--split', String(v));
-    el.field.style.setProperty('--split', String(v));
-    if (t < 1) requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
   el.field.animate([{ transform: 'scale(1.06)', filter: 'blur(10px) brightness(.7)' }, { transform: 'scale(1.02)', filter: 'blur(0) brightness(1)' }], { duration: 1100, easing: 'cubic-bezier(.2,0,0,1)' });
   setTimeout(() => el.intro.classList.add('done'), 900);
   el.film.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 700, delay: 450, easing: 'cubic-bezier(.2,0,0,1)', fill: 'both' });

@@ -22,8 +22,24 @@ Repo root: `/Volumes/huanyin/Workstation/x-media/lut-studio`
   headroom above white), re-encoded as scene-linear half floats for the GPU.
   Display transform = darktable sigmoid (jandren, merged for darktable 4.2 in
   [PR #12642](https://github.com/darktable-org/darktable/pull/12642)), per-channel
-  with hue preservation, closed-form parameter fit. Verified against darktable
-  5.6.2 via XMP sidecar: max difference 0.0008 across a −12…+8 EV sweep.
+  with hue preservation, closed-form parameter fit. The optional darktable CLI
+  reference test renders a synthetic 128×512 linear EV ramp through darktable
+  5.6.2 with an explicit XMP sidecar; the observed maximum linear-light error is
+  0.0014772 (acceptance limit 0.0016). This validates the sigmoid curve, not a
+  full camera RAW decode or Lightroom's Auto algorithm.
+- **RAW Highlights/Shadows**: the visible response comes from an adaptive blurred
+  luminance guide; a dedicated Worker also applies an eight-reference fast Local
+  Laplacian remap to a 320 px scene-EV map, and the GPU adds its EV delta at 45 %
+  weight as a luminance ratio to the full-resolution linear frame before sigmoid.
+  LLF alone under-shifts small bright regions (~0.5 EV on the night reference), so
+  it is a refinement, not the whole response. Guide and LLF map are full-frame, so
+  tiles resolve their coordinates into photo space before sampling (a tile-space
+  read made 100 % exports show block/ghost copies). The slider mapping is an
+  engineering design, not an Adobe parameter match. Auto Tone remains a separate percentile
+  heuristic and is not claimed to reproduce LR Auto. With the camera look on it
+  keeps the camera exposure and solves its sliders on the rendered histogram
+  (one-way placement hint from the neutral heuristic, no-darkening contract);
+  with the look off the calibrated neutral values are unchanged.
 - **Auto exposure** (RAW only): scene-domain anchors — 95th percentile near
   sensor white, midtones kept below ~0.39 of white. `AUTO` in the toolbar turns
   it off.

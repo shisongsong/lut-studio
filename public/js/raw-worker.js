@@ -8,13 +8,13 @@
  * to a filterable RGB16F texture — so the Highlights slider can actually
  * recover bright detail, the way Lightroom does from linear raw data.
  *
- * The worker also prepares the two small artefacts that make the renderer feel
- * like a raw processor instead of a JPEG editor:
+ * The worker also prepares the small artefacts needed by the renderer:
  *  - a downscaled linear preview (the GPU texture),
- *  - a blurred log-luminance guide for the adaptive shadows/highlights,
- * and the automatic exposure EV, all computed from the linear frame.
+ *  - a blurred legacy guide plus the unblurred scene-EV map for Local Laplacian,
+ *  - automatic exposure EV, all computed from the linear frame.
  */
 import { decodeRaw, readMetadata } from '/vendor/flashraw/browser.js';
+import { evStats } from './tone-curve.js';
 
 /** Scene-linear headroom kept by the 16-bit decode (4 stops above sensor white). */
 const WHITE_POINT = 16;
@@ -145,14 +145,16 @@ function buildPreview(frameData, w, h, lut) {
 }
 
 /**
- * Blurred log-luminance guide for the adaptive tone sliders, built in linear
- * light from the same box-averaged samples. Encoded to R8 over [-10, 8] EV.
+ * Build tone guides from the same box-averaged scene-linear samples. Keep both
+ * an unblurred Float32 EV map for the LLF pyramid and an R8 bilateral guide for
+ * the legacy JPEG/fallback path.
  */
 function buildGuide(frameData, w, h) {
   const scale = Math.min(1, GUIDE_LONG_EDGE / Math.max(w, h));
   const gw = Math.max(8, Math.round(w * scale));
   const gh = Math.max(8, Math.round(h * scale));
   const ev = new Float32Array(gw * gh);
+  const evMap = new Float32Array(gw * gh);
   for (let y = 0; y < gh; y++) {
     const y0 = Math.floor(y * h / gh);
     const y1 = Math.max(y0 + 1, Math.floor((y + 1) * h / gh));
@@ -172,10 +174,11 @@ function buildGuide(frameData, w, h) {
         0.7152 * toLin(g / n / 65535) +
         0.0722 * toLin(b / n / 65535)
       ) * WHITE_POINT;
-      ev[y * gw + x] = Math.max(-10, Math.min(8, Math.log2(Math.max(lin, 1e-7) / 0.18)));
+      const sceneEV = Math.log2(Math.max(lin, 1e-7) / 0.18);
+      ev[y * gw + x] = Math.max(-10, Math.min(8, sceneEV));
+      evMap[y * gw + x] = Math.max(-10, Math.min(12, sceneEV));
     }
   }
-
   // Separable cross-bilateral blur: weights are quantised by EV difference so
   // the pass is a table lookup instead of an exp() per neighbour.
   const radius = Math.max(2, Math.round(Math.min(gw, gh) * 0.035));
@@ -211,7 +214,11 @@ function buildGuide(frameData, w, h) {
 
   const data = new Uint8Array(gw * gh);
   for (let i = 0; i < data.length; i++) data[i] = Math.round(((ev[i] + 10) / 18) * 255);
-  return { data, w: gw, h: gh };
+  // Measured scene distribution: the Basic-panel tone curve places every slider
+  // anchor from these percentiles (see js/tone-curve.js). Computed on the
+  // unblurred EV map, before it is transferred to the renderer.
+  const scene = evStats(evMap, { linear: true });
+  return { data, evMap, w: gw, h: gh, scene };
 }
 
 /**
@@ -359,7 +366,7 @@ async function decodeLinear(buffer) {
     const preview = buildPreview(data, w, h, lut);
     const guide = buildGuide(data, w, h);
     const exposureEV = autoExposureEV(data, w, h);
-    return { linear: true, full, w, h, preview, guide, exposureEV };
+    return { linear: true, full, w, h, preview, guide, exposureEV, scene: guide.scene };
   } finally {
     frame.free?.();
   }
@@ -407,9 +414,9 @@ self.onmessage = async (event) => {
       self.postMessage({
         id, ok: true, linear: true, model,
         full: out.full, width: out.w, height: out.h,
-        preview: out.preview, guide: out.guide,
+        preview: out.preview, guide: out.guide, scene: out.scene,
         exposureEV: out.exposureEV,
-      }, [out.full.buffer, out.preview.data.buffer, out.guide.data.buffer]);
+      }, [out.full.buffer, out.preview.data.buffer, out.guide.data.buffer, out.guide.evMap.buffer]);
     } else {
       self.postMessage(
         { id, ok: true, linear: false, bitmap: out.bitmap, width: out.w, height: out.h, model, exposureEV: out.exposureEV },

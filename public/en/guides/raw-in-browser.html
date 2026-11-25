@@ -63,8 +63,8 @@
   "mainEntityOfPage": "https://lut.openanthropic.com/en/guides/raw-in-browser",
   "url": "https://lut.openanthropic.com/en/guides/raw-in-browser",
   "image": "https://lut.openanthropic.com/photos/develop-desktop.jpg",
-  "datePublished": "2026-11-19",
-  "dateModified": "2026-11-19",
+  "datePublished": "2026-11-20",
+  "dateModified": "2026-11-20",
   "author": {
     "@type": "Organization",
     "name": "LUT ARCHIVE",
@@ -98,13 +98,13 @@
       "@type": "HowToStep",
       "position": 2,
       "name": "Start from auto exposure",
-      "text": "A RAW opens with an exposure computed from the scene: the 95th percentile sits near sensor white and midtones stay below about 0.39 of white. Turn it off to start at 0."
+      "text": "A RAW opens with an exposure computed from the scene: the 95th percentile sits near sensor white and midtones stay below about 0.39 of white. The exposure slider is an offset from that baseline: 0 keeps the photo as opened, ±5 stops either way."
     },
     {
       "@type": "HowToStep",
       "position": 3,
       "name": "Develop it",
-      "text": "Temperature, tint, exposure, contrast, highlights, shadows, whites and blacks all operate in scene-linear space. The highlights slider compresses real above-white sensor data instead of darkening pixels that were already clipped."
+      "text": "White balance and exposure operate in linear light. Every tone slider places its band from this photo's own measured EV percentiles: highlights compress the measured top, shadows open the measured bottom without lifting the black point, whites/blacks move only their own endpoints, contrast pivots on the measured median. The curve is a monotone log-luminance mapping, so pulling highlights down reduces the top slope instead of flattening the bright end into white."
     },
     {
       "@type": "HowToStep",
@@ -261,14 +261,16 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
   <p class="crumbs"><a href="/">Home</a><span>/</span><a href="/en/guides/">Guides</a><span>/</span>Open a RAW in the browser and develop it like a darkroom</p><p class="kicker">GUIDE · RAW</p>
   <h1>Open a RAW in the browser and develop it like a darkroom</h1>
   <p class="lede">NEF, CR2, CR3, ARW, DNG and RAF files can be dropped straight into the browser window. Decoding, developing, grading and exporting all happen on this machine — the photo is never uploaded.</p>
-  <p class="crumbs"><span>Updated 2026-11-19</span><span>6 min read</span></p>
+  <p class="crumbs"><span>Updated 2026-11-20</span><span>6 min read</span></p>
 </div>
 <figure class="figure"><img src="/photos/develop-desktop.jpg" width="1600" height="1000" alt="The develop panel in LUT ARCHIVE with white balance, light, presence and noise reduction sliders" loading="lazy"><figcaption>The develop panel: a RAW opens neutral, with no look in the way, and the histogram follows the current development.</figcaption></figure>
 
 <h2 id="why">Why a browser can develop a RAW</h2>
 <p>RAW processing is a numeric pipeline: unpack, demosaic, white balance, colour matrix, tone map, output. None of that requires a desktop app. A modern browser brings the two capabilities that matter — WebAssembly for the heavy decoding, WebGL2 for mapping 16-bit scene-linear data to the screen at interactive speed.</p>
 <p>LUT ARCHIVE compiles <a href="https://github.com/ybouane/flashraw" rel="noopener">flashraw</a> to WebAssembly and runs unpacking, AHD demosaicing, camera white balance and the camera colour matrix in a Web Worker. The decode keeps 16 bits and four stops of scene headroom above white, then re-encodes the frame as scene-linear half floats for the GPU. That headroom is why the highlights slider behaves like a raw processor rather than a JPEG editor: it compresses real above-white sensor data back into visible gradation instead of darkening pixels that were clipped before it ever saw them.</p>
-<p>The display transform is darktable's <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a> (jandren, merged for darktable 4.2): monotone on 0…∞, asymptotic to the white target instead of clipping, with parameters fitted in closed form. It was checked end to end against darktable 5.6.2: the same linear TIFF rendered through darktable's sigmoid matches this implementation to within 0.0008 across the whole −12…+8 EV sweep.</p>
+<p>The display transform is darktable's <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a> (jandren, merged for darktable 4.2): monotone on 0…∞, asymptotic to the white target instead of clipping, with parameters fitted in closed form. <code>npm run test:tone:reference</code> uses an isolated darktable 5.6.2 CLI to render a synthetic 128×512 linear EV ramp to a 16-bit PNG and compare decoded pixels; the observed maximum linear-light error is 0.0014772 (test limit 0.0016). This validates the sigmoid curve, not a full camera RAW decode or Lightroom's Auto algorithm.</p>
+<p>Opening a RAW also applies a camera look by default: the luminance percentiles of the camera JPEG embedded in the file are matched against the neutral render, and one monotone display curve is fitted, together with the camera JPEG's mean chroma and RGB balance for saturation and white balance, so the photo opens close to the phone gallery / camera rendition. One click in the Develop header returns to the neutral development. The reference lives inside the RAW file, so no screenshots are needed.</p>
+<p>RAW highlights and shadows act in two layers: a blurred luminance guide decides where the exposure-style change applies, and a multiscale Local Laplacian refinement is added on top. A Worker builds a roughly 320px scene-EV map, creates monotone remap pyramids at evenly spaced intensity references, and combines them with tent weights; the GPU adds that EV map at 45 % weight as a luminance ratio to the full-resolution linear RAW before sigmoid. The LLF term is deliberately not the whole response: measured on the night reference it moved the brightest 1 % of pixels by only about 0.5 EV (small bright regions are edges to the pyramid), so using it alone made the Highlights slider read as broken. The slider mapping is an engineering design, not Adobe's internal parameterization; Auto Tone remains a separate percentile heuristic, not a claimed Lightroom Auto clone. With the camera look on, Auto Tone keeps the camera exposure, uses the neutral-calibration result only as a one-way placement hint (open/brighten allowed, darkening not), and solves the shadows/highlights/whites/blacks sliders against the actual with-look rendered histogram; with the look off the calibrated neutral heuristic is unchanged.</p>
 
 <h2 id="formats">What it opens</h2>
 <table>
@@ -285,7 +287,7 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
 <ol>
   <li><strong>Drop the file in.</strong> Unpacking, demosaicing and preview generation each show a named stage with a live clock instead of a fake animation.</li>
   <li><strong>Check the auto exposure.</strong> For RAW it is computed in the scene domain: the 95th percentile sits near sensor white and midtones stay below about 0.39 of white, so a dim interior comes out lit instead of muddy. The AUTO button turns it off.</li>
-  <li><strong>Develop.</strong> White balance, light and presence sliders plus noise reduction; the eyedropper picks a neutral from the photo. Everything runs in linear space, and the preview and the export share the same pipeline.</li>
+  <li><strong>Develop.</strong> White balance and exposure operate in linear light; RAW highlights/shadows pick their range from a blurred luminance guide and add a Local Laplacian refinement, while whites/blacks adjust the displayed endpoints. The eyedropper picks a neutral, and preview/export share the same pipeline.</li>
   <li><strong>Apply a look.</strong> 64 built-in looks with adjustable strength, a second slot for stacking, and local .cube import that survives a reload in IndexedDB.</li>
   <li><strong>Export.</strong> JPEG at 50 / 75 / 100 % of the source long edge; 100 % renders the in-memory full-resolution frame in tiles, past the GPU texture limit.</li>
 </ol>
@@ -294,7 +296,7 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
 <dl class="facts">
   <div><dt>26 MP NEF</dt><dd>about 1.2 s to a 5568×3712 linear frame</dd></div>
   <div><dt>Preview</dt><dd>4096 px long edge; the full frame stays in memory for export</dd></div>
-  <div><dt>Tone check</dt><dd>max difference 0.0008 vs darktable 5.6.2</dd></div>
+  <div><dt>Tone check</dt><dd>synthetic EV ramp: 0.0014772 max linear error; 0.0016 limit</dd></div>
   <div><dt>Upload</dt><dd>zero bytes — files are only read locally</dd></div>
 </dl>
 

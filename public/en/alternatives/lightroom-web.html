@@ -63,8 +63,8 @@
   "mainEntityOfPage": "https://lut.openanthropic.com/en/alternatives/lightroom-web",
   "url": "https://lut.openanthropic.com/en/alternatives/lightroom-web",
   "image": "https://lut.openanthropic.com/photos/home-desktop.jpg",
-  "datePublished": "2026-11-19",
-  "dateModified": "2026-11-19",
+  "datePublished": "2026-11-20",
+  "dateModified": "2026-11-20",
   "author": {
     "@type": "Organization",
     "name": "LUT ARCHIVE",
@@ -218,7 +218,7 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
   <p class="crumbs"><a href="/">Home</a><span>/</span><a href="/en/alternatives/">Comparisons</a><span>/</span>Is there a free browser alternative to Lightroom?</p><p class="kicker">COMPARISON · LIGHTROOM</p>
   <h1>Is there a free browser alternative to Lightroom?</h1>
   <p class="lede">Half of one. A browser can develop a single RAW, grade it and export a JPEG for free; the other half of Lightroom — catalogue, batch and cloud library — has no free browser replacement, and this tool does not pretend otherwise.</p>
-  <p class="crumbs"><span>Updated 2026-11-19</span><span>7 min read</span></p>
+  <p class="crumbs"><span>Updated 2026-11-20</span><span>7 min read</span></p>
 </div>
 <figure class="figure"><img src="/photos/home-desktop.jpg" width="1400" height="875" alt="The LUT ARCHIVE editor in a browser: develop panel on the left, look filmstrip along the bottom, a photo being developed on the canvas" loading="lazy"><figcaption>The editor in a browser: develop panel, look filmstrip and canvas on one page, with no install step.</figcaption></figure>
 
@@ -240,10 +240,10 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
 <p>Nothing in the table is a ranking, only a boundary. "Desktop only" is not a flaw and "browser only" is not a feature — the two decide where you can open the file and what workflow the tool was built around.</p>
 
 <h2 id="does">What this browser darkroom actually does</h2>
-<p>It is a single-frame darkroom. <a href="/en/guides/raw-in-browser">Open a RAW in the browser</a> and flashraw decodes it in a Web Worker; the 16-bit scene-linear frame is developed on the GPU, and the display transform is darktable's sigmoid, checked end to end against darktable 5.6.2 to within 0.0008. Those are implementation facts you can reproduce from the repository, not claims.</p>
+<p>It is a single-frame darkroom. <a href="/en/guides/raw-in-browser">Open a RAW in the browser</a> and flashraw decodes it in a Web Worker; the 16-bit scene-linear frame is developed on the GPU, using darktable's sigmoid display transform. A synthetic linear EV ramp is pixel-compared against darktable 5.6.2 CLI output with an observed maximum linear error of 0.0014772; this checks the curve, not a full camera RAW pipeline or Lightroom Auto equivalence.</p>
 <ul>
   <li><strong>RAW decoding</strong>: NEF / NRW (including HE and HE* compression), CR2, CR3, ARW, SRF, SR2, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ, X3F; if a file cannot be unpacked, the camera JPEG embedded in it is used instead.</li>
-  <li><strong>Development</strong>: white balance, exposure, contrast, highlights, shadows, whites and blacks all computed in scene-linear space; a RAW opens with an auto exposure derived from the scene.</li>
+  <li><strong>Development</strong>: white balance and exposure operate in linear light; every tone slider places its band from this photo's measured EV percentiles (highlights tighten the measured top, shadows open the measured bottom while locking the black point, whites/blacks move only their measured ends, contrast pivots on the measured median) and the curve is built as a monotone LUT; a RAW also opens with scene-derived auto exposure, and the exposure slider is an offset from it.</li>
   <li><strong>LUTs</strong>: 64 built-in looks with adjustable strength, a second slot for stacking, a merge into one <code>.cube</code>, and local .cube import. The full list is in the <a href="/en/looks">look catalogue</a>.</li>
   <li><strong>Export</strong>: JPEG at 50 / 75 / 100 % of the source long edge; 100 % renders the in-memory full-resolution frame in tiles.</li>
   <li><strong>Privacy</strong>: no account, no upload, no analytics; the only network requests are app assets and a <code>/api/geo</code> country lookup used to pick the interface language.</li>

@@ -2,10 +2,10 @@
 
 A darkroom-style photo editor that runs entirely in your browser: open a RAW,
 develop it with a Lightroom-style panel (white balance, tone, presence,
-histogram, before/after), then stack one of 64 generated looks on top. Fit-to-frame
-preview with pinch/wheel zoom and drag-to-pan at full resolution, split-view
-compare, dual-LUT stacking, `.cube` import and full-resolution JPEG export — no
-accounts, no uploads, no server-side rendering.
+histogram), then stack one of 64 generated looks on top. Fit-to-frame preview
+with pinch/wheel zoom and drag-to-pan at full resolution, tap-for-clean-view,
+long-press before/after compare, dual-LUT stacking, `.cube` import and
+full-resolution JPEG export — no accounts, no uploads, no server-side rendering.
 
 **Live demo:** <https://lut.openanthropic.com>
 
@@ -44,13 +44,16 @@ screenshot:
   a progress pill (percentage, ETA, and a “slow network” note) tracks the
   background downloads; opening a photo, developing a RAW and exporting all show
   a stage overlay with named steps and a live clock instead of a frozen screen.
-- **Split compare** — drag the vertical line; long-press the right side to see
-  the original, release to restore. Fit/fill state is never touched.
+- **Before/after without a divider** — the photo is shown full-bleed and graded,
+  with no line or handle across it; long-press anywhere to see the original,
+  release to restore.
 - **Dual LUT stacking** — apply two looks at once with independent strength
   rails. Useful for a base grade plus a subtle skin-tone or highlight tweak.
-- **Fit by default (remembered)** — a photo opens showing the whole frame instead
-  of being cropped to fill the window; the toolbar toggles Fit / Fill and the
-  choice is stored. Drag-and-drop upload, EXIF orientation handled,
+- **Fit-to-frame viewer** — a photo opens showing the whole frame instead of
+  being cropped to fill the window; wheel/pinch zoom and drag-to-pan cover
+  inspection, so the old Fit/Fill toggle is gone. On a phone a letterboxed
+  landscape frame is lifted into the area above the bottom chrome instead of
+  sitting low behind it. Drag-and-drop upload, EXIF orientation handled,
   full-resolution rendering.
 - **Export** — JPEG at 50 / 75 / 100% of the source long edge, full resolution
   even past the GPU texture limit (rendered in tiles and stitched), quality
@@ -97,6 +100,39 @@ screenshot:
   where the old target stopped at +2), applied as a linear exposure so the
   preview and the export always match; the `AUTO` button in the toolbar turns it
   off.
+- **Camera look on by default (RAW)** — phones and editors' filmstrips show the
+  camera JPEG embedded in the RAW, so a neutral development looks dark and flat
+  next to them. On open, the app finds that embedded preview, compares its
+  luminance percentiles with the neutral render, fits one monotone 256-entry
+  display curve, and matches the camera JPEG's mean chroma and RGB balance for
+  saturation and white balance — all applied after the sigmoid, before the
+  user's sliders.
+  On the reference NEF this lands within ~1 level of the camera JPEG's whole-frame
+  mean/p50/p95 (54.9/36/180 vs 54.5/37/180) and within 1 % of its mean chroma
+  (0.338 vs 0.341). Two measurement fixes got it there: statistics are read at the
+  same effective resolution as the rendered frame (a 160 px preview averaged
+  highlight peaks away and left the top end ~20 levels dark), and white balance /
+  saturation are fitted by measuring the actually rendered 480 px frame with the
+  same denoise the stage uses — the chroma denoise alone accounts for ~15 % of
+  apparent saturation, so fitting without it produced visibly flat photos. The
+  curve needs no screenshots and no per-camera corpus — the reference is inside
+  the file. A `相机风格 /
+  Camera look` toggle in the Develop header returns to the neutral development,
+  which stays the canonical baseline for the histogram and for the neutral
+  Auto Tone branch.
+- **Auto Tone solves one placement contract in both development modes** — a
+  calibrated percentile heuristic supplies the target placement (fitted against
+  Lightroom Mobile on the neutral night frame), then shadows / highlights /
+  whites / blacks are solved against the *rendered* histogram: each slider's
+  gain is measured by a small probe on the photo itself, corrections are damped
+  over three passes, and a hard contract gives back any top-end close that would
+  cost more than ~1.5 levels of whole-frame luma. Exposure is not touched:
+  the exposure slider is an offset from the as-opened baseline, so Auto cannot
+  silently re-expose the frame. Measured in the browser on the three calibration
+  RAWs: night mean 54.2 → 57.3, p50 38 → 46; daylight 105.0 → 110.4,
+  p50 106 → 114; dim indoor 52.7 → 58.6, p50 25 → 36 — none darker, none gaining
+  clipped pixels. Checked by `npm run test:tone` (synthetic monotone response
+  for the solver) and by the browser audit described below.
 - **Scene-referred display transform (darktable sigmoid)** — the RAW path does
   not invent its own base curve. Tone mapping is darktable's [sigmoid view
   transform](https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/)
@@ -108,9 +144,9 @@ screenshot:
   clipping. The parameters are fitted in closed form (`q = 5^-skew`,
   `p = contrast·(1−g)/tempSlope`, then `fog`/`pe` from the black and white
   anchors), which reproduces darktable's own numeric difference fit to 4e-10.
-  The black target is raised from darktable's 0.0152 % default to 0.06 %: the
-  steeper default toe collapsed night shadows into a flat patch (2.9 % of the
-  reference frame landed at ≤1/255, against 1.2 % for Lightroom's Auto export).
+  The black target stays at darktable's default 0.0152 % (0.000152). Shadow
+  placement is controlled by exposure and local tone controls, rather than a
+  global floor selected to match one night frame.
   Colour handling follows the module's per-channel mode with hue preservation:
   negative channels are desaturated first, the curve runs per channel, then the
   middle channel is re-solved to blend spectral-hue preservation with
@@ -118,23 +154,62 @@ screenshot:
   the achromatic axis and the gamut boundary. Middle grey renders at sRGB
   46.7 %, +4 EV of scene headroom at display 0.9347 and +6 EV at 0.9913 — that
   above-white range is exactly the sensor headroom the 16-bit decode kept, so
-  highlights roll off instead of ending in a flat white patch. The port was
-  verified two ways: the closed-form fit against a faithful re-implementation of
-  darktable's algorithm, and end-to-end against darktable 5.6.2 itself — a
-  linear float TIFF rendered through darktable's sigmoid (via an XMP sidecar)
-  matches this implementation to 0.0008 across the whole −12…+8 EV sweep, while
-  the same render without the sidecar reverts to a hard clip. No GPL code was
+  highlights roll off instead of ending in a flat white patch. The port is
+  checked against the closed-form fit and a reproducible darktable 5.6.2 CLI
+  reference: `npm run test:tone:reference` renders a 128×512 linear-light EV ramp
+  with an explicit sigmoid XMP sidecar to a 16-bit sRGB PNG, then compares the
+  decoded pixels in linear light (observed max error 0.0014772; test limit
+  0.0016). This reference test uses an isolated temporary config/cache and does
+  not read the user's darktable library or screenshots. `npm run test:tone`
+  remains portable and checks the mathematical invariants. No GPL code was
   copied: the maths comes from the published module documentation, the PR and
   the OpenCL kernel's formulas, and the GLSL is an independent implementation.
-- **Why there is no synthetic sharpening stage** — an earlier revision added a
-  detail / local-contrast stage after the display transform. It produced a white
-  rim around every light and coloured fringing at high-contrast edges (visible at
-  570 % and above): a single-scale "amplify the deviation" remap cannot tell a
-  texture bump from the penumbra of a real edge, so the transition band around
-  every light gets boosted. It has been removed rather than tuned down. Restoring
-  local contrast properly needs the multi-scale operator (a full local Laplacian
-  pyramid), where detail is amplified inside the pyramid and edges are carried by
-  the coarse levels — that is the next piece of work, not a knob.
+- **Scene-adaptive tone curve (the Basic panel)** — every slider is anchored to
+  *this photo's* measured tonal distribution instead of to numbers fitted on one
+  night frame. The RAW worker computes EV percentiles (p0.1 … p99.9, plus
+  min/max) from the unblurred scene-EV map it already builds; the JPEG/embedded-
+  preview path computes the same percentiles from its guide. `js/tone-curve.js`
+  turns those anchors plus the six slider values into two 1024-entry
+  log-luminance rows on the CPU:
+  - row 0 maps the pixel's own EV — exposure (folded into the anchors), contrast
+    as a slope pivoted on the measured median, whites as a range scale above the
+    measured p75, blacks as a range scale below the measured p5;
+  - row 1 returns a *delta* sampled at the blurred guide EV — shadows as a
+    Gaussian band centred on the measured lower quartile (with a black-point lock
+    at the measured p1), highlights as a soft slope reduction/expansion above the
+    measured p75. A slope change in the log domain is a real HDR compression: it
+    keeps ordering and gradation instead of clamping everything above a
+    threshold to one white level.
+  Neutral (all sliders at 0) is the identity for every scene and exposure, so the
+  calibrated base rendering and the camera-look match are untouched by
+  construction. The curve is repaired monotone and kept above a minimum local
+  slope, so no slider combination can fold it into banded "solarised" tones.
+  The old engine failed exactly where this matters: fixed EV bands made
+  highlights −100 darken a daylight frame's midtones by ~1.7 stops (it behaved
+  like exposure), whites +100 clipped 7 % of the same frame and lifted its
+  midtones, shadows +100 raised the black point into grey haze, and blacks −100
+  wiped out the middle of the night histogram. Measured in the browser with the
+  new curve (four photos: night NEF, daylight NEF, dim indoor NEF, a 45 MP
+  fallback frame), per slider: highlights −100 moves p99 by −32…−109 while p50
+  moves ≤ 6 levels; highlights +100 lifts p95 by +17…+43 with p50 ≤ +5; shadows
+  +100 lifts p25 by +10…+23 and leaves p1 unchanged and p95 within 3 levels;
+  whites −100 moves p99 by −20…−40 with p50 unchanged; blacks ±100 move p1/p5
+  only (p50 unchanged); contrast pivots exactly on the measured median. Cross-
+  image consistency is asserted too: the same slider's midtone response varies by
+  ≤ 8 levels across the four photos.
+  The multiscale Local Laplacian map from the earlier engine stays available but
+  is weighted 0: its pivots were fixed numbers too, so layering it on top made
+  some photos respond twice and popped in asynchronously when the worker map
+  arrived after the immediate preview. The export-tile sampling fix it prompted
+  is still guarded by `scripts/test-renderer-sampling.mjs` (guide and LLF maps
+  are resolved through `uGuideRect` in full-frame photo space, so a 100 % export
+  tile can never show blocks or ghost copies of the picture).
+- **No synthetic sharpening stage** — an earlier single-scale detail remap after
+  the display transform produced a white rim around lights and coloured edge
+  fringing. It remains disabled, and the Local Laplacian stage is retained only
+  as a dormant tone refinement (weight 0), not an invented sharpening control.
+  Auto Tone is a percentile placement heuristic plus a measured solver; it does
+  not claim to reproduce Lightroom's Auto algorithm.
 - **Native-resolution zoom** — the GPU preview is capped at 4096 px on the long
   edge, so past ~110 % zoom the screen would be showing an upscaled preview,
   which is what made a 570 % view look soft next to Lightroom. When the visible
@@ -143,10 +218,11 @@ screenshot:
   as a tile and renders it at 1:1. The crop carries a margin so small pans do not
   re-upload, it is capped so a phone never allocates a huge texture, and the
   filmstrip hands the texture back when it borrows the renderer.
-- **Clean view** — `H` (or the corner icon in the toolbar) hides every control and
-  shows the photo edge to edge: no topbar, no filmstrip, no before/after divider.
-  A single dim exit pill stays in the bottom-right; `Esc` leaves. Wheel and pinch
-  still zoom while clean, so it doubles as a full-screen inspection mode.
+- **Clean view** — tap the photo (or press `H`) and every control disappears: the
+  photo is edge to edge, with no topbar and no filmstrip. Tap it again (`Esc` also
+  works) to come back. There is no icon and no exit pill — the photo itself is the
+  control, and a one-line toast on entry says how to leave. Wheel and pinch still
+  zoom while clean, so it doubles as a full-screen inspection mode.
 - **Bilingual UI** — Chinese / English, switchable and remembered. First visit
   picks the language from the visitor's country (CN/TW/HK/MO → Chinese).
 - **Nothing leaves the device** — decoding, grading and encoding all happen in
@@ -268,7 +344,7 @@ app itself.
 ```bash
 npm install
 npm run dev        # wrangler dev → http://localhost:8787
-npm run test:tone  # tone curve + tone model invariants (monotone, bands, no plateau)
+npm run test:tone  # tone curve + slider contracts (monotone, photo-anchored bands, no plateau)
 ```
 
 Any static file server works too (`python3 -m http.server -d public`), except

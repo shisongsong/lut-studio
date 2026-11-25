@@ -1,17 +1,17 @@
 /**
  * RAW support.
  *
- * A WebAssembly build of [flashraw](https://github.com/ybouane/flashraw) does the
- * whole RAW pipeline in the browser, in a Web Worker: unpack (including Nikon
- * HE/HE* / TicoRAW), demosaic (AHD on Bayer sensors), camera white balance, the
- * camera colour matrix, highlight handling, and the sRGB encode. What comes back
- * is display-ready RGBA at full sensor resolution — exactly what a LUT should be
- * applied to.
+ * A WebAssembly build of [flashraw](https://github.com/ybouane/flashraw) unpacks
+ * and demosaics RAW files in a Web Worker, applying as-shot white balance and the
+ * camera colour matrix. The normal worker result is 16-bit RGB with an extended
+ * white point, converted to scene-linear half floats with highlight headroom;
+ * the WebGL renderer applies the display transform before any LUT. If the linear
+ * path is unavailable, the worker can return a display-ready 8-bit frame. If RAW
+ * development itself fails, the caller falls back to the camera JPEG embedded in
+ * the file via `extractRawPreview()`.
  *
  * The decoder is a ~3.4 MB WASM payload that is only fetched the first time a RAW
- * file is opened. If it cannot decode the file (an exotic or damaged file), the
- * caller falls back to the camera JPEG embedded in the RAW via
- * `extractRawPreview()`.
+ * file is opened.
  */
 
 function findJpegSpans(bytes) {
@@ -37,7 +37,7 @@ function findEoi(bytes, from) {
  * @param {ArrayBuffer} buffer raw file bytes
  * @returns {Promise<{blob: Blob, width: number, height: number, bitmap: ImageBitmap} | null>}
  */
-export async function extractRawPreview(buffer) {
+export async function extractRawPreview(buffer, maxWidth = 0) {
   const bytes = new Uint8Array(buffer);
   const spans = findJpegSpans(bytes)
     .map((s) => ({ ...s, size: s.end - s.start }))
@@ -47,8 +47,16 @@ export async function extractRawPreview(buffer) {
 
   for (const span of spans) {
     const blob = new Blob([bytes.subarray(span.start, span.end)], { type: 'image/jpeg' });
+    // A histogram reference only needs a small decode; asking createImageBitmap to
+    // resize avoids holding a 20 MP JPEG in memory on phones.
+    const scaled = maxWidth > 0 ? { resizeWidth: maxWidth, resizeQuality: 'medium' } : {};
     try {
-      const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+      let bitmap;
+      try {
+        bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image', ...scaled });
+      } catch {
+        bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+      }
       return { blob, width: bitmap.width, height: bitmap.height, bitmap };
     } catch {
       // not a decodable JPEG (thumbnail stub, EXIF preview…) — try the next one
@@ -105,10 +113,10 @@ function getWorker() {
  * Develop a RAW file, in a worker.
  *
  * The normal result is scene-linear 16-bit data with highlight headroom:
- * `{ linear: true, data: Uint16Array (half-float scene linear), preview,
- * guide, width, height, ... }` for the GPU path. If the linear decode cannot
- * run on this file/browser, the worker falls back to a display-ready 8-bit
- * `bitmap` so the photo still opens.
+ * `{ linear: true, data, preview, guide: { data, evMap, w, h }, ... }` for the
+ * GPU path. `guide.evMap` is the downscaled unblurred scene-EV map used by the
+ * Local Laplacian worker. If linear decode cannot run, the worker falls back to
+ * a display-ready 8-bit `bitmap` so the photo still opens.
  *
  * @param {ArrayBuffer} buffer raw file bytes (kept intact — a copy goes to the worker)
  * @returns {Promise<{linear:boolean, data?:Uint16Array, preview?:object, guide?:object,

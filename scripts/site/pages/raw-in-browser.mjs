@@ -2,16 +2,16 @@ import { howToLd, articleLd } from '../../site.mjs';
 
 const ZH_STEPS = [
   ['拖入 RAW', '把 NEF / CR2 / CR3 / ARW / DNG / RAF 等文件拖进窗口，或者点左下角的 PHOTO。解码在本机 Web Worker 里完成，文件不会被上传。'],
-  ['先看自动曝光', 'RAW 打开时会按场景亮度算一个曝光：95% 分位靠近传感器白，中间调留在约 0.39 白以下。想手动就从 0 开始。'],
-  ['用冲洗面板显影', '色温、色调、曝光、对比度、高光、阴影、白色、黑色都在场景线性空间里算；高光压缩的是真实的高于白的数据，不是把已经裁切的白再压暗。'],
+  ['先看自动曝光', 'RAW 打开时会按场景亮度算一个曝光：95% 分位靠近传感器白，中间调留在约 0.39 白以下。曝光滑块是相对这个自动值的偏移，0 就是保持打开时的亮度，往左往右各 5 档。'],
+  ['用色调面板显影', '白平衡与曝光在线性光下处理。六个色调滑块按这张照片自己实测的亮度分位数放置作用范围：高光收紧实测顶部、阴影打开实测下部且不抬黑场、白色/黑色只动各自端点、对比度绕实测中位数。曲线是单调的对数亮度映射，降高光压的是斜率而不是把亮部统一压成白。'],
   ['套一个 LUT', '64 款内置 look 可以调强度，也可以叠第二支，或者导入自己的 .cube。'],
   ['导出', '按源图长边的 50 / 75 / 100% 导出 JPEG，100% 用内存里的原始帧分块渲染。'],
 ];
 
 const EN_STEPS = [
   ['Drop in a RAW', 'Drag a NEF / CR2 / CR3 / ARW / DNG / RAF into the window, or press PHOTO. Decoding happens in a Web Worker on your machine; the file is never uploaded.'],
-  ['Start from auto exposure', 'A RAW opens with an exposure computed from the scene: the 95th percentile sits near sensor white and midtones stay below about 0.39 of white. Turn it off to start at 0.'],
-  ['Develop it', 'Temperature, tint, exposure, contrast, highlights, shadows, whites and blacks all operate in scene-linear space. The highlights slider compresses real above-white sensor data instead of darkening pixels that were already clipped.'],
+  ['Start from auto exposure', 'A RAW opens with an exposure computed from the scene: the 95th percentile sits near sensor white and midtones stay below about 0.39 of white. The exposure slider is an offset from that baseline: 0 keeps the photo as opened, ±5 stops either way.'],
+  ['Develop it', 'White balance and exposure operate in linear light. Every tone slider places its band from this photo\'s own measured EV percentiles: highlights compress the measured top, shadows open the measured bottom without lifting the black point, whites/blacks move only their own endpoints, contrast pivots on the measured median. The curve is a monotone log-luminance mapping, so pulling highlights down reduces the top slope instead of flattening the bright end into white.'],
   ['Apply a look', 'Pick one of 64 built-in looks, dial its strength, stack a second one, or import your own .cube.'],
   ['Export', 'Write a JPEG at 50 / 75 / 100 % of the source long edge. 100 % renders the in-memory full-resolution frame in tiles.'],
 ];
@@ -22,7 +22,7 @@ export default {
   kind: 'guide',
   priority: 0.9,
   changefreq: 'monthly',
-  updated: '2026-11-19',
+  updated: '2026-11-20',
   readMinutes: 6,
   image: '/photos/develop-desktop.jpg',
   jsonLd: (lang) => [
@@ -35,7 +35,7 @@ export default {
           : 'How in-browser RAW decoding works, which camera formats are supported, the processing steps and measured numbers.',
       path: lang === 'zh' ? '/guides/raw-in-browser' : '/en/guides/raw-in-browser',
       image: '/photos/develop-desktop.jpg',
-      updated: '2026-11-19',
+      updated: '2026-11-20',
       hub: lang === 'zh' ? '指南' : 'Guides',
     }),
     howToLd({
@@ -56,12 +56,14 @@ export default {
     kicker: '指南 · RAW',
     h1: '在浏览器里打开 RAW，并按暗房方式处理',
     lede: 'NEF、CR2、CR3、ARW、DNG、RAF 都可以直接拖进浏览器窗口。解码、显影、调色、导出全部在这台机器上完成，照片不需要上传到任何地方。',
-    body: `<figure class="figure"><img src="/photos/develop-desktop.jpg" width="1600" height="1000" alt="LUT ARCHIVE 的冲洗面板：RAW 打开后显示白平衡、光线、偏好与降噪滑块" loading="lazy"><figcaption>冲洗面板：RAW 打开时是中性状态，LUT 不挡在中间；直方图跟随当前显影实时更新。</figcaption></figure>
+    body: `<figure class="figure"><img src="/photos/develop-desktop.jpg" width="1600" height="1000" alt="LUT ARCHIVE 的色调面板：RAW 打开后显示白平衡、光线、偏好与降噪滑块" loading="lazy"><figcaption>色调面板：RAW 打开时是中性状态，LUT 不挡在中间；直方图跟随当前显影实时更新。</figcaption></figure>
 
 <h2 id="why">浏览器为什么能做 RAW 显影</h2>
 <p>RAW 处理本质上是一条数值管线：拆包、去马赛克、白平衡、色彩矩阵、色调映射、输出。这些步骤不需要桌面应用，现代浏览器两样能力就够了——WebAssembly 负责解码这类重计算，WebGL2 负责把 16 位场景线性数据实时映射到屏幕。</p>
 <p>LUT ARCHIVE 把 <a href="https://github.com/ybouane/flashraw" rel="noopener">flashraw</a> 编译成 WebAssembly，在 Web Worker 里完成解包、AHD 去马赛克、相机白平衡和相机色彩矩阵。解码结果保留 16 位和 4 档高于白的场景余量，再编码成场景线性半浮点交给 GPU——这就是高光滑块能像 RAW 处理器一样工作、而不是像 JPEG 编辑器那样把白色压成灰的原因。</p>
-<p>显示变换用的是 darktable 的 <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a>（jandren，darktable 4.2 起合入），在 0…∞ 上单调、渐近逼近白点而不裁切，参数用闭式解拟合。端到端对照 darktable 5.6.2 做过验证：同一帧线性 TIFF 走 darktable 的 sigmoid，与本实现整条 −12…+8 EV 扫描的最大差是 0.0008。</p>
+<p>显示变换用的是 darktable 的 <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a>（jandren，darktable 4.2 起合入），在 0…∞ 上单调、渐近逼近白点而不裁切，参数用闭式解拟合。<code>npm run test:tone:reference</code> 会用隔离配置调用 darktable 5.6.2，将合成的 128×512 线性 EV 阶梯渲染为 16 位 PNG，再逐像素比较；本机观测到的最大线性光误差为 0.0014772，测试容限 0.0016。它验证的是 sigmoid 曲线，不是完整相机 RAW 解码或 Lightroom Auto 的等价性。</p>
+<p>默认打开 RAW 时会叠加“相机风格”：从文件里内嵌的相机 JPEG 取亮度分位，和中性显影的直方图对齐，拟合成一条单调的显示曲线，并匹配相机 JPEG 的平均色度与 RGB 平衡来校准饱和度和白平衡，让默认画面接近手机相册/相机成片；它也可以一键关闭回到中性显影。参考图就在 RAW 文件里，不需要用户提供截图。</p>
+<p>色调滑块的作用位置来自照片自己：Worker 在解码时顺便对约 320 px 的无模糊场景 EV 图量出分位数（p0.1 到 p99.9，另含最小/最大值），主线程用这些锚点加六个滑块值算出两条 1024 项对数亮度曲线——一条按像素自身 EV 映射（曝光、对比度、白色、黑色），一条按引导图 EV 返回修正量（阴影、高光）。两条都在 CPU 上生成，单调性、最小斜率与端点隔离都有数值检查和单元测试；滑块为零时曲线是恒等映射，所以打开时校准好的基准画面完全不受影响。旧版这里是固定 EV 分段加一层 Local Laplacian 修正，固定分段在一张夜景上校准，换一张白天照片就会让“高光 −100”表现得像整体降曝光、把中间调压暗一档多；现在这个故障场景已经写成回归测试。降高光是在对数域降低亮部斜率，实拍上可以在不牺牲中间调的前提下把 p99 拉低 30–110 个 8 位灰阶，而不是把阈值以上压成一块平白。自动色调用同一套锚点：百分位启发式给出目标位置，再按实际渲染直方图求解滑块，并保证不比打开时更暗、不增加裁切。</p>
 
 <h2 id="formats">支持哪些文件</h2>
 <table>
@@ -78,7 +80,7 @@ export default {
 <ol>
   <li><strong>拖入文件。</strong>浏览器会显示解包、去马赛克、生成预览几个阶段，带实时进度，不是一块假动画。</li>
   <li><strong>看自动曝光。</strong>RAW 的自动曝光在场景域里算：95% 分位靠近传感器白，中间调不超过约 0.39 白，所以暗的室内会被提亮，而不是停留在灰蒙蒙的状态。AUTO 按钮可以关掉。</li>
-  <li><strong>冲洗面板。</strong>白平衡、光线、偏好三组滑块，外加降噪；吸管可以直接点画面里的中性灰。所有调整都在线性空间里做，预览和导出走同一条管线。</li>
+  <li><strong>色调面板。</strong>白平衡与曝光在线性光下处理；RAW 高光/阴影由模糊亮度引导图决定作用范围，再叠加 Local Laplacian 局部修正，白色/黑色在显示变换后调整。吸管可以点取中性灰，预览和导出共享同一条管线。</li>
   <li><strong>套 LUT。</strong>64 款内置 look，强度可调，可以叠第二支；导入的 .cube 会存在浏览器本地，下次还在。</li>
   <li><strong>导出。</strong>按源图长边的 50 / 75 / 100% 写 JPEG；100% 用内存里的全分辨率帧分块渲染，绕过 GPU 纹理上限。</li>
 </ol>
@@ -87,7 +89,7 @@ export default {
 <dl class="facts">
   <div><dt>26 MP NEF</dt><dd>约 1.2 秒解码成 5568×3712 线性帧</dd></div>
   <div><dt>预览</dt><dd>长边 4096 px，全分辨率帧留在内存里供导出</dd></div>
-  <div><dt>色调验证</dt><dd>与 darktable 5.6.2 最大差 0.0008</dd></div>
+  <div><dt>色调验证</dt><dd>合成 EV 阶梯：最大线性误差 0.0014772，测试容限 0.0016</dd></div>
   <div><dt>上传</dt><dd>0 字节：文件只在本机读取</dd></div>
 </dl>
 
@@ -97,7 +99,7 @@ export default {
     faq: [
       ['浏览器处理 RAW 会泄露照片吗？', '不会。解码、显影、导出都在本机的 Web Worker 和 GPU 里完成，文件没有上传接口。唯一的网络请求是应用资源本身，以及用来选择界面语言的 /api/geo 国家查询。'],
       ['为什么预览只到 4096 px？', '更大尺寸的线性帧整块传 GPU 会明显变卡。预览限制在长边 4096 px，而导出时仍然使用内存里的全分辨率帧分块渲染，所以导出的 JPEG 是完整分辨率。'],
-      ['支持 Lightroom 的预设吗？', '不支持 .xmp 预设。可以把 LUT 以 .cube 导入，或者用内置 look 加上冲洗面板自己调。'],
+      ['支持 Lightroom 的预设吗？', '不支持 .xmp 预设。可以把 LUT 以 .cube 导入，或者用内置 look 加上色调面板自己调。'],
     ],
   },
   en: {
@@ -111,7 +113,9 @@ export default {
 <h2 id="why">Why a browser can develop a RAW</h2>
 <p>RAW processing is a numeric pipeline: unpack, demosaic, white balance, colour matrix, tone map, output. None of that requires a desktop app. A modern browser brings the two capabilities that matter — WebAssembly for the heavy decoding, WebGL2 for mapping 16-bit scene-linear data to the screen at interactive speed.</p>
 <p>LUT ARCHIVE compiles <a href="https://github.com/ybouane/flashraw" rel="noopener">flashraw</a> to WebAssembly and runs unpacking, AHD demosaicing, camera white balance and the camera colour matrix in a Web Worker. The decode keeps 16 bits and four stops of scene headroom above white, then re-encodes the frame as scene-linear half floats for the GPU. That headroom is why the highlights slider behaves like a raw processor rather than a JPEG editor: it compresses real above-white sensor data back into visible gradation instead of darkening pixels that were clipped before it ever saw them.</p>
-<p>The display transform is darktable's <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a> (jandren, merged for darktable 4.2): monotone on 0…∞, asymptotic to the white target instead of clipping, with parameters fitted in closed form. It was checked end to end against darktable 5.6.2: the same linear TIFF rendered through darktable's sigmoid matches this implementation to within 0.0008 across the whole −12…+8 EV sweep.</p>
+<p>The display transform is darktable's <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a> (jandren, merged for darktable 4.2): monotone on 0…∞, asymptotic to the white target instead of clipping, with parameters fitted in closed form. <code>npm run test:tone:reference</code> uses an isolated darktable 5.6.2 CLI to render a synthetic 128×512 linear EV ramp to a 16-bit PNG and compare decoded pixels; the observed maximum linear-light error is 0.0014772 (test limit 0.0016). This validates the sigmoid curve, not a full camera RAW decode or Lightroom's Auto algorithm.</p>
+<p>Opening a RAW also applies a camera look by default: the luminance percentiles of the camera JPEG embedded in the file are matched against the neutral render, and one monotone display curve is fitted, together with the camera JPEG's mean chroma and RGB balance for saturation and white balance, so the photo opens close to the phone gallery / camera rendition. One click in the Develop header returns to the neutral development. The reference lives inside the RAW file, so no screenshots are needed.</p>
+<p>RAW highlights and shadows act in two layers: a blurred luminance guide decides where the exposure-style change applies, and a multiscale Local Laplacian refinement is added on top. A Worker builds a roughly 320px scene-EV map, creates monotone remap pyramids at evenly spaced intensity references, and combines them with tent weights; the GPU adds that EV map at 45 % weight as a luminance ratio to the full-resolution linear RAW before sigmoid. The LLF term is deliberately not the whole response: measured on the night reference it moved the brightest 1 % of pixels by only about 0.5 EV (small bright regions are edges to the pyramid), so using it alone made the Highlights slider read as broken. The slider mapping is an engineering design, not Adobe's internal parameterization; Auto Tone remains a separate percentile heuristic, not a claimed Lightroom Auto clone. With the camera look on, Auto Tone keeps the camera exposure, uses the neutral-calibration result only as a one-way placement hint (open/brighten allowed, darkening not), and solves the shadows/highlights/whites/blacks sliders against the actual with-look rendered histogram; with the look off the calibrated neutral heuristic is unchanged.</p>
 
 <h2 id="formats">What it opens</h2>
 <table>
@@ -128,7 +132,7 @@ export default {
 <ol>
   <li><strong>Drop the file in.</strong> Unpacking, demosaicing and preview generation each show a named stage with a live clock instead of a fake animation.</li>
   <li><strong>Check the auto exposure.</strong> For RAW it is computed in the scene domain: the 95th percentile sits near sensor white and midtones stay below about 0.39 of white, so a dim interior comes out lit instead of muddy. The AUTO button turns it off.</li>
-  <li><strong>Develop.</strong> White balance, light and presence sliders plus noise reduction; the eyedropper picks a neutral from the photo. Everything runs in linear space, and the preview and the export share the same pipeline.</li>
+  <li><strong>Develop.</strong> White balance and exposure operate in linear light; RAW highlights/shadows pick their range from a blurred luminance guide and add a Local Laplacian refinement, while whites/blacks adjust the displayed endpoints. The eyedropper picks a neutral, and preview/export share the same pipeline.</li>
   <li><strong>Apply a look.</strong> 64 built-in looks with adjustable strength, a second slot for stacking, and local .cube import that survives a reload in IndexedDB.</li>
   <li><strong>Export.</strong> JPEG at 50 / 75 / 100 % of the source long edge; 100 % renders the in-memory full-resolution frame in tiles, past the GPU texture limit.</li>
 </ol>
@@ -137,7 +141,7 @@ export default {
 <dl class="facts">
   <div><dt>26 MP NEF</dt><dd>about 1.2 s to a 5568×3712 linear frame</dd></div>
   <div><dt>Preview</dt><dd>4096 px long edge; the full frame stays in memory for export</dd></div>
-  <div><dt>Tone check</dt><dd>max difference 0.0008 vs darktable 5.6.2</dd></div>
+  <div><dt>Tone check</dt><dd>synthetic EV ramp: 0.0014772 max linear error; 0.0016 limit</dd></div>
   <div><dt>Upload</dt><dd>zero bytes — files are only read locally</dd></div>
 </dl>
 

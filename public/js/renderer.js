@@ -4,64 +4,43 @@
  * normal 2D canvases (so crossfades stay simple and only one GL context is
  * created on phones).
  *
- * Pipeline: exposure + white balance in linear light → monotone tone curve
- * sampled in log2 luminance (shadows / highlights / whites / blacks) → the
- * darktable sigmoid display transform (scene-referred RAW path) →
- * vibrance/saturation → optional LOG encode → up to 3 stacked LUTs.
+ * Pipeline: exposure + white balance in linear light → per-image tone curves
+ * (global: exposure/contrast/whites/blacks; local: shadows/highlights through a
+ * blurred guide) → the darktable sigmoid display transform (scene-referred RAW
+ * path) → camera-preview look → vibrance/saturation → optional LOG encode → up
+ * to 3 stacked LUTs.
  *
- * The tone curve is built on the CPU into a 1024-entry log-luminance LUT and
+ * The tone curves are built on the CPU into a two-row, 1024-entry log-luminance
+ * LUT from the photo's own measured EV percentiles (js/tone-curve.js) and
  * applied as a luminance *ratio* in linear light, so a tone move cannot shift
- * hue the way per-channel gamma-space offsets do. The model follows the log
- * exposure domain of darktable's filmic RGB (black/white points, latitude,
- * toe/shoulder) and the zone-masked exposure corrections of darktable's tone
- * equalizer; RawTherapee's Shadows/Highlights is the reference for keeping
- * chroma stable when shadows are lifted. No GPL code was copied — the sources
- * were only read for the maths.
+ * hue the way per-channel gamma-space offsets do. At slider zero the mapping is
+ * the identity, which keeps the calibrated base rendering untouched.
  */
+import { buildToneCurves, neutralSceneStats } from './tone-curve.js';
+
+export { TONE_DOMAIN } from './tone-curve.js';
 export const TONE_EV_MIN = -12.0;
 export const TONE_EV_MAX = 10.0;
 export const TONE_LUT_SIZE = 1024;
-const GREY = 0.18;
-
-/**
- * Calibration of the Basic-panel tone sliders.
- *
- * The bands follow Adobe's own histogram ranges for the Lightroom Basic panel
- * (Shadows 10–30 %, Highlights 70–90 %, Whites 90–100 %, Blacks 0–10 % of the
- * displayed tonal range). Highlights and shadows are amplitude-limited
- * exposure changes applied through a blurred luminance guide (a local tone
- * map, the way Lightroom's adaptive sliders behave); whites and blacks are
- * endpoint moves with a soft shoulder/toe.
- *
- * These numbers are injected into the shader too, so the browser render and
- * `scripts/test-tone-model.mjs` share one calibration.
- */
 const glf = (n) => Number(n).toFixed(4);
-// How much chroma to restore after the per-channel display transform.
+// Chroma restore after the per-channel display transform (kept at 0: measured
+// against Lightroom, per-channel output already carries the right saturation).
 export const CHROMA_RESTORE = 0.0;
 
-export const TONE_MODEL = {
-  // Calibrated from Lightroom Mobile (Adobe Color) on the night test frame:
-  // highlights are a logistic EV compression (negative) / lift (positive),
-  // shadows are the adaptive logistic band, whites/blacks are the display-space
-  // endpoint curves LR actually exhibits (see testdata/lr-calibration).
-  shadow: {
-    stops: 1.9, pivotEv: -1.9, widthEv: 0.8,
-    negA: 1.35, negPivotEv: -2.6, negWidthEv: 0.7,
-  },
-  highlight: {
-    // negative: EV drop that grows with luminance, capped, then compressed into
-    // white for scene-linear headroom (linear RAW path)
-    negSlope: 0.40, negPivotEv: -2.7, negCapEv: 2.0,
-    headroomSlope: 0.7, headroomFromEv: 2.4, whiteEv: 2.45,
-    // positive: EV lift, stronger in the mid/high range
-    posBase: 0.5, posExtra: 0.5, posLoEv: -3.5, posHiEv: 0.5,
-  },
-  // display-space white point stretch (positive) / gentle recovery (negative)
-  whites: { stretch: 1.5, gamma: 2.0, recover: 0.35 },
-  // display-space black point: negative = levels move, positive = gamma lift
-  blacks: { point: 0.216, gamma: 0.75, gammaA: 0.967, gammaB: 0.0157 },
-};
+/**
+ * Weight of the multiscale Local Laplacian EV-delta map on top of the adaptive
+ * local tone curve.
+ *
+ * Set to zero on purpose: since the Basic sliders place their bands from each
+ * photo's measured EV percentiles (js/tone-curve.js), the guide curve already
+ * carries the whole visible, photo-specific response. The old LLF map used
+ * fixed EV pivots calibrated on one night frame, so layering it on top made the
+ * other photos respond twice, with an asynchronous pop when the worker map
+ * arrived after the immediate preview. Leaving it at 0 keeps the slider
+ * feedback deterministic (and removes the export tile-sampling risk entirely);
+ * the operator and its unit tests are kept for a future adaptive use.
+ */
+export const LLF_WEIGHT = 0.0;
 
 /**
  * The RAW display transform: darktable's sigmoid view transform
@@ -78,17 +57,11 @@ export const SIGMOID = {
   contrast: 1.5,
   skew: 0,
   white: 1.0,
-  // darktable's default black target (0.0152%) is a very low floor: below it
-  // the toe is steep enough that night shadows collapse into a flat black
-  // patch (measured: 2.9% of the reference frame landed at <=1/255, against
-  // 1.2% for Lightroom's own Auto export). A slightly higher floor keeps the
-  // deepest tones separated without turning the blacks milky.
-  black: 0.0006,
+  // Keep darktable's scene-independent default display black target (0.0152%).
+  // Per-image shadow placement belongs to exposure and local tone controls, not
+  // to a base curve floor fitted against one night frame.
+  black: 0.000152,
   hue: 1.0,
-  // Basic-panel contrast (-100..100) scales the sigmoid contrast around the
-  // darktable default; gain 0.6 spans darktable's own soft range (0.75..3.0),
-  // so the extremes behave like Lightroom's Basic contrast.
-  contrastGain: 0.6,
 };
 
 /**
@@ -147,49 +120,6 @@ export function sigmoidFit(c = SIGMOID.contrast, s = SIGMOID.skew, w = SIGMOID.w
   }
   const pe = Math.pow(fog + g, p) * WGR;
   return { p, q, pe, fog, w, b };
-}
-
-const clamp01 = (v) => Math.min(1, Math.max(0, v));
-const smoothstep = (a, b, x) => {
-  const t = clamp01((x - a) / (b - a));
-  return t * t * (3 - 2 * t);
-};
-
-/**
- * Build the tone curve as a mapping of log2 luminance (EV around 18% grey).
- *
- * - `contrast` is a slope around mid grey in the log/exposure domain, which is
- *   where a filmic curve keeps its linear "latitude".
- * - `shadows` / `highlights` are exposure-style corrections confined to their
- *   own range by smooth masks: lifting shadows multiplies the dark end (keeps
- *   detail and hue) instead of adding grey to it.
- * - `whites` moves the top of the range only, so it behaves like a white point.
- * - `blacks` has both a toe exposure component and a real linear floor/crush:
- *   multiplying zero by any gain can never lift a black, an additive term can.
- *
- * The result is monotone for every combination (a tone inversion is what makes
- * banded "solarised" shadows), so the LUT is repaired in place if an extreme
- * setting would fold it.
- *
- * @param {{contrast?:number, shadows?:number, highlights?:number, whites?:number, blacks?:number}} tone -100..100
- * @returns {Float32Array} TONE_LUT_SIZE log2 luminance values (EV around grey)
- */
-export function buildToneCurve(tone = {}) {
-  const pick = (v) => Math.max(-100, Math.min(100, Number(v) || 0)) / 100;
-  // The tone sliders are no longer baked into this 1D curve: highlights,
-  // shadows, whites and blacks need either a spatial guide or an endpoint move
-  // in display space, so they run in the fragment shader (see FRAG below).
-  // What remains here is contrast: a slope around mid grey in the log exposure
-  // domain, applied as a luminance ratio so hue survives.
-  const slope = 1 + 0.32 * pick(tone.contrast);
-  const out = new Float32Array(TONE_LUT_SIZE);
-  for (let i = 0; i < TONE_LUT_SIZE; i++) {
-    const ev = TONE_EV_MIN + (TONE_EV_MAX - TONE_EV_MIN) * (i / (TONE_LUT_SIZE - 1));
-    // Bounded only for float sanity: a hard clamp at the bottom would flatten
-    // the deepest shadows into a plateau at high contrast.
-    out[i] = Math.max(TONE_EV_MIN - 8, Math.min(TONE_EV_MAX + 4, ev * slope));
-  }
-  return out;
 }
 
 /** IEEE-754 float32 → float16 bits, for the R16F tone texture. */
@@ -284,18 +214,36 @@ uniform float uSaturation;
 // 1 = the image texture holds scene-linear half floats (RAW path, headroom
 // above 1.0 possible); 0 = plain sRGB RGBA8 (JPEG / demo / embedded preview).
 uniform int uLinearInput;
-// Basic-panel tone sliders in -100..100. Highlights/shadows are adaptive (they
-// read a blurred luminance guide); whites/blacks are endpoint moves.
-uniform float uShadows;
-uniform float uHighlights;
-uniform float uWhites;
-uniform float uBlacks;
-// 1D tone LUT in log2 luminance (R16F, TONE_LUT_SIZE samples).
+// Per-image tone LUT: two rows of R16F log-luminance values.
+//   row 0 = global curve (exposure / contrast / whites / blacks), sampled at the
+//           pixel's own EV;
+//   row 1 = local delta (shadows / highlights), sampled at the blurred guide EV.
+// Both rows are built on the CPU from the photo's measured EV percentiles, so a
+// slider value means the same visual move on every photo (see js/tone-curve.js).
 uniform sampler2D uTone;
 // Low-frequency luminance guide: R8, log2(luma/0.18) mapped from -10..6 EV.
 uniform sampler2D uGuide;
 uniform int uHasGuide;
 uniform vec4 uGuideRect;
+// Scene-linear local tone correction from the multiscale Local Laplacian pass.
+uniform sampler2D uLocalMap;
+uniform int uHasLocalMap;
+// How much of the LLF map is added on top of the adaptive guide response. The
+// guide path carries the slider's main, clearly visible effect; the LLF term
+// refines it locally without ever replacing it (LLF alone under-shifts small
+// bright regions, because their coarse-level guide is dominated by dark
+// neighbours).
+uniform float uLocalWeight;
+// Camera-preview look: a 256-entry display-luminance curve estimated from the
+// camera JPEG embedded in the RAW. Applied after the display transform, before
+// the user's whites/blacks and presence controls.
+uniform sampler2D uCamLook;
+uniform int uHasCamLook;
+// Per-luma-band saturation factors and white-balance gains that go with the
+// camera look, both estimated from the same embedded JPEG. Four bands keep a
+// camera's punchy sky and warm skin from pulling against one another.
+uniform vec4 uCamSatBands;
+uniform vec3 uCamWb;
 // When the visible area is rendered from a native-resolution crop instead of
 // the (downscaled) preview, uTile maps the crop's local uv back to image uv.
 uniform vec4 uTile;
@@ -355,6 +303,12 @@ float srgbToLinear1(float c) {
 float linearToSrgb1(float c) {
   c = max(c, 0.0);
   return mix(1.055 * pow(c, 1.0 / 2.4) - 0.055, 12.92 * c, step(c, 0.0031308));
+}
+
+/** Sample one row of the per-image tone LUT (row 0.25 global, 0.75 local). */
+float toneCurve(float e, float row) {
+  float u = clamp((e - TONE_EV_MIN) / (TONE_EV_MAX - TONE_EV_MIN), 0.0, 1.0);
+  return texture(uTone, vec2(u, row)).r;
 }
 
 // Published transfer functions: Fujifilm F-Log / F-Log2, Panasonic V-Log.
@@ -625,6 +579,15 @@ void main() {
     outColor = vec4(0.0, 0.0, 0.0, 1.0);
     return;
   }
+  // Photo-space uv for the maps that live in the full frame (blurred tone guide,
+  // Local Laplacian EV map). The interactive native tile carries its offset in
+  // uTile, so imUv is already photo-space there and uGuideRect stays identity;
+  // a tiled export blits a tile-sized texture with identity uTile and passes the
+  // tile's position in uGuideRect, so both cases resolve to the same photo uv.
+  // Sampling these maps in tile space instead (the old bug) made every export
+  // tile apply the whole frame's guide/local map to itself: blocks and ghost
+  // copies of the picture inside the exported JPEG.
+  vec2 mapUv = uGuideRect.xy + imUv * uGuideRect.zw;
 
   vec3 tex = texture(uImage, uv).rgb;
   vec3 lin;
@@ -647,61 +610,24 @@ void main() {
   );
   lin *= gains;
 
-  // Tone, in the same order as the Basic panel: contrast → highlights/shadows
-  // (adaptive) → whites/blacks (endpoints). Everything ends up as a luminance
-  // ratio, so hue and saturation survive.
+  // Tone: the per-image curve built on the CPU (js/tone-curve.js). The global
+  // row maps the pixel's own EV; the local row returns a delta sampled at the
+  // blurred guide EV. At slider zero the global row is the identity and the
+  // local row is zero, so the base rendering is untouched.
   float Y = max(dot(lin, vec3(0.2126, 0.7152, 0.0722)), 1e-7);
   float ev = clamp(log2(Y / 0.18), TONE_EV_MIN, TONE_EV_MAX);
-  float tu = (ev - TONE_EV_MIN) / (TONE_EV_MAX - TONE_EV_MIN);
-
-  // 1) Contrast: the only thing left in the 1D LUT.
-  float evC = texture(uTone, vec2(tu, 0.5)).r;
-  float Yc = 0.18 * exp2(evC);
-
-  // 2) Highlights / shadows: an exposure change weighted by a *blurred*
-  //    luminance guide, so the weight is constant across a neighbourhood and
-  //    micro-contrast inside the lifted region survives. The band is a logistic
-  //    in log2 luminance: it falls off smoothly instead of ending on a hard
-  //    mask edge, which keeps the whole mapping monotone (no flat spot — the
-  //    artifact that used to turn skies into grey mush). Without a guide it
-  //    degrades gracefully to a global curve.
   float gEv = ev;
   if (uHasGuide == 1) {
-    vec2 gu = uGuideRect.xy + imUv * uGuideRect.zw;
-    gEv = clamp(texture(uGuide, gu).r * 18.0 - 10.0 + uExposure, -12.0, 10.0);
+    // The guide lives in full-frame photo space (mapUv); see the export-tile fix.
+    gEv = clamp(texture(uGuide, mapUv).r * 18.0 - 10.0 + uExposure, TONE_EV_MIN, TONE_EV_MAX);
   }
-  // Shadows: an exposure lift / drop weighted by a logistic band, calibrated
-  // against Lightroom Mobile (positive and negative behave differently).
-  float shadowN = clamp(uShadows, -100.0, 100.0) * 0.01;
-  float shadowDelta = 0.0;
-  if (shadowN >= 0.0) {
-    float band = 1.0 / (1.0 + exp((gEv - ${glf(TONE_MODEL.shadow.pivotEv)}) / ${glf(TONE_MODEL.shadow.widthEv)}));
-    shadowDelta = shadowN * ${glf(TONE_MODEL.shadow.stops)} * band;
-  } else {
-    float negBand = 1.0 / (1.0 + exp((gEv - ${glf(TONE_MODEL.shadow.negPivotEv)}) / ${glf(TONE_MODEL.shadow.negWidthEv)}));
-    shadowDelta = shadowN * ${glf(TONE_MODEL.shadow.negA)} * negBand;
+  float evBase = toneCurve(ev, 0.25);
+  float evDelta = toneCurve(gEv, 0.75);
+  if (uLinearInput == 1 && uHasLocalMap == 1) {
+    // Local Laplacian refinement, already an EV delta in the same domain.
+    evDelta += texture(uLocalMap, mapUv).r * uLocalWeight;
   }
-
-  // Highlights, calibrated against Lightroom Mobile: negative is a ramp-shaped
-  // EV drop that saturates and then compresses real above-white headroom into
-  // near-white; positive is an EV lift that is stronger in the mid/high range.
-  float hN = clamp(uHighlights, -100.0, 100.0) * 0.01;
-  float highlightDelta = 0.0;
-  if (hN < 0.0) {
-    float drop = min(
-      ${glf(TONE_MODEL.highlight.negSlope)} * max(0.0, gEv - ${glf(TONE_MODEL.highlight.negPivotEv)}),
-      ${glf(TONE_MODEL.highlight.negCapEv)});
-    // above white the real sensor headroom needs a stronger, linear compression
-    drop += ${glf(TONE_MODEL.highlight.headroomSlope)}
-      * max(0.0, gEv - ${glf(TONE_MODEL.highlight.headroomFromEv)});
-    float mappedEv = gEv - (-hN) * drop;
-    float capEv = mix(10.0, ${glf(TONE_MODEL.highlight.whiteEv)}, -hN);
-    highlightDelta = min(mappedEv, capEv) - gEv;
-  } else if (hN > 0.0) {
-    float liftT = smoothstep(${glf(TONE_MODEL.highlight.posLoEv)}, ${glf(TONE_MODEL.highlight.posHiEv)}, gEv);
-    highlightDelta = hN * (${glf(TONE_MODEL.highlight.posBase)} + ${glf(TONE_MODEL.highlight.posExtra)} * liftT);
-  }
-  float Yl = Yc * exp2(shadowDelta + highlightDelta);
+  float Yl = 0.18 * exp2(evBase + evDelta);
   vec3 graded = lin * (Yl / Y);
   // Desaturate only what is about to clip, so pushed whites roll to white
   // instead of turning a sunset magenta. (sRGB input only — the RAW path
@@ -724,23 +650,27 @@ void main() {
     c = clamp(linearToSrgb(graded), 0.0, 1.0);
   }
 
-  // Whites / blacks, calibrated in display space against LR Mobile:
-  // whites is a top-end stretch/recovery, blacks is a black-point move.
-  float wN = clamp(uWhites, -100.0, 100.0) * 0.01;
-  float bN = clamp(uBlacks, -100.0, 100.0) * 0.01;
-  if (wN > 0.0) {
-    c += wN * ${glf(TONE_MODEL.whites.stretch)} * pow(c, vec3(${glf(TONE_MODEL.whites.gamma)})) * (1.0 - c);
-  } else if (wN < 0.0) {
-    vec3 top = smoothstep(vec3(0.5), vec3(1.0), c);
-    c -= -wN * ${glf(TONE_MODEL.whites.recover)} * pow(c, vec3(1.5)) * (1.0 - c) * top;
-  }
-  c = clamp(c, 0.0, 1.0);
-  if (bN < 0.0) {
-    float point = -bN * ${glf(TONE_MODEL.blacks.point)};
-    c = clamp((c - point) / max(1e-3, 1.0 - point), 0.0, 1.0);
-  } else if (bN > 0.0) {
-    vec3 lifted = pow(c, vec3(${glf(TONE_MODEL.blacks.gamma)})) * ${glf(TONE_MODEL.blacks.gammaA)} + ${glf(TONE_MODEL.blacks.gammaB)};
-    c = clamp(mix(c, lifted, bN), 0.0, 1.0);
+  // Camera-preview look: map the neutral displayed luminance onto the camera's
+  // own JPEG rendition (measured per photo from the embedded preview), keeping
+  // hue by applying the tone change as a luminance ratio.
+  if (uHasCamLook == 1) {
+    float Lc = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    float mapped = texture(uCamLook, vec2(clamp(Lc, 0.0, 1.0), 0.5)).r;
+    c = Lc > 0.002 ? clamp(c * (mapped / Lc), 0.0, 1.0) : vec3(mapped);
+    // Match the camera JPEG's warmth and saturation as well as its tone curve.
+    c = clamp(c * uCamWb, 0.0, 1.0);
+    float Lw = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    // Banded saturation: interpolate between the four measured band factors by
+    // output luma (0..1 → three segments), so each tonal range matches the
+    // camera JPEG's own saturation instead of one global ratio.
+    float pos = clamp(Lw, 0.0, 1.0) * 3.0;
+    float t = pos - floor(pos);
+    float sat0, sat1;
+    if (pos < 1.0) { sat0 = uCamSatBands.x; sat1 = uCamSatBands.y; }
+    else if (pos < 2.0) { sat0 = uCamSatBands.y; sat1 = uCamSatBands.z; }
+    else { sat0 = uCamSatBands.z; sat1 = uCamSatBands.w; }
+    float satF = mix(sat0, sat1, t);
+    c = clamp(mix(vec3(Lw), c, satF), 0.0, 1.0);
   }
 
   // Presence: saturation is a flat scale around luma; vibrance leans on the
@@ -787,7 +717,7 @@ export class LookRenderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     this.uniform = {};
-    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLinearInput', 'uShadows', 'uHighlights', 'uWhites', 'uBlacks', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uTile', 'uNr', 'uNrColor', 'uTexel', 'uSigP', 'uSigQ', 'uSigPe', 'uSigFog', 'uSigW', 'uSigB', 'uSigHue', 'uSig1', 'uAlpha1', 'uWeight1', 'uSig2', 'uAlpha2', 'uWeight2', 'uDetailDead', 'uLocalRadius', 'uDetGateLo', 'uDetGateHi']) {
+    for (const name of ['uImage', 'uLut0', 'uLut1', 'uLut2', 'uHas0', 'uHas1', 'uHas2', 'uStr0', 'uStr1', 'uStr2', 'uRect', 'uExposure', 'uTemp', 'uTint', 'uVibrance', 'uSaturation', 'uLinearInput', 'uLogMode', 'uTone', 'uGuide', 'uHasGuide', 'uGuideRect', 'uLocalMap', 'uHasLocalMap', 'uLocalWeight', 'uCamLook', 'uHasCamLook', 'uCamSatBands', 'uCamWb', 'uTile', 'uNr', 'uNrColor', 'uTexel', 'uSigP', 'uSigQ', 'uSigPe', 'uSigFog', 'uSigW', 'uSigB', 'uSigHue', 'uSig1', 'uAlpha1', 'uWeight1', 'uSig2', 'uAlpha2', 'uWeight2', 'uDetailDead', 'uLocalRadius', 'uDetGateLo', 'uDetGateHi']) {
       this.uniform[name] = gl.getUniformLocation(this.program, name);
     }
 
@@ -814,7 +744,7 @@ export class LookRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, TONE_LUT_SIZE, 1, 0, gl.RED, gl.HALF_FLOAT, new Uint16Array(TONE_LUT_SIZE));
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, TONE_LUT_SIZE, 2, 0, gl.RED, gl.HALF_FLOAT, new Uint16Array(TONE_LUT_SIZE * 2));
 
     gl.useProgram(this.program);
     gl.uniform1i(this.uniform.uImage, 0);
@@ -839,8 +769,33 @@ export class LookRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array([0]));
+    // Scene-linear local tone delta map (unit 6): EV offsets from the LLF worker.
+    this.localMapTex = gl.createTexture();
+    this.hasLocalMap = false;
+    this.localMapKey = '';
+    gl.activeTexture(gl.TEXTURE6);
+    gl.bindTexture(gl.TEXTURE_2D, this.localMapTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, 1, 1, 0, gl.RED, gl.FLOAT, new Float32Array([0]));
+    // Camera-preview look curve (unit 7): 256x1 R8 display-luminance mapping.
+    this.camLookTex = gl.createTexture();
+    this.hasCamLook = false;
+    gl.activeTexture(gl.TEXTURE7);
+    gl.bindTexture(gl.TEXTURE_2D, this.camLookTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array([0]));
     gl.activeTexture(gl.TEXTURE0);
     gl.uniform1i(this.uniform.uGuide, 5);
+    gl.uniform1i(this.uniform.uLocalMap, 6);
+    gl.uniform1i(this.uniform.uCamLook, 7);
   }
 
   /**
@@ -987,6 +942,41 @@ export class LookRenderer {
     this.hasGuide = true;
   }
 
+  /**
+   * Upload the per-photo camera-preview look curve (256 display-luminance
+   * samples). Pass null to fall back to the neutral development.
+   */
+  setCameraLook(curve, { sat = 1, wb = [1, 1, 1], satBands = null } = {}) {
+    const gl = this.gl;
+    if (!curve || curve.length !== 256) { this.hasCamLook = false; this.camSatBands = null; return; }
+    this.camSat = Math.max(0.5, Math.min(1.6, sat));
+    this.camWb = wb.map((v) => Math.max(0.5, Math.min(1.6, v)));
+    this.camSatBands = Array.isArray(satBands) && satBands.length === 4
+      ? satBands.map((v) => Math.max(0.4, Math.min(2.6, Number(v) || 1)))
+      : null;
+    gl.activeTexture(gl.TEXTURE7);
+    gl.bindTexture(gl.TEXTURE_2D, this.camLookTex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 256, 1, 0, gl.RED, gl.UNSIGNED_BYTE, curve);
+    gl.activeTexture(gl.TEXTURE0);
+    this.hasCamLook = true;
+  }
+
+  /** Upload a low-resolution per-pixel EV correction from the Local Laplacian. */
+  setLocalMap(map, key = '') {
+    const gl = this.gl;
+    this.localMapKey = key;
+    if (!map || !map.data || !map.w || !map.h) { this.hasLocalMap = false; return; }
+    gl.activeTexture(gl.TEXTURE6);
+    gl.bindTexture(gl.TEXTURE_2D, this.localMapTex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    const half = new Uint16Array(map.data.length);
+    for (let i = 0; i < half.length; i++) half[i] = floatToHalf(map.data[i]);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, map.w, map.h, 0, gl.RED, gl.HALF_FLOAT, half);
+    gl.activeTexture(gl.TEXTURE0);
+    this.hasLocalMap = true;
+  }
+
   _lutTexture(id, parsed) {
     let tex = this.lutTex.get(id);
     if (tex) return tex;
@@ -1005,19 +995,46 @@ export class LookRenderer {
     return tex;
   }
 
-  /** Rebuild + upload the tone LUT only when contrast moved. */
+  /**
+   * Rebuild the per-image tone LUT (two rows) when the sliders, the exposure or
+   * the measured scene change. The curve maths is the pure JS module
+   * js/tone-curve.js, so the node tests exercise exactly what the GPU samples.
+   */
   _syncToneCurve(adjust) {
-    const tone = adjust || {};
-    const sig = `${tone.contrast | 0}`;
+    const a = adjust || {};
+    const scene = a.scene || neutralSceneStats(this.linear);
+    const sig = [
+      this.linear ? 1 : 0,
+      Number(scene.p01).toFixed(2), Number(scene.p05).toFixed(2),
+      Number(scene.p10).toFixed(2), Number(scene.p25).toFixed(2),
+      Number(scene.p50).toFixed(2), Number(scene.p75).toFixed(2),
+      Number(scene.p90).toFixed(2), Number(scene.p95).toFixed(2),
+      Number(scene.p99).toFixed(2), Number(scene.p999).toFixed(2),
+      (Number(a.exposure) || 0).toFixed(3),
+      Math.round(Number(a.contrast) || 0), Math.round(Number(a.highlights) || 0),
+      Math.round(Number(a.shadows) || 0), Math.round(Number(a.whites) || 0),
+      Math.round(Number(a.blacks) || 0),
+    ].join(',');
     if (sig === this.toneSig) return;
     this.toneSig = sig;
+    const { base, local } = buildToneCurves({
+      scene,
+      exposure: Number(a.exposure) || 0,
+      contrast: a.contrast,
+      highlights: a.highlights,
+      shadows: a.shadows,
+      whites: a.whites,
+      blacks: a.blacks,
+    });
+    const bits = new Uint16Array(TONE_LUT_SIZE * 2);
+    for (let i = 0; i < TONE_LUT_SIZE; i++) {
+      bits[i] = floatToHalf(base[i]);
+      bits[TONE_LUT_SIZE + i] = floatToHalf(local[i]);
+    }
     const gl = this.gl;
-    const curve = buildToneCurve(tone);
-    const bits = new Uint16Array(TONE_LUT_SIZE);
-    for (let i = 0; i < TONE_LUT_SIZE; i++) bits[i] = floatToHalf(curve[i]);
     gl.activeTexture(gl.TEXTURE4);
     gl.bindTexture(gl.TEXTURE_2D, this.toneTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, TONE_LUT_SIZE, 1, 0, gl.RED, gl.HALF_FLOAT, bits);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, TONE_LUT_SIZE, 2, 0, gl.RED, gl.HALF_FLOAT, bits);
     gl.activeTexture(gl.TEXTURE0);
   }
 
@@ -1082,13 +1099,24 @@ export class LookRenderer {
     }
     gl.uniform4f(this.uniform.uRect, urect.x, urect.y, urect.w, urect.h);
     gl.uniform1i(this.uniform.uLinearInput, this.linear ? 1 : 0);
-    gl.uniform1f(this.uniform.uShadows, adjust?.shadows || 0);
-    gl.uniform1f(this.uniform.uHighlights, adjust?.highlights || 0);
-    gl.uniform1f(this.uniform.uWhites, adjust?.whites || 0);
-    gl.uniform1f(this.uniform.uBlacks, adjust?.blacks || 0);
     gl.uniform1i(this.uniform.uHasGuide, this.hasGuide ? 1 : 0);
     const gr = guideRect;
     gl.uniform4f(this.uniform.uGuideRect, gr ? gr.x : 0, gr ? gr.y : 0, gr ? gr.w : 1, gr ? gr.h : 1);
+    const localMapOn = this.hasLocalMap && !adjust?.noLocalTone && this.localMapKey === adjust?.localToneKey;
+    gl.uniform1i(this.uniform.uHasLocalMap, localMapOn ? 1 : 0);
+    // LLF refinement is deliberately a fraction of the response: the guide-based
+    // adaptive path must stay visible on its own (measured: LLF alone shifted the
+    // night reference's bright pixels by only ~0.5 EV, which read as "no effect").
+    gl.uniform1f(this.uniform.uLocalWeight, localMapOn ? LLF_WEIGHT : 0);
+    gl.uniform1i(this.uniform.uHasCamLook, (this.hasCamLook && adjust?.camLook) ? 1 : 0);
+    const satBands = this.camSatBands;
+    if (satBands && satBands.length === 4) {
+      gl.uniform4f(this.uniform.uCamSatBands, satBands[0], satBands[1], satBands[2], satBands[3]);
+    } else {
+      const s = this.camSat ?? 1;
+      gl.uniform4f(this.uniform.uCamSatBands, s, s, s, s);
+    }
+    if (this.camWb) gl.uniform3f(this.uniform.uCamWb, this.camWb[0], this.camWb[1], this.camWb[2]);
     gl.uniform1f(this.uniform.uExposure, adjust?.exposure || 0);
     gl.uniform1f(this.uniform.uTemp, adjust?.temp || 0);
     gl.uniform1f(this.uniform.uTint, adjust?.tint || 0);
@@ -1099,12 +1127,10 @@ export class LookRenderer {
     gl.uniform1f(this.uniform.uNr, nr);
     gl.uniform1f(this.uniform.uNrColor, Math.max(0, Math.min(1, adjust?.nrColor || 0)));
     gl.uniform2f(this.uniform.uTexel, 1 / Math.max(1, this.texW), 1 / Math.max(1, this.texH));
-    // The sigmoid display transform owns mid-tone contrast on the RAW path, so
-    // the 1D log-domain LUT stays neutral there (it still drives contrast for
-    // sRGB canvas input). The slider feeds sigmoid's contrast parameter.
-    this._syncToneCurve(this.linear ? { contrast: 0 } : (adjust || {}));
-    const cn = Math.max(-1, Math.min(1, (adjust?.contrast || 0) / 100));
-    const sig = sigmoidFit(SIGMOID.contrast * Math.pow(2, SIGMOID.contrastGain * cn), SIGMOID.skew);
+    // All six Basic sliders live in the per-image curve; the sigmoid stays at
+    // its calibrated shape (it is the display transform, not a control).
+    this._syncToneCurve(adjust || {});
+    const sig = sigmoidFit(SIGMOID.contrast, SIGMOID.skew);
     gl.uniform1f(this.uniform.uSigP, sig.p);
     gl.uniform1f(this.uniform.uSigQ, sig.q);
     gl.uniform1f(this.uniform.uSigPe, sig.pe);
@@ -1136,6 +1162,8 @@ export class LookRenderer {
     if (this.tileSlot) gl.deleteTexture(this.tileSlot.tex);
     if (this.toneTex) gl.deleteTexture(this.toneTex);
     if (this.guideTex) gl.deleteTexture(this.guideTex);
+    if (this.localMapTex) gl.deleteTexture(this.localMapTex);
+    if (this.camLookTex) gl.deleteTexture(this.camLookTex);
     for (const tex of this.lutTex.values()) gl.deleteTexture(tex);
     this.lutTex.clear();
   }
