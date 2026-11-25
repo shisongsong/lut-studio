@@ -429,6 +429,8 @@ npm run build:site     # render public/*.html + sitemap/robots/llms
 npm run seo:audit      # check title/description/canonical/h1/JSON-LD on the live sitemap
 npm run seo:validate   # parse every JSON-LD block and every hreflang pair
 npm run indexnow       # submit the sitemap to Bing/Yandex after a deploy
+npm run build:cubes    # copy luts-src/*.cube to /download/cubes (generated, git-ignored)
+npm run build:previews # render /photos/looks/*.jpg with headless Chromium (content tool)
 ```
 
 See [`docs/seo.md`](docs/seo.md) for the page contract, the URL rules and the
@@ -478,6 +480,7 @@ public/            # the whole app (no build step)
   js/lut-store.js  # IndexedDB store for imported .cube LUTs
   luts.bin         # baked LUT texture (64 looks)
   photos/demo.webp # default demo photo
+  photos/looks/    # before/after previews for the per-look pages (committed)
   fonts/           # IBM Plex Mono, Instrument Sans/Serif (woff2)
 luts-src/          # 44 × 33³ .cube files (downloadable)
 scripts/           # build-luts.mjs, build-site.mjs, traffic-report.mjs

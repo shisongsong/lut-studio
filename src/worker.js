@@ -401,7 +401,16 @@ export default {
       });
     }
     if (response.status === 200) {
-      return withHeaders(response, { 'cache-control': cacheControlFor(path, url.search, versions) });
+      const headers = { 'cache-control': cacheControlFor(path, url.search, versions) };
+      // .cube files are plain text: served as octet-stream Cloudflare will not
+      // compress them (862 KB raw on a throttled link). Declaring text/plain lets
+      // the edge gzip it, and the disposition keeps the browser downloading the
+      // file instead of rendering the table in a tab.
+      if (/^\/download\/cubes\/[a-z0-9-]+\.cube$/.test(path)) {
+        headers['content-type'] = 'text/plain; charset=utf-8';
+        headers['content-disposition'] = `attachment; filename="${path.split('/').pop()}"`;
+      }
+      return withHeaders(response, headers);
     }
     return response;
   },

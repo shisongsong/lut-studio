@@ -1,5 +1,6 @@
 import { articleLd } from '../../site.mjs';
 import { LOOKS } from '../../../public/js/looks.js';
+import { LAUNCHED_LOOK_IDS } from '../look-page.mjs';
 import { statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,7 +39,12 @@ function lookTable(lang) {
   const rows = CATS.map((cat) => {
     const looks = LOOKS.filter((look) => look.cat === cat.id);
     const names = looks
-      .map((look) => (lang === 'zh' ? look.name : look.en))
+      .map((look) => {
+        const text = lang === 'zh' ? look.name : look.en;
+        if (!LAUNCHED_LOOK_IDS.includes(look.id)) return text;
+        const href = lang === 'zh' ? `/looks/${look.id}` : `/en/looks/${look.id}`;
+        return `<a href="${href}">${text}</a>`;
+      })
       .join(' · ');
     return `<tr><th scope="row">${lang === 'zh' ? cat.zh : cat.en}</th><td>${names}</td></tr>`;
   }).join('\n');

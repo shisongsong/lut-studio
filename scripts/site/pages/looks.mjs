@@ -1,4 +1,5 @@
 import { articleLd } from '../../site.mjs';
+import { LAUNCHED_LOOK_IDS } from '../look-page.mjs';
 import { LOOKS, FILTERS } from '../../../public/js/looks.js';
 
 const CAT_ORDER = FILTERS.filter(([id]) => id !== 'all').map(([id]) => id);
@@ -12,7 +13,11 @@ function groups(lang) {
       .map((look) => {
         const name = lang === 'zh' ? look.name : look.en;
         const sub = lang === 'zh' ? `${look.en} · ${look.tag}` : label;
-        return `<li class="look"><b>${name}</b><span>${sub}</span></li>`;
+        // Looks with a page of their own link to it; the rest stay plain text
+        // until their batch ships (see LAUNCHED_LOOK_IDS).
+        if (!LAUNCHED_LOOK_IDS.includes(look.id)) return `<li class="look"><b>${name}</b><span>${sub}</span></li>`;
+        const href = lang === 'zh' ? `/looks/${look.id}` : `/en/looks/${look.id}`;
+        return `<li class="look"><b><a href="${href}">${name}</a></b><span>${sub}</span></li>`;
       })
       .join('');
     return `<h2 id="${cat}">${label}</h2><ul class="lookgrid">${cards}</ul>`;

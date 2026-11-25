@@ -98,11 +98,20 @@ funnel step), that wins.
   GitHub release v1.1.0). Watch `events.download_pack` and `visits.path =
   /download`; if it earns referrers (Reddit/小红书/GitHub), the pack is the link
   magnet — put a per-look gallery on it next.
-- **C2 — Only 5 of 64 looks have a URL** (`/raw/*` shipped 2026-11-25; per-look
-  pages did not). Start with 12 high-demand looks (Portra 400, Classic Chrome,
-  Tri-X, Velvia 50, Leica Classic, …), each with a uniquely rendered
-  before/after, the `.cube` download, `?look=<id>` CTA, and one honest
-  "approximates the stock, not film data" line. Publish in batches of 4–6.
+- **C2 — Per-look pages: first batch of 12 shipped 2026-11-25.** Factory
+  `scripts/site/look-page.mjs` (`lookPage(id, copy)` + `LAUNCHED_LOOK_IDS`),
+  previews rendered from the real pipeline by `scripts/build-look-previews.mjs`
+  (headless Chromium, `public/photos/looks/*.jpg`, 1200×801, committed), copy
+  modules under `scripts/site/pages/look-*.mjs` written per look from the actual
+  recipe values. Each page: before/after figures, what the look does, three
+  concrete subjects, how it differs from its two nearest looks, a `?look=` CTA,
+  a single `.cube` download (`/download/cubes/<id>.cube`, now served gzip:
+  862 KB → 295 KB) and an honest "original recipe, not film data" block.
+  `/looks` and `/download` link the launched looks; sitemap grew to 63 URLs.
+  **Next batch:** add ids to `LAUNCHED_LOOK_IDS`, run
+  `PLAYWRIGHT_CORE=… npm run build:previews`, write the modules, deploy. Keep
+  batches at 4–6 and only after the first 12 have been indexed — thin-content
+  risk is real for 64 near-identical pages.
 - **C3 — `/en/get-luts`: shipped 2026-11-25.** The hand-written zh-only
   `public/get-luts.html` was ported to `scripts/site/pages/get-luts.mjs`, so both
   languages are generated with hreflang pairs, JSON-LD, sitemap entries and the
