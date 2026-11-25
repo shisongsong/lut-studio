@@ -78,7 +78,7 @@
 <link rel="apple-touch-icon" href="/favicon.svg">
 <style>
 :root{
-  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.56); --faint:rgba(242,241,236,.46);
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.56); --faint:rgba(242,241,236,.5);
   --line:rgba(242,241,236,.16); --line-strong:rgba(242,241,236,.32);
   --accent:#d9c7a3;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
@@ -409,6 +409,35 @@ a.tbtn{text-decoration:none}
   .hint{display:none}
 }
 
+@media(max-width:820px){
+  /* Readability. On a 390 px phone 154 visible text nodes were under 12 px
+     (67 at 7 px, 73 at 7.5 px) and the develop panel labels were 8.5 px. The
+     print-like aesthetic stays on desktop; on a phone nothing a visitor has to
+     read stays below ~9 px. This block is at the end of the stylesheet on
+     purpose: the develop-panel base rules are declared later than the earlier
+     mobile block. */
+  .quick button{font-size:9px}
+  .chip .n{font-size:8.5px}
+  .chip .nm{font-size:10px}
+  .cats button{font-size:10px}
+  .look-no{font-size:10px}
+  .look-name .en{font-size:9px}
+  .trust{font-size:9.5px}
+  .intro-sub,.intro-wait{font-size:9px}
+  .top-actions .tbtn:not(.solid){font-size:9.5px}
+  .dev-row{grid-template-columns:64px 1fr 34px}
+  .dev-row span{white-space:nowrap}
+  .dev-row span,.dev-row b{font-size:10px}
+  .dev-group-head > span{font-size:9.5px}
+  .dev-sub{font-size:9.5px;max-width:180px}
+  .dev-btn,.dev-auto{font-size:9.5px}
+  .dev-hint{font-size:10px;line-height:1.5}
+  .toast{font-size:10px}
+  .busy-kicker{font-size:8px}
+  .busy-steps,.busy-sub{font-size:9px}
+  .export-sub,.import-links span,.import-links a{font-size:9px}
+  .export-note,.import-help{font-size:10px}
+}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
 }

@@ -61,9 +61,17 @@ funnel step), that wins.
   fix, the only Chinese left in EN mode is the `中文` toggle itself. Still open:
   the switch rebuilds the 65-chip strip (280–390 ms) — update text nodes in place
   instead of calling `buildFilm()` when the inventory has not changed.
-- **B5 — Body text is 7–8.5 px on mobile** (154 visible nodes under 12 px);
-  `--faint` contrast was raised .32→.46 on 2026-11-25, still below 4.5:1.
-  Raise `.meta/.hint/.chip .nm/.dev-sub` to ≥10 px on phones.
+- **B5 — Mobile readability: shipped 2026-11-25.** A `@media(max-width:820px)`
+  block at the **end** of the stylesheet (order matters — the develop-panel base
+  rules are declared later than the first mobile block, so an override placed
+  there loses) now puts phones at: chip names 10 px, categories 10 px, quick row
+  9 px, look line/trust 9.5–10 px, develop labels/values 10 px, develop hint
+  10 px, toasts 10 px. Measured on 390 px: min font 7 px → 8.5 px (only the
+  decorative thumbnail index), 154 nodes under 12 px → most are now 9–10 px,
+  no label wraps, no horizontal overflow, panel still scrolls. `--faint` is
+  .5 alpha (≈4.5:1 on the dark background). Screenshots:
+  `research/shots/mobile-readability-after.png`, `mobile-develop-panel-after.png`.
+  Note: desktop type is intentionally unchanged (print-like art direction).
 - **B6 — First-visit trust signal: shipped 2026-11-25.** A muted line
   `◦ 照片不上传 · 只在本机处理` / `◦ Photos never leave your device` now sits under
   the look name (visible on phone and desktop; the `.hint` above it is hidden on
