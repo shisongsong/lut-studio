@@ -86,7 +86,7 @@ async function main() {
   const since = `date('${today}', '-${DAYS} day')`;
   const yesterday = addDays(today, -1);
 
-  const [daily, byPath, clients, referrers, countries, devices, langs, events, vitalsRows, bots, botPaths, errors] =
+  const [daily, byPath, clients, referrers, countries, devices, langs, events, vitalsRows, bots, botPaths, crawlErrors, errors] =
     await Promise.all([
       query(`SELECT day, COUNT(*) AS pv, COUNT(DISTINCT vid) AS uv,
                     SUM(new_visitor) AS fresh
@@ -108,6 +108,9 @@ async function main() {
       query(`SELECT bot, COUNT(*) AS hits FROM bot_hits WHERE day >= ${since} GROUP BY bot ORDER BY hits DESC`),
       query(`SELECT bot, path, COUNT(*) AS hits FROM bot_hits WHERE day >= ${since}
              GROUP BY bot, path ORDER BY hits DESC LIMIT 12`),
+      query(`SELECT bot, path, status, COUNT(*) AS hits FROM bot_hits
+             WHERE day >= ${since} AND status >= 400
+             GROUP BY bot, path, status ORDER BY hits DESC LIMIT 10`),
       query(`SELECT meta, COUNT(*) AS n FROM events
              WHERE day >= ${since} AND name IN ('js-error') GROUP BY meta ORDER BY n DESC LIMIT 8`),
     ]);
@@ -146,6 +149,7 @@ async function main() {
     events: events.map((r) => ({ day: r.day, name: r.name, n: num(r.n), people: num(r.people) })),
     bots: bots.map((r) => ({ bot: r.bot, hits: num(r.hits) })),
     jsErrors: errors.map((r) => ({ meta: r.meta, n: num(r.n) })),
+    crawlErrors: crawlErrors.map((r) => ({ bot: r.bot, path: r.path, status: num(r.status), hits: num(r.hits) })),
     vitals: summarizeVitals(vitalsRows),
   };
 
@@ -219,6 +223,11 @@ async function main() {
   if (!bots.length) console.log('  (none — search engines have not fetched any page this window)');
   for (const row of bots) line(`  ${row.bot}`, `${pad(num(row.hits), 5)}`);
   for (const row of botPaths) line(`  ↳ ${row.bot} ${row.path}`, `${num(row.hits)}`);
+
+  if (crawlErrors.length) {
+    console.log('\n● crawler errors (a 404 seen by a crawler is a broken link somewhere)');
+    for (const row of crawlErrors) line(`  ${row.bot} ${row.path}`, `${num(row.hits)} × ${row.status}`);
+  }
 
   console.log(`\n● javascript errors`);
   if (!errors.length) console.log('  (none)');

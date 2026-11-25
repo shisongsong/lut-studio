@@ -245,14 +245,14 @@ function uaFamily(ua) {
   return 'other';
 }
 
-async function logBotHit(env, request, path) {
+async function logBotHit(env, request, path, status) {
   if (!env.DB || !looksLikePage(path)) return;
   const bot = classifyBot(request.headers.get('user-agent') || '');
   if (!bot) return;
   const now = Math.floor(Date.now() / 1000);
   try {
     await env.DB.prepare('INSERT INTO bot_hits (day, ts, bot, path, status) VALUES (?, ?, ?, ?, ?)')
-      .bind(dayOf(now), now, bot, cleanPath(path), 200)
+      .bind(dayOf(now), now, bot, cleanPath(path), Number(status) || 0)
       .run();
   } catch {
     /* dropped, see above */
@@ -323,18 +323,7 @@ function cacheControlFor(path, search, versions) {
   return 'public, max-age=300, must-revalidate';
 }
 
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const path = url.pathname;
-
-    // Page-like requests need the manifest to stamp asset URLs; versioned asset
-    // requests need it to decide whether their cache entry is immutable.
-    const pageLike = path === '/' || path.endsWith('/') || path.endsWith('.html') || !path.includes('.');
-    const versions = pageLike || url.searchParams.has('v') ? await loadVersions(env, request) : null;
-
-    if (path === '/api/beacon') return handleBeacon(request, env, ctx);
-
+async function route(request, env, ctx, url, path, versions) {
     if (path === '/api/geo') {
       const country = (request.cf && request.cf.country) || 'US';
       return new Response(JSON.stringify({ country }), {
@@ -344,9 +333,6 @@ export default {
         },
       });
     }
-
-    // Count crawler page fetches once per request, in the background.
-    if (request.method === 'GET') ctx.waitUntil(logBotHit(env, request, path));
 
     // One canonical form per page: /index.html and /foo.html both redirect to
     // the clean URL a crawler should index. Google Search Console verification
@@ -412,6 +398,34 @@ export default {
       }
       return withHeaders(response, headers);
     }
+    return response;
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    if (path === '/api/beacon') return handleBeacon(request, env, ctx);
+
+    // Page-like requests need the manifest to stamp asset URLs; versioned asset
+    // requests need it to decide whether their cache entry is immutable.
+    const pageLike = path === '/' || path.endsWith('/') || path.endsWith('.html') || !path.includes('.');
+    const versions = pageLike || url.searchParams.has('v') ? await loadVersions(env, request) : null;
+
+    let response;
+    try {
+      response = await route(request, env, ctx, url, path, versions);
+    } catch (err) {
+      // A thrown handler must not take the page down, and the crawler log should
+      // still record that this path failed.
+      console.error('route failed', err && err.message);
+      response = notFound();
+    }
+
+    // Crawler hits are logged with the status actually returned: a crawler
+    // walking into a 404 is exactly the signal the daily report needs.
+    if (request.method === 'GET') ctx.waitUntil(logBotHit(env, request, path, response.status));
     return response;
   },
 };

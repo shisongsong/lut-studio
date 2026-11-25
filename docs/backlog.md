@@ -158,6 +158,14 @@ funnel step), that wins.
   and the second look page get fetched within a week; if not, add look links
   directly to the app shell footer.
 
+- **Monitoring accuracy (shipped 2026-11-25):** `bot_hits.status` used to be a
+  hard-coded 200, so a crawler walking into a 404 was invisible. The Worker now
+  logs the status it actually returned (verified in production: a Googlebot-UA
+  request to a missing path records `status 404`), and `scripts/traffic-report.mjs`
+  prints a "crawler errors" block listing every bot × path × status ≥ 400. Watch
+  that block: a crawler 404 usually means a broken internal link or an outdated
+  sitemap entry.
+
 ## Guardrails
 
 - Never claim Lightroom equivalence, never fabricate numbers, never add
