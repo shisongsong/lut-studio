@@ -343,6 +343,24 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/looks/ricoh-positive" />
   </url>
   <url>
+    <loc>https://lut.openanthropic.com/looks/compared</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/looks/compared" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/looks/compared" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/looks/compared" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/en/looks/compared</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/looks/compared" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/looks/compared" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/looks/compared" />
+  </url>
+  <url>
     <loc>https://lut.openanthropic.com/looks</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>

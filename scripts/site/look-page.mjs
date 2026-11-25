@@ -88,7 +88,7 @@ ${figure('zh', `${look.id}.jpg`, `${look.name} 套用在示例照片上的效果
 </ol>
 <h2 id="limits">边界</h2>
 <p>这是为本站写的原创配方，风格上参考 <b>${esc(look.name)}</b> 的外观，<b>不是</b>胶片扫描数据，也不是厂商发布的 LUT。每张照片单独处理，没有批量。强度从 100% 开始判断，想更淡就往下调；<a href="/guides/merge-lut">两支也能合并成一支新的 .cube</a>。</p>
-<p>相关：<a href="/looks">全部 64 款 look</a> · <a href="/download">64 款打包下载</a> · <a href="/guides/what-is-lut">LUT 是什么</a> · <a href="/guides/lut-size">LUT 精度实测</a> · <a href="/faq">常见问题</a></p>
+<p>相关：<a href="/looks">全部 64 款 look</a> · <a href="/looks/compared">同一张照片上的 12 款对比</a> · <a href="/download">64 款打包下载</a> · <a href="/guides/what-is-lut">LUT 是什么</a> · <a href="/guides/lut-size">LUT 精度实测</a> · <a href="/faq">常见问题</a></p>
 ${siblingsHtml('zh', look.id)}`;
 }
 
@@ -111,7 +111,7 @@ ${figure('en', `${look.id}.jpg`, `${look.en} applied to the sample photo`, `${lo
 </ol>
 <h2 id="limits">The limits</h2>
 <p>An original recipe written for this site. It is inspired by the look of <b>${esc(look.en)}</b>; it is <b>not</b> film-scan data and <b>not</b> a vendor-published LUT. One photo at a time, no batch. Judge it at 100 % strength and lower it to taste; <a href="/en/guides/merge-lut">two looks can also be merged into a new .cube</a>.</p>
-<p>Related: <a href="/en/looks">all 64 looks</a> · <a href="/en/download">the 64-look pack</a> · <a href="/en/guides/what-is-lut">what a LUT is</a> · <a href="/en/guides/lut-size">measured LUT precision</a> · <a href="/en/faq">FAQ</a></p>
+<p>Related: <a href="/en/looks">all 64 looks</a> · <a href="/en/looks/compared">12 looks compared on one photo</a> · <a href="/en/download">the 64-look pack</a> · <a href="/en/guides/what-is-lut">what a LUT is</a> · <a href="/en/guides/lut-size">measured LUT precision</a> · <a href="/en/faq">FAQ</a></p>
 ${siblingsHtml('en', look.id)}`;
 }
 

@@ -146,6 +146,18 @@ funnel step), that wins.
   artifact + five honest communities beats fifty directories. Read the
   distribution table in the research doc for the exact rules before posting.
 
+- **C5 — `/looks/compared` shipped 2026-11-25.** One page that puts 12 looks on the
+  same photo under one neutral development, at 100 % each, with four pairwise
+  "easy to mix up" sections (Portra 400/160/Gold, Tri-X/Acros, Velvia/Classic
+  Chrome, Cinema Teal/Bleach) and a decision list by subject. It is the strongest
+  internal hub for the 12 look pages (linked from `/looks` and from every look
+  page) and targets comparison-shaped queries the single-look pages cannot.
+  Crawl evidence that motivated it: after IndexNow, each engine had fetched
+  exactly **one** look page (`/looks/kodak-portra-400`) — crawl budget, not
+  sitemap visibility, is the constraint. Next: watch whether the comparison page
+  and the second look page get fetched within a week; if not, add look links
+  directly to the app shell footer.
+
 ## Guardrails
 
 - Never claim Lightroom equivalence, never fabricate numbers, never add
