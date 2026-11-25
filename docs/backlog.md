@@ -162,6 +162,18 @@ funnel step), that wins.
   and the second look page get fetched within a week; if not, add look links
   directly to the app shell footer.
 
+- **C6 — `/guides/install-lut` shipped 2026-11-25.** The evergreen "where does a
+  .cube actually go" page: 7 apps (Photoshop, Premiere, Resolve, Final Cut Pro,
+  After Effects, Affinity, Lightroom Classic) with exact menu paths and folders,
+  the LOG-input-vs-creative distinction that explains most "it looks wrong"
+  cases, a four-step workflow (preview in the browser → download → install →
+  verify by toggling off), three traps (Resolve's Update Lists, FCP's
+  restart-only scan, Lightroom's profile route) and three FAQs. Paths checked
+  against Adobe's docs and the Phlearn install guide. Linked from `/download`,
+  every look page's install step and `/get-luts`. Sitemap 67 URLs; IndexNow
+  submitted. Watch: it should rank for install-shaped queries long before the
+  look pages rank for stock names, and it funnels into `/download`.
+
 - **Monitoring accuracy (shipped 2026-11-25):** `bot_hits.status` used to be a
   hard-coded 200, so a crawler walking into a 404 was invisible. The Worker now
   logs the status it actually returned (verified in production: a Googlebot-UA

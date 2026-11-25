@@ -26,6 +26,8 @@
 
 ## Guides
 
+- [Where a LUT actually goes, app by app](https://lut.openanthropic.com/en/guides/install-lut): Exact menu paths and folders for .cube LUTs in Photoshop, Premiere Pro, DaVinci Resolve, Final Cut Pro, After Effects, Affinity and Lightroom Classic.
+- [LUT 装在哪里：每个软件的准确路径](https://lut.openanthropic.com/guides/install-lut): PS、PR、Resolve、FCP、AE、Affinity 与 Lightroom Classic 的 .cube 安装路径与步骤，含 LOG 输入与在线预览。
 - [How precise does a LUT have to be before the difference disappears](https://lut.openanthropic.com/en/guides/lut-size): One photo-derived query set, four LUT sizes: mean and maximum trilinear error, gzip pack cost, why 33³ is exact and why 65³ buys nothing visible.
 - [LUT 要做多精细，画质才看不出差别](https://lut.openanthropic.com/guides/lut-size): 同一组照片查询点实测四档 LUT：三线性插值平均误差、最大偏差和 gzip 包体积，说明 33³ 为什么精确、65³ 为什么没有收益。
 - [Bake two LUTs into one and take it out of the browser](https://lut.openanthropic.com/en/guides/merge-lut): Stack two looks, set both strengths, bake them into a single 33³ .cube, keep it under My LUTs and download it for Resolve, Premiere or Photoshop.

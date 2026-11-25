@@ -84,7 +84,7 @@ ${figure('zh', `${look.id}.jpg`, `${look.name} 套用在示例照片上的效果
 <ol>
 <li>上面的按钮会打开编辑器、直接套上这一支（照片在本机处理，不会上传）。</li>
 <li>想要文件：下载单独一支 <a href="/download/cubes/${look.id}.cube" download><code>${look.id}.cube</code></a>（标准 33³、约 0.8 MB），或者<a href="/download">全部 64 款打包</a>。</li>
-<li>放进别的软件：Resolve 在 Project Settings → Color Management → Lookup Tables；Premiere 在 Lumetri → Creative → Look；Photoshop 用「颜色查找」调整图层。Lightroom Classic 不能直接读 .cube，但可以在 Photoshop 的 Camera Raw 里用「创建配置文件」把 LUT 包成 .xmp 配置（Presets ⋯ → Create Profile，勾 Color Lookup Table），再在 Lightroom 的配置文件浏览器里使用。</li>
+<li>放进别的软件：<a href="/guides/install-lut">各软件的确切路径与步骤</a>——Resolve 在 Project Settings → Color Management → Lookup Tables；Premiere 在 Lumetri → Creative → Look；Photoshop 用「颜色查找」调整图层；Lightroom Classic 需要在 Camera Raw 里把 LUT 包成配置文件。</li>
 </ol>
 <h2 id="limits">边界</h2>
 <p>这是为本站写的原创配方，风格上参考 <b>${esc(look.name)}</b> 的外观，<b>不是</b>胶片扫描数据，也不是厂商发布的 LUT。每张照片单独处理，没有批量。强度从 100% 开始判断，想更淡就往下调；<a href="/guides/merge-lut">两支也能合并成一支新的 .cube</a>。</p>
@@ -107,7 +107,7 @@ ${figure('en', `${look.id}.jpg`, `${look.en} applied to the sample photo`, `${lo
 <ol>
 <li>The button opens the editor with this look already applied (the photo is processed on your device, never uploaded).</li>
 <li>Want the file: download <a href="/download/cubes/${look.id}.cube"><code>${look.id}.cube</code></a> (standard 33³, about 0.8 MB), or <a href="/en/download">take all 64 as one pack</a>.</li>
-<li>Elsewhere: Resolve → Project Settings → Color Management → Lookup Tables; Premiere → Lumetri → Creative → Look; Photoshop → Color Lookup adjustment layer. Lightroom Classic cannot open a .cube directly, but you can package it as a profile in Adobe Camera Raw (Presets ⋯ → Create Profile → tick Color Lookup Table) and use it from Lightroom’s Profile Browser.</li>
+<li>Elsewhere: <a href="/en/guides/install-lut">the exact path and steps for each app</a> — Resolve → Project Settings → Color Management → Lookup Tables; Premiere → Lumetri → Creative → Look; Photoshop → Color Lookup adjustment layer; Lightroom Classic needs the LUT packaged as a Camera Raw profile.</li>
 </ol>
 <h2 id="limits">The limits</h2>
 <p>An original recipe written for this site. It is inspired by the look of <b>${esc(look.en)}</b>; it is <b>not</b> film-scan data and <b>not</b> a vendor-published LUT. One photo at a time, no batch. Judge it at 100 % strength and lower it to taste; <a href="/en/guides/merge-lut">two looks can also be merged into a new .cube</a>.</p>

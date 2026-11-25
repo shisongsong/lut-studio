@@ -109,7 +109,7 @@ ${lookTable('zh')}
 <tr><th scope="row">Lightroom Classic</th><td>不能直接读 .cube。可以在 Photoshop 的 Camera Raw 里用「创建配置文件」把 LUT 包成 .xmp 配置（Presets ⋯ → Create Profile，勾 Color Lookup Table），再在 Lightroom 的配置文件浏览器里使用；或者直接用 <a href="/">浏览器编辑器</a>看效果。</td></tr>
 </tbody>
 </table>
-<p>强度请从 100% 开始判断：包里烘的是满强度结果。要更淡的效果，在支持强度的软件里下调，或者回到编辑器用强度滑轨预览后再决定——<a href="/guides/merge-lut">两支 look 也能合并成一支新 .cube</a>。</p>
+<p>每个软件的菜单路径与文件夹位置在<a href="/guides/install-lut">LUT 安装指南</a>里；强度请从 100% 开始判断。包里烘的是满强度结果。要更淡的效果，在支持强度的软件里下调，或者回到编辑器用强度滑轨预览后再决定——<a href="/guides/merge-lut">两支 look 也能合并成一支新 .cube</a>。</p>
 
 <h2 id="licence">许可与来源</h2>
 <p>这些是本站为满足「柯达 Portra 400 那种感觉」「哈苏自然」这类需求自己写的配方（<code>scripts/looks.mjs</code>），再用它们生成 LUT，代码与生成物都是 <strong>MIT 许可</strong>，商用也可以，不需要署名。它们<strong>不是</strong>胶片扫描数据，也<strong>不是</strong>厂商发布的 LUT：名字只是对风格的指代，具体给的是一套可复现的调色曲线。</p>
@@ -159,7 +159,7 @@ ${lookTable('en')}
 <tr><th scope="row">Lightroom Classic</th><td>Cannot open a .cube directly. Package it as a profile in Adobe Camera Raw (Presets ⋯ → Create Profile → tick Color Lookup Table) and use it from the Profile Browser — or just preview it in the <a href="/">browser editor</a>.</td></tr>
 </tbody>
 </table>
-<p>Judge a look at 100 % strength first — that is what the archive contains. For a softer result, lower the strength where the app supports it, or preview it with the strength rail in the editor; <a href="/en/guides/merge-lut">two looks can also be merged into one new .cube</a>.</p>
+<p>Menu paths and folders for each app are in the <a href="/en/guides/install-lut">LUT install guide</a>. Judge a look at 100 % strength first — that is what the archive contains. For a softer result, lower the strength where the app supports it, or preview it with the strength rail in the editor; <a href="/en/guides/merge-lut">two looks can also be merged into one new .cube</a>.</p>
 
 <h2 id="licence">Licence and provenance</h2>
 <p>These are recipes written for this project (<code>scripts/looks.mjs</code>) and baked into LUTs, not film scans and not vendor-published data. Code and output are <strong>MIT licensed</strong>; commercial use is fine and no attribution is required. The names point at a style — what the file actually delivers is a reproducible grading curve.</p>

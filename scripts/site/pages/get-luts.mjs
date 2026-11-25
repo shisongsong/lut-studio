@@ -112,6 +112,7 @@ ${vendorTable('zh')}
 <ol>
 <li><strong>下载 .cube</strong>：从上面的官方页面保存文件（有些是 zip，解压后使用）。</li>
 <li><strong>打开编辑器，导入</strong>：回到<a href="/">浏览器编辑器</a>，点底部「导入 LUT」，选择文件。文件只在本机解析，存进浏览器的 IndexedDB，出现在「我的 LUT」里，刷新不丢。</li>
+<li><strong>装进别的软件</strong>：导入编辑器只是本机预览；要放进 Premiere / Resolve / Photoshop / Final Cut，按<a href="/guides/install-lut">各软件的安装路径</a>操作。</li>
 <li><strong>确认输入曲线</strong>：名字里带 F-Log / F-Log2 / V-Log 的 LUT 会被自动识别并切换输入曲线；名字看不出来的旧版文件，点底部原来的 sRGB 按钮，在「输入曲线」面板里手动选。</li>
 </ol>
 
@@ -153,6 +154,7 @@ ${vendorTable('en')}
 <ol>
 <li><strong>Download the .cube</strong> from the official page above (some are zips — unzip first).</li>
 <li><strong>Open the editor and import</strong>: in the <a href="/">browser editor</a>, press “Import LUT” at the bottom and choose the file. It is parsed locally, stored in the browser’s IndexedDB and appears under “My LUTs”; it survives a reload.</li>
+<li><strong>Install it in your editor</strong>: importing here is only a local preview; for Premiere / Resolve / Photoshop / Final Cut follow the <a href="/en/guides/install-lut">per-app install paths</a>.</li>
 <li><strong>Confirm the input curve</strong>: files whose name carries F-Log / F-Log2 / V-Log switch automatically; for older files whose name says nothing, open the “Input curve” panel (the sRGB button at the bottom) and pick it manually.</li>
 </ol>
 

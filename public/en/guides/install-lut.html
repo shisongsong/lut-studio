@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>How to install a LUT in Photoshop, Premiere, Resolve and FCP</title>
+<meta name="description" content="Exact menu paths and folders for .cube LUTs in Photoshop, Premiere Pro, DaVinci Resolve, Final Cut Pro, After Effects, Affinity and Lightroom Classic.">
+<link rel="canonical" href="https://lut.openanthropic.com/en/guides/install-lut">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/guides/install-lut">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/guides/install-lut">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/guides/install-lut">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to install a LUT in Photoshop, Premiere, Resolve and FCP">
+<meta property="og:description" content="Exact menu paths and folders for .cube LUTs in Photoshop, Premiere Pro, DaVinci Resolve, Final Cut Pro, After Effects, Affinity and Lightroom Classic.">
+<meta property="og:url" content="https://lut.openanthropic.com/en/guides/install-lut">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/develop-desktop.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to install a LUT in Photoshop, Premiere, Resolve and FCP">
+<meta name="twitter:description" content="Exact menu paths and folders for .cube LUTs in Photoshop, Premiere Pro, DaVinci Resolve, Final Cut Pro, After Effects, Affinity and Lightroom Classic.">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/develop-desktop.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://lut.openanthropic.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Guides",
+      "item": "https://lut.openanthropic.com/en/guides/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Where a LUT actually goes, app by app",
+      "item": "https://lut.openanthropic.com/en/guides/install-lut"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "How to install a LUT in Photoshop, Premiere, Resolve and Final Cut Pro",
+  "description": "Exact menu paths and folders for installing .cube LUTs, including the difference between a LOG input LUT and a creative look, and the Lightroom Classic profile route.",
+  "inLanguage": "en",
+  "mainEntityOfPage": "https://lut.openanthropic.com/en/guides/install-lut",
+  "url": "https://lut.openanthropic.com/en/guides/install-lut",
+  "image": "https://lut.openanthropic.com/photos/develop-desktop.jpg",
+  "datePublished": "2026-11-25",
+  "dateModified": "2026-11-25",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": "Guides"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Why does the image look washed out after applying a LUT?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Nine times out of ten it is the input: a LOG LUT expects LOG-encoded input. Put the conversion LUT in the input slot (Premiere Input LUT, an early Resolve node), or make sure the footage is already Rec.709."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can one LUT be used on photos and video?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, but the input precondition still applies. The looks on this site are authored for display-encoded photos (sRGB); vendor LOG conversion LUTs are authored for LOG video and will be off when applied to a photo."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I verify an install?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Apply the LUT, then disable it: the image should return pixel-for-pixel to the original. If colour is still shifted, the slot (input vs creative) or the colour management settings are wrong."
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+</style>
+<script src="/js/beacon.js" defer></script>
+</head>
+<body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/en/guides/">Guides</a><a href="/en/looks">64 looks</a><a href="/en/alternatives/lightroom-web">vs Lightroom</a><a href="/en/faq">FAQ</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/guides/install-lut" hreflang="zh-CN">中文</a>
+</div></header>
+<article class="wrap">
+<div class="wrap">
+  <p class="crumbs"><a href="/">Home</a><span>/</span><a href="/en/guides/">Guides</a><span>/</span>Where a LUT actually goes, app by app</p><p class="kicker">GUIDE · INSTALL A LUT</p>
+  <h1>Where a LUT actually goes, app by app</h1>
+  <p class="lede">The same .cube lives in a different place in every app — and a creative look goes somewhere different from a LOG conversion LUT. This page lists the menu paths, the folders and the usual traps; if you want to see the result first, preview it in the browser instead of installing anything.</p>
+  <p class="crumbs"><span>Updated 2026-11-25</span><span>6 min read</span></p>
+</div>
+<p>Two kinds of LUT, and putting one in the other's slot is the cause of most "it looks wrong after installing":</p>
+<ul>
+<li><strong>LOG conversion LUTs</strong> (published by camera makers, usually named F-Log / V-Log / S-Log / N-Log): they convert LOG-encoded footage to Rec.709 and belong on the input side — Premiere's Input LUT, an early node in Resolve, the input LUT slot in FCP. Feed them an ordinary sRGB photo or already-converted footage and the result goes flat or blown out.</li>
+<li><strong>Creative LUTs</strong> (looks): they work on display-encoded images and belong late in the chain — Premiere's Creative → Look, a late Resolve node, an adjustment layer in Photoshop or Affinity. The 64 looks on this site are in this group and are authored for display-encoded photos.</li>
+</ul>
+
+<h2 id="where">Where each app expects it</h2>
+<table>
+<caption>Where each app expects a .cube (checked Nov 2026)</caption>
+<thead><tr><th scope="col">App</th><th scope="col">Where</th></tr></thead>
+<tbody>
+<tr><th scope="row">Photoshop</th><td>Layer → New Adjustment Layer → Color Lookup → Load 3D LUT, then pick the .cube file.<br><small>The adjustment layer is non-destructive; use the layer opacity for strength. You can also package the LUT as a Camera Raw profile (see the Lightroom row).</small></td></tr>
+<tr><th scope="row">Premiere Pro</th><td>Lumetri Color → Creative → Look → Browse, then pick the .cube.<br><small>A LOG-conversion LUT belongs in Basic Correction → Input LUT, not in Creative → Look: the first turns LOG into Rec.709, the second is a creative grade. Strength lives on the Intensity slider.</small></td></tr>
+<tr><th scope="row">DaVinci Resolve</th><td>Project Settings → Color Management → Lookup Tables → Open LUT Folder, drop the .cube in and press Update Lists; or right-click the LUT browser on the Color page and Refresh.<br><small>Default folders: macOS /Library/Application Support/Blackmagic Design/DaVinci Resolve/LUT; Windows C:\ProgramData\Blackmagic Design\DaVinci Resolve\Support\LUT; Linux usually /opt/resolve/LUT (check your install).</small></td></tr>
+<tr><th scope="row">Final Cut Pro</th><td>Put the .cube into ~/Library/Application Support/ProApps/Color Profiles/LUTs (create the folder if missing), then add Effects → Color → Custom LUT to a clip and pick it from the LUT menu.<br><small>FCP reads that folder at launch, so restart it once after adding files.</small></td></tr>
+<tr><th scope="row">After Effects</th><td>Effect → Color Correction → Apply Color LUT and point the effect controls at the .cube; or use Lumetri Color → Creative → Look.<br><small>Put the LUT on an adjustment layer above the footage so strength and on/off live in one place.</small></td></tr>
+<tr><th scope="row">Lightroom Classic</th><td>It cannot open a .cube directly. The route: Photoshop → Filter → Camera Raw Filter → hold Option/Alt and click ⋯ in the Presets panel → Create Profile, tick Color Lookup Table and load the .cube; that writes an .xmp profile. Restart Lightroom, then use it from Develop → Basic → Profile Browser.<br><small>Requires Lightroom Classic 7.3 (April 2018) or newer. Profiles expose a 0–200 Amount slider for strength.</small></td></tr>
+<tr><th scope="row">Affinity Photo</th><td>Layer → New Adjustment Layer → LUT (or the LUT adjustment in the Adjustments panel), then Load LUT and pick the .cube.<br><small>Non-destructive; strength via layer opacity.</small></td></tr>
+</tbody>
+</table>
+
+<h2 id="flow">A workflow that works everywhere</h2>
+<ol>
+<li><strong>Preview first</strong>: drop the photo into the <a href="/">browser editor</a> and sweep the filmstrip to check the direction — rendered on your device, nothing uploaded.</li>
+<li><strong>Then download</strong>: a single .cube is on each look page (e.g. <a href="/looks/kodak-portra-400">Kodak Portra 400</a>), or <a href="/download">take all 64 at once</a>.</li>
+<li><strong>Install using the table above</strong>, then verify: apply the LUT, switch it off again, and the image should return exactly to the original. If it does not, the slot or the colour management in front of it is wrong.</li>
+<li><strong>Set the strength</strong>: most apps expose Intensity / Amount / opacity. Judge at 100 % first, then dial back. A LUT is a colour mapping — it cannot recover clipped white.</li>
+</ol>
+
+<h2 id="traps">Three traps worth knowing</h2>
+<ul>
+<li><strong>Resolve cannot see the LUT</strong>: after copying the file, press Update Lists / Refresh — Resolve does not rescan the folder automatically.</li>
+<li><strong>Final Cut Pro does not show it</strong>: FCP reads the LUT folder at launch, so restart it after adding files.</li>
+<li><strong>Lightroom Classic says it cannot open .cube</strong>: true — but the LUT can be packaged as a profile (last row of the table) and then used from the Profile Browser.</li>
+</ul>
+
+<h2 id="more">Related</h2>
+<p><a href="/en/download">Download the 64 looks</a> · <a href="/en/looks/compared">12 looks compared on one photo</a> · <a href="/en/guides/what-is-lut">What a LUT is (1D/3D, the log precondition)</a> · <a href="/en/get-luts">Official vendor LUT sources</a> · <a href="/en/faq">FAQ</a></p>
+<nav class="crumbs" style="display:flex;gap:12px;margin-top:44px" aria-label="Previous and next"><a class="btn ghost" href="/en/guides/lut-size">Next →</a></nav>
+<div class="cta">
+  <h2>Try it in the browser</h2>
+  <p>Open a RAW, grade it, stack a look, export a JPEG — all on your machine, with no upload and no account.</p>
+  <a class="btn" href="/">Open the editor</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/en/about">About & privacy</a><a href="/en/privacy">Privacy</a><a href="/en/guides/">All guides</a><a href="/en/get-luts">LUT sources</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
+</body>
+</html>

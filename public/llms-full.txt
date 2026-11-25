@@ -37,6 +37,7 @@ Limits
 
 Guides
 
+- Where a LUT actually goes, app by app: https://lut.openanthropic.com/en/guides/install-lut
 - How precise does a LUT have to be before the difference disappears: https://lut.openanthropic.com/en/guides/lut-size
 - Bake two LUTs into one and take it out of the browser: https://lut.openanthropic.com/en/guides/merge-lut
 - Open a RAW in the browser and develop it like a darkroom: https://lut.openanthropic.com/en/guides/raw-in-browser
