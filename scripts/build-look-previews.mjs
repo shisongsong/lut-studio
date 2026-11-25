@@ -109,12 +109,22 @@ try {
         ctx.drawImage(canvas, 0, 0, W, H);
         return out.toDataURL('image/jpeg', 0.85);
       };
+      // Second, smaller export for the catalogue grid: 480x320 keeps the /looks
+      // page light (a full 1200px set would be ~2 MB of images).
+      const exportThumb = (canvas) => {
+        const out = document.createElement('canvas');
+        out.width = 480; out.height = 320;
+        out.getContext('2d', { alpha: false }).drawImage(canvas, 0, 0, 480, 320);
+        return out.toDataURL('image/jpeg', 0.82);
+      };
       return {
         lookName: document.getElementById('lookName').textContent.trim(),
         width: W,
         height: H,
         before: exportCanvas(document.getElementById('base')),
         after: exportCanvas(document.querySelector('#field canvas.layer:not(.off)')),
+        beforeThumb: exportThumb(document.getElementById('base')),
+        afterThumb: exportThumb(document.querySelector('#field canvas.layer:not(.off)')),
       };
     });
   };
@@ -123,7 +133,8 @@ try {
   const first = await capture('/');
   const decode = (dataUrl) => Buffer.from(dataUrl.slice(dataUrl.indexOf(',') + 1), 'base64');
   writeFileSync(join(OUT, 'before.jpg'), decode(first.before));
-  console.log(`before.jpg ${first.width}x${first.height} ${(decode(first.before).length / 1024).toFixed(0)} KB`);
+  writeFileSync(join(OUT, 'before-thumb.jpg'), decode(first.beforeThumb));
+  console.log(`before.jpg ${first.width}x${first.height} ${(decode(first.before).length / 1024).toFixed(0)} KB (+ thumb)`);
 
   for (const id of ids) {
     const look = LOOKS.find((l) => l.id === id);
@@ -135,7 +146,8 @@ try {
     const jpeg = decode(shot.after);
     if (jpeg.length < 20000) throw new Error(`${id}: preview looks empty (${jpeg.length} bytes)`);
     writeFileSync(join(OUT, `${id}.jpg`), jpeg);
-    console.log(`${id}.jpg ${shot.width}x${shot.height} ${(jpeg.length / 1024).toFixed(0)} KB`);
+    writeFileSync(join(OUT, `${id}-thumb.jpg`), decode(shot.afterThumb));
+    console.log(`${id}.jpg ${shot.width}x${shot.height} ${(jpeg.length / 1024).toFixed(0)} KB (+ thumb ${(decode(shot.afterThumb).length / 1024).toFixed(0)} KB)`);
   }
 
   await browser.close();

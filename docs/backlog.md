@@ -117,6 +117,16 @@ funnel step), that wins.
   a single `.cube` download (`/download/cubes/<id>.cube`, now served gzip:
   862 KB → 295 KB) and an honest "original recipe, not film data" block.
   `/looks` and `/download` link the launched looks; sitemap grew to 63 URLs.
+  **Catalogue upgrade (same day):** `/looks` now opens with a visual
+  "有独立页面的 look" grid — 12 uniform cards using 480×320 thumbnails rendered
+  by the same script (`<id>-thumb.jpg`, ~40 KB each, lazy) — before the plain
+  text catalogue. A first attempt put the images inside the existing text grid;
+  mixing image cards with text-only cards left oversized empty boxes, so the
+  visual section is separate. Also corrected the Lightroom Classic copy on the
+  look pages and `/download`: LrC cannot open a `.cube` directly, but you can
+  package it as a Camera Raw profile (Presets ⋯ → Create Profile → Color Lookup
+  Table) and use it from the Profile Browser — that is the accurate route, per
+  Adobe documentation and Phlearn's install guide.
   **Next batch:** add ids to `LAUNCHED_LOOK_IDS`, run
   `PLAYWRIGHT_CORE=… npm run build:previews`, write the modules, deploy. Keep
   batches at 4–6 and only after the first 12 have been indexed — thin-content

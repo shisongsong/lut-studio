@@ -41,6 +41,31 @@ const CAT_EN = {
 };
 const catLabelEn = (cat) => CAT_EN[cat] || cat;
 
+/**
+ * The looks that have their own page, as a visual grid at the top of the
+ * catalogue. Only looks with a rendered preview go in here, so every card has
+ * the same shape — mixing image cards with text-only cards inside one grid left
+ * the text ones sitting in oversized empty boxes.
+ */
+function pageCards(lang) {
+  const looks = LAUNCHED_LOOK_IDS.map((id) => LOOKS.find((l) => l.id === id)).filter(Boolean);
+  const cards = looks
+    .map((look) => {
+      const name = lang === 'zh' ? look.name : look.en;
+      const href = lang === 'zh' ? `/looks/${look.id}` : `/en/looks/${look.id}`;
+      const alt = lang === 'zh' ? `${name} 套用在示例照片上的显影效果` : `${look.en} applied to the sample photo`;
+      const tag = lang === 'zh' ? look.tag : `${look.en} — before/after preview and a .cube download`;
+      return `<a class="card" href="${href}"><img src="/photos/looks/${look.id}-thumb.jpg" width="480" height="320" alt="${alt}" loading="lazy" style="width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;display:block;margin-bottom:12px"><h3>${name}</h3><p>${tag}</p></a>`;
+    })
+    .join('\n');
+  const title = lang === 'zh' ? '有独立页面的 look' : 'Looks with their own page';
+  const lede =
+    lang === 'zh'
+      ? '每一页都有同一张示例照片的真实 before/after、适合的题材、与相邻两款的差别，以及单支 .cube 下载。'
+      : 'Each page has a real before/after on the same sample photo, what it suits, how it differs from its neighbours, and a single .cube download.';
+  return `<h2 id="look-pages">${title}</h2><p>${lede}</p><div class="cards">\n${cards}\n</div>`;
+}
+
 export default {
   slug: 'looks',
   kind: 'guide',
@@ -82,6 +107,7 @@ export default {
     h1: '64 款内置 look，全部来自原创配方',
     lede: '这些不是厂商发布的 LUT 文件，而是按对应风格的色彩响应写的原始配方：电影、胶片、黑白、冷暖、复古、空气感，以及柯达、富士、理光、松下、徕卡、哈苏的风格近似。',
     body: `<p>每一款都能调强度，也可以把两款叠在一起（比如一层胶片底子加一层轻微的高光偏色），再合并成一个 <code>.cube</code> 导出。内置 look 用 33³ 精度打包，和下载到的立方体是同一份数据。</p>
+${pageCards('zh')}
 ${groups('zh')}
 <h2 id="how-to">怎么用</h2>
 <p>打开浏览器里的编辑器，拖入一张照片，在底部的胶片条里切换 look；底部的纵向滑轨调强度，<code>DUAL LUT</code> 打开第二个槽位。想把这些 look 用在别的软件里，可以直接<a href="/download">打包下载全部 64 款 .cube</a>（MIT 许可、不注册）；要用厂商的 LOG LUT，去 <a href="/get-luts">官方下载入口</a> 拿文件再导入编辑器。</p>
@@ -99,6 +125,7 @@ ${groups('zh')}
     h1: '64 built-in looks, all from original recipes',
     lede: 'These are not vendor-published LUT files. They are original colour recipes written to match the response of the named styles: cinema, film, black and white, warm/cool, vintage, airy, plus Kodak, Fujifilm, Ricoh, Panasonic, Leica and Hasselblad-inspired grades.',
     body: `<p>Every look has an adjustable strength, two looks can be stacked (a film base plus a slight highlight tint, for example), and the stack can be baked into one <code>.cube</code> for other software. The built-in pack is 33³, and it is the same data as the downloadable cubes.</p>
+${pageCards('en')}
 ${groups('en')}
 <h2 id="how-to">How to use them</h2>
 <p>Open the editor in the browser, drop in a photo, and switch looks in the filmstrip along the bottom; the vertical rail sets strength and <code>DUAL LUT</code> opens the second slot. To use the same grades in other software, <a href="/download">download all 64 as .cube files</a> (MIT, no signup); for vendor LOG LUTs, the <a href="/en/get-luts">LUT sources</a> page covers where the camera makers publish theirs.</p>

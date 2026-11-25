@@ -106,7 +106,7 @@ ${lookTable('zh')}
 <tr><th scope="row">Premiere Pro</th><td>Lumetri Color → Creative → Look → Browse</td></tr>
 <tr><th scope="row">Photoshop</th><td>图层 → 新建调整图层 → 颜色查找（Color Lookup）→ 载入 3D LUT</td></tr>
 <tr><th scope="row">Final Cut Pro</th><td>效果 → 颜色 → 自定 LUT → 选取 LUT</td></tr>
-<tr><th scope="row">Lightroom Classic</th><td>不支持 .cube。想看这支 look 在照片上的效果，用 <a href="/">浏览器编辑器</a>打开同一张照片即可。</td></tr>
+<tr><th scope="row">Lightroom Classic</th><td>不能直接读 .cube。可以在 Photoshop 的 Camera Raw 里用「创建配置文件」把 LUT 包成 .xmp 配置（Presets ⋯ → Create Profile，勾 Color Lookup Table），再在 Lightroom 的配置文件浏览器里使用；或者直接用 <a href="/">浏览器编辑器</a>看效果。</td></tr>
 </tbody>
 </table>
 <p>强度请从 100% 开始判断：包里烘的是满强度结果。要更淡的效果，在支持强度的软件里下调，或者回到编辑器用强度滑轨预览后再决定——<a href="/guides/merge-lut">两支 look 也能合并成一支新 .cube</a>。</p>
@@ -156,7 +156,7 @@ ${lookTable('en')}
 <tr><th scope="row">Premiere Pro</th><td>Lumetri Color → Creative → Look → Browse</td></tr>
 <tr><th scope="row">Photoshop</th><td>Layer → New Adjustment Layer → Color Lookup → Load 3D LUT</td></tr>
 <tr><th scope="row">Final Cut Pro</th><td>Effects → Color → Custom LUT → Choose LUT</td></tr>
-<tr><th scope="row">Lightroom Classic</th><td>Does not read .cube files. To see a look on a photo, open that photo in the <a href="/">browser editor</a> instead.</td></tr>
+<tr><th scope="row">Lightroom Classic</th><td>Cannot open a .cube directly. Package it as a profile in Adobe Camera Raw (Presets ⋯ → Create Profile → tick Color Lookup Table) and use it from the Profile Browser — or just preview it in the <a href="/">browser editor</a>.</td></tr>
 </tbody>
 </table>
 <p>Judge a look at 100 % strength first — that is what the archive contains. For a softer result, lower the strength where the app supports it, or preview it with the strength rail in the editor; <a href="/en/guides/merge-lut">two looks can also be merged into one new .cube</a>.</p>
