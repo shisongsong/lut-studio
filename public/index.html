@@ -321,6 +321,7 @@ a.tbtn{text-decoration:none}
 .dev-group-head > span{font-family:var(--mono);font-size:8px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
 .dev-auto{font-family:var(--mono);font-size:7px;font-style:normal;letter-spacing:.08em;color:var(--accent);border:1px solid rgba(217,199,163,.45);padding:2px 5px;line-height:1}
 .dev-auto.manual{color:var(--muted);border-color:rgba(255,255,255,.2)}
+.dev-btn.solving{opacity:.5;pointer-events:none}
 .dev-pick{width:26px;height:22px;border:1px solid rgba(255,255,255,.16);display:grid;place-items:center;color:var(--muted);font-size:10px;line-height:1;transition:.15s}
 .dev-pick:hover{color:#fff;border-color:rgba(255,255,255,.5)}
 .dev-pick.on{color:#141414;background:var(--accent);border-color:var(--accent)}
@@ -421,8 +422,8 @@ a.tbtn{text-decoration:none}
   <header class="topbar">
     <div class="brand"><span class="dot" id="accentDot"></span>LUT ARCHIVE</div>
     <div class="top-actions">
-      <a class="tbtn" href="/guides/">指南</a>
-      <a class="tbtn sub" href="/looks">LUT 目录</a>
+      <a class="tbtn" href="/guides/" id="navGuides">指南</a>
+      <a class="tbtn sub" href="/looks" id="navLooks">LUT 目录</a>
       <a class="tbtn" href="https://github.com/shisongsong/lut-studio" id="githubLink" target="_blank" rel="noopener">GitHub</a>
       <button class="tbtn" id="langBtn">EN</button>
     </div>
@@ -478,7 +479,7 @@ a.tbtn{text-decoration:none}
 </div>
 <div class="exportsheet" id="exportSheet" hidden>
   <div class="export-card">
-    <header><span>导出</span><button class="icon-x" id="exportClose" aria-label="关闭">×</button></header>
+    <header><span>导出</span><button class="icon-x" id="exportClose" aria-label="关闭" data-close>×</button></header>
     <p class="export-sub">选择画质</p>
     <div class="quality-list" id="qualityList">
       <button data-quality="50" class="on"><span>50%</span><b id="q50Dims"></b></button>
@@ -500,7 +501,7 @@ a.tbtn{text-decoration:none}
       <button class="dev-btn" id="devCamLook" hidden title="相机风格 / Camera look">相机风格</button>
       <button class="dev-btn" id="devAuto" title="自动色调 / Auto tone">自动色调</button>
       <button class="dev-btn" id="devReset">重置</button>
-      <button class="icon-x" id="devClose" aria-label="关闭">×</button>
+      <button class="icon-x" id="devClose" aria-label="关闭" data-close>×</button>
     </div>
   </div>
   <canvas class="dev-hist" id="devHist" width="300" height="66" aria-hidden="true"></canvas>
@@ -537,7 +538,7 @@ a.tbtn{text-decoration:none}
 
 <div class="exportsheet" id="profileSheet" hidden>
   <div class="export-card">
-    <header><span id="profileTitle">输入曲线</span><button class="icon-x" id="profileClose" aria-label="关闭">×</button></header>
+    <header><span id="profileTitle">输入曲线</span><button class="icon-x" id="profileClose" aria-label="关闭" data-close>×</button></header>
     <p class="export-sub" id="profileStatus"></p>
     <div class="quality-list profile-list" id="profileList"></div>
     <p class="export-note" id="profileNote"></p>
@@ -546,13 +547,13 @@ a.tbtn{text-decoration:none}
 
 <div class="exportsheet" id="importSheet" hidden>
   <div class="export-card">
-    <header><span>导入 LUT</span><button class="icon-x" id="importClose" aria-label="关闭">×</button></header>
-    <p class="export-sub">支持 .cube：3D LUT（LUT_3D_SIZE 2–128）和 1D LUT 都行，只在本地解析，不上传。</p>
+    <header><span id="importTitle">导入 LUT</span><button class="icon-x" id="importClose" aria-label="关闭" data-close>×</button></header>
+    <p class="export-sub" id="importHelp">支持 .cube：3D LUT（LUT_3D_SIZE 2–128）和 1D LUT 都行，只在本地解析，不上传。</p>
     <button class="export-confirm" id="importPick">选择 .cube 文件</button>
     <p class="import-error" id="importError" hidden></p>
-    <p class="import-help">官方 LUT 多用于 LOG 素材（V-Log / F-Log），普通照片建议强度 30–60%。</p>
+    <p class="import-help" id="importNote">官方 LUT 多用于 LOG 素材（V-Log / F-Log），普通照片建议强度 30–60%。</p>
     <div class="import-links">
-      <span>官方下载</span>
+      <span id="importSources">官方下载</span>
       <a href="https://pro-av.panasonic.net/en/cinema_camera_varicam_eva/support/lut/" target="_blank" rel="noopener">Panasonic VariCam</a>
       <a href="https://av.jpn.support.panasonic.com/support/global/cs/dsc/download/lut/index.html" target="_blank" rel="noopener">LUMIX</a>
       <a href="https://www.fujifilm-x.com/global/support/download/lut/" target="_blank" rel="noopener">FUJIFILM</a>
@@ -642,7 +643,7 @@ const el = {
   photoBtn: $('#photoBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), importBtn: $('#importBtn'), mergeBtn: $('#mergeBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'), zoomBtn: $('#zoomBtn'),
+  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), introWait: $('#introWait'), importBtn: $('#importBtn'), mergeBtn: $('#mergeBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'), zoomBtn: $('#zoomBtn'),
   busy: $('#busy'), busyTitle: $('#busyTitle'), busySteps: $('#busySteps'), busyTrack: $('#busyTrack'), busyFill: $('#busyFill'), busySub: $('#busySub'), busyClock: $('#busyClock'),
   loadPillFill: $('#loadPillFill'), loadPillPct: $('#loadPillPct'),
   devPanel: $('#devPanel'), devTitle: $('#devTitle'), devSub: $('#devSub'), devBody: $('#devBody'), devAuto: $('#devAuto'), devCamLook: $('#devCamLook'), devReset: $('#devReset'), devClose: $('#devClose'), devPick: $('#devPick'), devHint: $('#devHint'), devHist: $('#devHist'), lqip: $('#lqip'), loadPill: $('#loadPill'), loadPillText: $('#loadPillText'),
@@ -2985,36 +2986,101 @@ function commitAutoTone() {
   toast(t(state.lang, 'autoToneDone'));
 }
 
-function applyAutoTone() {
-  // The curve anchors itself on this photo's measured percentiles, so the same
-  // placement contract can be solved in both development modes: the calibrated
-  // percentile heuristic supplies the *target* placement, then the four zone
-  // sliders are solved against the rendered result (never darker, never more
-  // clipped than the frame Auto started from).
-  const tn = state.tone;
-  const zero = { contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0 };
-  const setTone = (v) => {
-    tn.contrast = v.contrast; tn.highlights = v.highlights;
-    tn.shadows = v.shadows; tn.whites = v.whites; tn.blacks = v.blacks;
-  };
-  const hasLook = !!(state.cameraLook && state.cameraLookCurve);
-  setTone(zero);
-  const neutral = measureTone();
-  if (!neutral) return;
-  const hint = neutralAutoValues(neutral);
-  setTone(hint);
-  const ref = measureTone({ withTone: true });
-  setTone(zero);
-  const base = measureTone({ withLook: hasLook });
-  if (!ref || !base) { setTone(zero); commitAutoTone(); return; }
-  const targets = cameraAutoTargets(base, ref);
-  const { values } = solveCameraAutoTone({
-    measure: (v) => { setTone(v); return measureTone({ withLook: hasLook, withTone: true }); },
-    base, targets,
+// AUTO tone is the most expensive interaction in the app (six to ten 240 px
+// renders that each read pixels back synchronously), so it is split across
+// frames and the result is cached per photo. Without the yield the click had no
+// visible response for ~190 ms and the main thread stayed frozen for it; with
+// it, the pressed state paints first and the measurements happen in chunks.
+let autoToneBusy = false;
+const autoToneCacheBySource = new WeakMap();
+
+function nextFrame() {
+  // Two animation frames: the first lets the busy/pressed state reach the
+  // screen, the second guarantees a full frame boundary before the (still
+  // synchronous) measurement task runs. A single rAF + timeout is not enough —
+  // the timeout can run before that frame's paint.
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0)));
   });
-  setTone(values);
-  commitAutoTone();
-  track('autotone', {});
+}
+
+async function applyAutoTone() {
+  if (!source || autoToneBusy) return;
+  autoToneBusy = true;
+  el.devAuto.classList.add('solving');
+  el.devAuto.setAttribute('aria-busy', 'true');
+  try {
+    // Feedback first: the button dims on this frame, before any measurement.
+    await nextFrame();
+
+    // The curve anchors itself on this photo's measured percentiles, so the same
+    // placement contract can be solved in both development modes: the calibrated
+    // percentile heuristic supplies the *target* placement, then the four zone
+    // sliders are solved against the rendered result (never darker, never more
+    // clipped than the frame Auto started from).
+    const tn = state.tone;
+    const zero = { contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0 };
+    const setTone = (v) => {
+      tn.contrast = v.contrast; tn.highlights = v.highlights;
+      tn.shadows = v.shadows; tn.whites = v.whites; tn.blacks = v.blacks;
+    };
+    const hasLook = !!(state.cameraLook && state.cameraLookCurve);
+    const curve = state.cameraLookCurve;
+    const curvePrint = curve ? `${curve.length}:${curve[0]}:${curve[curve.length >> 1]}:${curve[curve.length - 1]}` : '';
+    // The solve starts from zero and depends only on the photo, the log mode,
+    // the denoise setting, the camera-look curve and the exposure baseline — not
+    // on where the sliders happen to be now. So a second press is free.
+    const cacheKey = [
+      source.width, source.height, effectiveLogMode(),
+      state.detail && state.detail.nr, hasLook ? 1 : 0, curvePrint,
+      state.autoEV, state.baseExposure,
+    ].join('|');
+    const cached = autoToneCacheBySource.get(source);
+    if (cached && cached.key === cacheKey) {
+      // Cache hit. If the values are already on the sliders (the common case:
+      // pressing AUTO twice), there is nothing to render at all — the previous
+      // press is still on screen, so this returns in microseconds.
+      const same = tn.contrast === cached.values.contrast && tn.highlights === cached.values.highlights &&
+        tn.shadows === cached.values.shadows && tn.whites === cached.values.whites && tn.blacks === cached.values.blacks;
+      if (!same) {
+        setTone(cached.values);
+        commitAutoTone();
+        track('autotone', { cached: 1 });
+      } else {
+        toast(t(state.lang, 'autoToneDone'));
+        track('autotone', { cached: 2 });
+      }
+      return;
+    }
+
+    setTone(zero);
+    const neutral = measureTone();
+    if (!neutral) return;
+    const hint = neutralAutoValues(neutral);
+    setTone(hint);
+    await nextFrame(); // show the hint placement instead of a frozen panel
+    const ref = measureTone({ withTone: true });
+    setTone(zero);
+    const base = measureTone({ withLook: hasLook });
+    if (!ref || !base) { setTone(zero); commitAutoTone(); return; }
+    const targets = cameraAutoTargets(base, ref);
+    await nextFrame(); // the solver reads back several frames; keep each block short
+    const { values } = solveCameraAutoTone({
+      measure: (v) => { setTone(v); return measureTone({ withLook: hasLook, withTone: true }); },
+      base, targets,
+    });
+    setTone(values);
+    autoToneCacheBySource.set(source, {
+      key: cacheKey,
+      values: { contrast: values.contrast, highlights: values.highlights, shadows: values.shadows, whites: values.whites, blacks: values.blacks },
+    });
+    commitAutoTone();
+    track('autotone', {});
+  } finally {
+    autoToneBusy = false;
+    el.devAuto.classList.remove('solving');
+    el.devAuto.removeAttribute('aria-busy');
+  }
 }
 
 function togglePick(force) {
@@ -3084,6 +3150,22 @@ function applyLang(lang, { persist = true } = {}){
   if (el.mergeBtn) el.mergeBtn.textContent = t(lang, 'mergeLut');
   updateLogUI();
   if (el.profileSheet && !el.profileSheet.hidden) renderProfileSheet();
+  // Static chrome: the language switch used to leave these in Chinese.
+  const navGuides = document.getElementById('navGuides');
+  if (navGuides) navGuides.textContent = t(lang, 'navGuides');
+  const navLooks = document.getElementById('navLooks');
+  if (navLooks) navLooks.textContent = t(lang, 'navLooks');
+  if (el.introWait) el.introWait.textContent = t(lang, 'introWait');
+  if (el.mergeBtn) el.mergeBtn.title = t(lang, 'mergeTitle');
+  const importTitle = document.getElementById('importTitle');
+  if (importTitle) importTitle.textContent = t(lang, 'importTitle');
+  const importHelp = document.getElementById('importHelp');
+  if (importHelp) importHelp.textContent = t(lang, 'importHelp');
+  const importSources = document.getElementById('importSources');
+  if (importSources) importSources.textContent = t(lang, 'importSources');
+  const importNote = document.getElementById('importNote');
+  if (importNote) importNote.textContent = t(lang, 'importNote');
+  document.querySelectorAll('[data-close]').forEach((btn) => btn.setAttribute('aria-label', t(lang, 'closeLabel')));
   el.dualBtn.childNodes[0].nodeValue = `${t(lang, state.dual.enabled ? 'dualOn' : 'dual')} `;
   el.exportSheet.querySelector('header span').textContent = t(lang, 'exportTitle');
   el.exportSheet.querySelector('.export-sub').textContent = t(lang, 'exportSub');

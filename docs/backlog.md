@@ -32,11 +32,16 @@ funnel step), that wins.
 
 ## Product / performance (evidence, then fix)
 
-- **B1 — AUTO tone blocks the main thread ~190 ms** (Event Timing 184–192 ms on
-  an M4, 208–264 ms at 4× CPU; the worst interaction in the app). `applyAutoTone()`
-  in `public/index.html` runs stats+solve synchronously; `public/js/auto-tone.js`
-  is already pure. Move it into a worker or slice it over rAF chunks with an
-  "AUTO…" busy state, and cache the result per photo+slider state.
+- **B1 — AUTO tone: partially fixed 2026-11-25 (second pass).** What shipped:
+  the button now dims immediately (busy state + `aria-busy`), the work is split
+  across three frames so the pressed state paints first, and the result is cached
+  per photo (`WeakMap` keyed on the source, keyed by photo/log/denoise/camera-look
+  /exposure), so a repeat press does **zero work** — measured: first press leaves
+  a ~116 ms long task, repeat presses leave **no** long task (was ~90 ms each).
+  Slider values are byte-identical to before. **What remains:** the first press
+  still blocks ~90–120 ms, because the six-to-ten 240 px WebGL read-backs are
+  synchronous. A worker refactor is the real fix; it is a half-day job and it must
+  keep `npm run test:tone`'s exact slider contracts.
 - **B2 — 1.34 MB LUT pack is a monolith on the critical path.** Ready-to-looks
   9.7 s on a 1.6 Mbps/4× CPU profile. Options, in order of value: split the pack
   per category (or the ~16 looks nearest the selected category first) so the
@@ -46,10 +51,12 @@ funnel step), that wins.
   28.5×15, 色调 28.5×15, 导出 39×15 in the quick bar. Add `min-height:44px`
   padding boxes in the `max-width:820px` block (keep the type size; grow the box),
   and give the empty state one obvious `打开照片 / OPEN PHOTO` button.
-- **B4 — English mode leaks Chinese** (nav `指南`, `LUT 目录`, intro
-  `LOADING · 加载中`, toast `已重置色调参数`, `title`/`aria-label="关闭"`) and the
-  language switch rebuilds the 65-chip strip (280–390 ms). Add missing `t()` keys
-  and update text nodes in place instead of calling `buildFilm()`.
+- **B4 — English mode: leaks fixed 2026-11-25; switch cost remains.** All the
+  leaked strings now have `t()` keys and are updated by `applyLang()` (nav, intro
+  wait, close `aria-label`s, merge `title`, import sheet copy). Measured after the
+  fix, the only Chinese left in EN mode is the `中文` toggle itself. Still open:
+  the switch rebuilds the 65-chip strip (280–390 ms) — update text nodes in place
+  instead of calling `buildFilm()` when the inventory has not changed.
 - **B5 — Body text is 7–8.5 px on mobile** (154 visible nodes under 12 px);
   `--faint` contrast was raised .32→.46 on 2026-11-25, still below 4.5:1.
   Raise `.meta/.hint/.chip .nm/.dev-sub` to ≥10 px on phones.
