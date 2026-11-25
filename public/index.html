@@ -68,11 +68,17 @@
 </script>
 <!-- The hero photo and the LUT pack are the two things the first paint waits
      for; start both before the module graph is even requested. -->
-<link rel="preload" as="image" href="/photos/demo.webp" fetchpriority="high">
-<script>window.__lutsEarly=fetch('/luts.bin.gz').catch(function(){return null})</script>
+<!-- The hero is the only thing the first paint waits for: preload the variant
+     loadDemoImage() will actually use (mobile gets the 108 KB phone crop, not
+     the 268 KB desktop one) and nothing else. The LUT pack is started from
+     init() after this, so on a slow link the photo is not queued behind it. -->
+<link rel="preload" as="image" href="/photos/demo.webp" media="(min-width:821px)" fetchpriority="high">
+<link rel="preload" as="image" href="/photos/demo-phone.webp" media="(max-width:820px)" fetchpriority="high">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
 <style>
 :root{
-  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.56); --faint:rgba(242,241,236,.32);
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.56); --faint:rgba(242,241,236,.46);
   --line:rgba(242,241,236,.16); --line-strong:rgba(242,241,236,.32);
   --accent:#d9c7a3;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
@@ -398,7 +404,7 @@ a.tbtn{text-decoration:none}
   <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;color:#d9c7a3">LUT ARCHIVE</p>
   <h1 style="font-weight:300;font-size:28px;line-height:1.15;max-width:20ch">浏览器里的 RAW 暗房 / A RAW darkroom in your browser</h1>
   <p style="max-width:52ch;line-height:1.8;color:rgba(242,241,236,.72)">这个编辑器需要 JavaScript 和 WebGL2。它在本机解码 RAW、显影、套用 64 款 LUT 并导出全分辨率 JPEG，照片不会上传。你可以在下面的指南里读到它是怎么工作的。</p>
-  <p style="line-height:2.2"><a href="/guides/raw-in-browser" style="color:#f2f1ec">在浏览器里打开 RAW</a> · <a href="/guides/lut-size" style="color:#f2f1ec">LUT 精度实测</a> · <a href="/looks" style="color:#f2f1ec">64 款 look</a> · <a href="/faq" style="color:#f2f1ec">常见问题</a></p>
+  <p style="line-height:2.2"><a href="/guides/raw-in-browser" style="color:#f2f1ec">在浏览器里打开 RAW</a> · <a href="/guides/lut-size" style="color:#f2f1ec">LUT 精度实测</a> · <a href="/looks" style="color:#f2f1ec">64 款 look</a> · <a href="/download" style="color:#f2f1ec">下载 LUT 包</a> · <a href="/faq" style="color:#f2f1ec">常见问题</a></p>
 </div>
 </noscript>
 <div class="app" id="app">
@@ -593,9 +599,38 @@ function track(name, meta){ try { if (window.lutTrack) window.lutTrack(name, met
 let trackReady = false;
 let trackLook = false;
 function trackWhenReady(){
-  if (trackReady || !state.demoLoaded || !state.lutsReady) return;
+  if (trackReady || !state.demoLoaded) return;
   trackReady = true;
   track('ready', { ms: Math.round(performance.now()) });
+}
+
+// ---- deep links -----------------------------------------------------------
+// /?look=kodak-portra-400 and /?mode=merge are what the per-look, per-format
+// and download pages link to, so the editor opens on the thing the page
+// promised instead of a blank canvas.
+const deepLink = (() => {
+  try { return new URLSearchParams(location.search); } catch (e) { return new URLSearchParams(''); }
+})();
+let deepLinkDone = false;
+function applyDeepLink(){
+  if (deepLinkDone) return;
+  const wanted = (deepLink.get('look') || '').trim().toLowerCase();
+  const mode = (deepLink.get('mode') || '').trim().toLowerCase();
+  if (wanted) {
+    const look = allLooks().find(l => l.id === wanted);
+    if (!look) return;            // an imported LUT's data may still be loading
+    selectLook(look.id);
+    track('deeplink', { look: wanted });
+    deepLinkDone = true;
+    return;
+  }
+  if (mode === 'merge') {
+    toggleDual(true);
+    track('deeplink', { mode });
+    deepLinkDone = true;
+    return;
+  }
+  deepLinkDone = true;
 }
 const el = {
   app: $('#app'), field: $('#field'), base: $('#base'), layerA: $('#layerA'), layerB: $('#layerB'),
@@ -1075,6 +1110,11 @@ async function loadLutPack(){
 /** The app shell comes up with a 40px inline placeholder; real assets stream in. */
 async function init(){
   const hadLang = !!localStorage.getItem('lut.lang');
+  const deepLang = (deepLink.get('lang') || '').toLowerCase();
+  if (deepLang === 'zh' || deepLang === 'en') {
+    state.lang = deepLang;
+    localStorage.setItem('lut.lang', deepLang);
+  }
   applyLang(state.lang, { persist: false });
   renderer = new LookRenderer();
   sizeCanvases();
@@ -1089,7 +1129,7 @@ async function init(){
   updateZoomUI();
   if (el.metaDims) el.metaDims.textContent = '…';
   playIntro();
-  if (!hadLang) detectGeo();
+  if (!hadLang && deepLang !== 'zh' && deepLang !== 'en') detectGeo();
   // Everything heavy loads *after* the UI is alive and the intro has faded.
   loadImportedLuts();
   loadDemoImage();
@@ -1166,6 +1206,8 @@ async function loadLutsInBackground(){
     updateActiveChip();
     renderFilmThumbs();
     prewarmRawDecoder();
+    applyDeepLink();
+    track('looks', { ms: Math.round(performance.now()) });
   } catch (err) {
     console.warn('[lut pack] load failed', err);
     // A failed pack must not leave the strip shimmering forever: the pill turns
@@ -2476,10 +2518,11 @@ function thumbSignature(){
     t.highlights, t.shadows, t.whites, t.blacks,
     effectiveLogMode(), state.noLook ? 1 : 0,
     state.detail && state.detail.nr,
-    // Which look is selected and how many exist: deleting or merging a LUT
-    // changes what the strip must show even when no slider moved.
-    state.look, state.dual.enabled ? 1 : 0, state.dual.b,
-    state.strength, state.dual.strengthB,
+    // Only the inventory: adding, deleting, importing or merging a LUT changes
+    // what the strip shows. The selected look, the dual slot and the strength
+    // rails do NOT change any thumbnail — drawFilmThumb() renders every look at
+    // strength 100 — and including them repainted all 65 thumbnails on every
+    // click of the strip.
     allLooks().length, allLooks().slice(-1)[0]?.id,
   ].join('|');
 }
@@ -2487,6 +2530,9 @@ function thumbSignature(){
 function refreshFilmThumbsSoon(){
   clearTimeout(filmThumbTimer);
   filmThumbTimer = setTimeout(() => {
+    // A slider drag is the moment the user is judging the photo and the strip
+    // does not need it mid-gesture; wait for the gesture to end.
+    if (state.interacting) { refreshFilmThumbsSoon(); return; }
     const sig = thumbSignature();
     if (sig === thumbSigApplied) return;
     thumbSigApplied = sig;

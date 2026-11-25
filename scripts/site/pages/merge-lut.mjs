@@ -75,6 +75,7 @@ for 槽位 in [A, B]:
 输出 = clamp(v, 0, 1)</code></pre>
 <p>这就是着色器里的 <code>applyLut</code>：<code>mix(c, texture(lut, clamp(c,0,1)).rgb, s)</code>。合并时对 33³ 网格里的每个节点跑一遍同样的过程，把结果写成一个新的 33³ 立方体。源立方体用三线性插值读取，输出每个通道量化到 1/255——和网页里 LUT 纹理的精度完全一样。</p>
 <p>经测试，把 A、B 的强度都放在 100% 去合并，再用这枚 .cube 在宿主软件里按 100% 强度渲染，画面和屏幕上的一致：两边算的是同一条式子、同一个节点网格、同一套量化。<a href="/guides/lut-size">LUT 精度实测</a>里解释过为什么 33³ 就是这批 look 的母版尺寸。</p>
+<p>不想一支一支合并，也可以<a href="/download">一次下载全部 64 款 .cube</a>，在宿主软件里自己叠。</p>
 
 <h2 id="file">导出的 .cube 里有什么</h2>
 <p>文件是纯文本，四行文件头加 35,937 行 RGB 数值：</p>
@@ -136,6 +137,7 @@ for slot in [A, B]:
 output = clamp(v, 0, 1)</code></pre>
 <p>That is exactly the shader’s <code>applyLut</code>: <code>mix(c, texture(lut, clamp(c,0,1)).rgb, s)</code>. The merge runs the same loop over every node of a 33³ grid and writes a new 33³ cube. Source cubes are read with trilinear interpolation, and the output is quantised to 1/255 per channel — the same precision as the LUT texture in the browser.</p>
 <p>If both strengths are at 100 %, a host app that renders the downloaded .cube at 100 % strength reproduces the screen: same formula, same node grid, same quantisation. <a href="/en/guides/lut-size">The LUT precision measurement</a> explains why 33³ is the authored size for these looks.</p>
+<p>If you would rather stack them in your own app, <a href="/en/download">download all 64 cubes</a> in one zip.</p>
 
 <h2 id="file">What is in the exported .cube</h2>
 <p>The file is plain text: four header lines and 35,937 rows of RGB values.</p>

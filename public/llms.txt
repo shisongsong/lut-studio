@@ -34,6 +34,19 @@
 - [A LUT is a colour table, not a filter](https://lut.openanthropic.com/en/guides/what-is-lut): A LUT maps input colours to output colours. What 1D and 3D can do, what LUT_3D_SIZE means, the log input vendor LUTs expect, and why clipped highlights stay clipped.
 - [LUT 是一张颜色对照表，不是一层滤镜](https://lut.openanthropic.com/guides/what-is-lut): LUT 是输入颜色换成输出颜色的查找表。讲清 1D 与 3D 的区别、.cube 里的 LUT_3D_SIZE、厂商 LOG LUT 的输入前提，以及强度滑块和裁切高光。
 
+## Formats
+
+- [Convert a Sony ARW to JPG in the browser](https://lut.openanthropic.com/en/raw/arw): Open a Sony ARW / SRF / SR2 file in the browser, develop it on a 16-bit linear pipeline with 64 LUT looks, and export a full-resolution JPEG. Nothing is uploaded.
+- [把索尼 ARW 转成 JPG，在浏览器里完成](https://lut.openanthropic.com/raw/arw): 把索尼 ARW / SRF / SR2 拖进浏览器就能显影并导出全分辨率 JPG：16 位线性处理、64 款 LUT，不装软件、不上传照片。
+- [Convert a Canon CR3 to JPG in the browser](https://lut.openanthropic.com/en/raw/cr3): Open a Canon CR3 / CR2 file in the browser, develop it on a 16-bit linear pipeline with 64 LUT looks, and export a full-resolution JPEG. Nothing is uploaded.
+- [把佳能 CR3 转成 JPG，在浏览器里完成](https://lut.openanthropic.com/raw/cr3): 把佳能 CR3 / CR2 拖进浏览器就能显影并导出全分辨率 JPG：16 位线性处理、64 款 LUT，不装软件、不上传照片。
+- [Convert a DNG to JPG in the browser](https://lut.openanthropic.com/en/raw/dng): Open a DNG in the browser: Adobe’s open container, Apple ProRAW, phone or drone raw. 16-bit linear development, 64 LUT looks, full-resolution JPEG export.
+- [把 DNG 转成 JPG，在浏览器里完成](https://lut.openanthropic.com/raw/dng): 把 DNG（Adobe 开放容器、Apple ProRAW、手机与无人机）拖进浏览器即可显影并导出全分辨率 JPG：16 位线性、64 款 LUT，照片不上传。
+- [Convert a Nikon NEF to JPG in the browser](https://lut.openanthropic.com/en/raw/nef): Open a Nikon NEF / NRW file in the browser, develop it on a 16-bit linear pipeline with 64 LUT looks, and export a full-resolution JPEG. Nothing is uploaded.
+- [把尼康 NEF 转成 JPG，在浏览器里完成](https://lut.openanthropic.com/raw/nef): 把尼康 NEF / NRW 拖进浏览器就能显影并导出全分辨率 JPG：16 位线性处理、64 款 LUT，不装软件、不上传照片。
+- [Convert a Fujifilm RAF to JPG in the browser](https://lut.openanthropic.com/en/raw/raf): Open a Fujifilm RAF from an X-Trans or GFX body in the browser, develop it on a 16-bit linear pipeline with 64 LUT looks, and export a full-resolution JPEG.
+- [把富士 RAF 转成 JPG，在浏览器里完成](https://lut.openanthropic.com/raw/raf): 把富士 RAF（X 系列的 X-Trans 与 GFX 中画幅）拖进浏览器就能显影并导出全分辨率 JPG：16 位线性处理、64 款 LUT，不装软件、不上传照片。
+
 ## Comparisons
 
 - [Is there a free browser alternative to Lightroom?](https://lut.openanthropic.com/en/alternatives/lightroom-web): A browser editor can develop one RAW and grade it with LUTs for free, but it cannot replace a catalogue, batch or cloud library. Compare five tools by job.

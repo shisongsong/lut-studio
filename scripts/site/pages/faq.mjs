@@ -10,6 +10,10 @@ const FAQ_ZH = [
     `<p>NEF / NRW（含 HE、HE* 压缩）、CR2、CR3、ARW、SRF、SR2、DNG、RAF、ORF、RW2、PEF、SRW、3FR、ERF、KDC、MOS、IIQ、X3F。普通的 JPEG、PNG、WebP、AVIF、HEIC/HEIF、TIFF 也能打开。如果某个 RAW 完全拆不开，会退回到文件里内嵌的相机 JPEG，而不是显示半张黑图。</p>`,
   ],
   [
+    'NEF、CR3、ARW、DNG、RAF 分别怎么转成 JPG？',
+    `<p>五种常见格式各有一页：<a href="/raw/nef">NEF</a>、<a href="/raw/cr3">CR3 / CR2</a>、<a href="/raw/arw">ARW</a>、<a href="/raw/dng">DNG</a>、<a href="/raw/raf">RAF</a>。每一页讲这个容器装了什么、浏览器怎么解码、拆不开时怎么回退到内嵌 JPEG，以及导出的到底是什么；总览在<a href="/raw/">格式指南</a>。</p>`,
+  ],
+  [
     '真的免费吗？用什么许可证？',
     `<p>免费，也不需要注册。代码以 MIT 许可证开源，<a href="https://github.com/shisongsong/lut-studio" rel="noopener">源码在 GitHub 上</a>，可以自己读、自己部署。没有订阅，也没有需要付费才能解锁的功能。</p>`,
   ],
@@ -59,6 +63,10 @@ const FAQ_EN = [
   [
     'Which RAW formats can it open?',
     `<p>NEF / NRW (including HE and HE* compression), CR2, CR3, ARW, SRF, SR2, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ and X3F. It also opens JPEG, PNG, WebP, AVIF, HEIC/HEIF and TIFF. If a RAW cannot be unpacked at all, the camera JPEG embedded in the file is used instead of showing half a black frame.</p>`,
+  ],
+  [
+    'How do I convert NEF, CR3, ARW, DNG or RAF to JPG?',
+    `<p>Each of the five common formats has its own page: <a href="/en/raw/nef">NEF</a>, <a href="/en/raw/cr3">CR3 / CR2</a>, <a href="/en/raw/arw">ARW</a>, <a href="/en/raw/dng">DNG</a> and <a href="/en/raw/raf">RAF</a>. Each covers what the container holds, how the browser decodes it, how a frame that cannot be unpacked falls back to the embedded JPEG, and what export produces; <a href="/en/raw/">the format guides</a> list them.</p>`,
   ],
   [
     'Is it really free, and under what license?',
@@ -125,8 +133,8 @@ export default {
       title: lang === 'zh' ? 'LUT ARCHIVE 常见问题' : 'LUT ARCHIVE FAQ',
       description:
         lang === 'zh'
-          ? '关于浏览器 RAW 编辑器最常被问到的 12 个问题：上传、格式、LUT 尺寸、.cube 导入、log 输入、导出、手机、离线、批量与许可证。'
-          : 'Twelve answers about the browser RAW editor: uploads, formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.',
+          ? '关于浏览器 RAW 编辑器最常被问到的 13 个问题：上传、格式、LUT 尺寸、.cube 导入、log 输入、导出、手机、离线、批量与许可证。'
+          : 'Thirteen answers about the browser RAW editor: uploads, formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.',
       path: lang === 'zh' ? '/faq' : '/en/faq',
       image: '/photos/home-desktop.jpg',
       updated: '2026-11-19',
@@ -135,11 +143,11 @@ export default {
   ],
   zh: {
     title: '常见问题：RAW 格式、LUT、隐私、离线与开源许可',
-    description: '关于这个浏览器 RAW 编辑器最常被问到的 12 个问题：照片会不会上传、能打开哪些格式、LUT 多大、能否离线、导出得到什么，以及它做不到的事。',
+    description: '关于这个浏览器 RAW 编辑器最常被问到的 13 个问题：照片会不会上传、能打开哪些格式、LUT 多大、能否离线、导出得到什么，以及它做不到的事。',
     kicker: '常见问题',
-    h1: '使用之前，你大概会问的 12 个问题',
+    h1: '使用之前，你大概会问的 13 个问题',
     lede: '照片去了哪里、能打开哪些文件、LUT 有多精确、断网还能不能用——这一页按实际实现回答，也把做不到的部分一起说清楚。',
-    body: `<p>这一页把使用前最常被问到的 12 个问题一次答完：照片会不会上传、能打开哪些 RAW、LUT 用多大尺寸、能不能离线、导出得到什么、手机上能不能用。答案按实际实现写，包括它做不到的部分。</p>
+    body: `<p>这一页把使用前最常被问到的 13 个问题一次答完：照片会不会上传、能打开哪些 RAW、LUT 用多大尺寸、能不能离线、导出得到什么、手机上能不能用。答案按实际实现写，包括它做不到的部分。</p>
 <p>想先看它怎么工作，读<a href="/guides/raw-in-browser">在浏览器里打开 RAW</a>；想比较桌面软件，看<a href="/alternatives/lightroom-web">与 Lightroom 的对比</a>。</p>
 <h2 id="questions">问题与答案</h2>
 ${faqBody(FAQ_ZH)}`,
@@ -147,11 +155,11 @@ ${faqBody(FAQ_ZH)}`,
   },
   en: {
     title: 'FAQ: RAW formats, LUT size, privacy, offline use and license',
-    description: 'Twelve answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.',
+    description: 'Thirteen answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.',
     kicker: 'FAQ',
-    h1: 'The twelve questions people ask before using it',
+    h1: 'The thirteen questions people ask before using it',
     lede: 'Where the photo goes, which files it opens, how exact the LUTs are, whether it still works without a connection — answered from what is actually implemented, including what it does not do.',
-    body: `<p>This page answers the twelve questions that come up before using it: whether photos are uploaded, which RAW files it opens, what size the LUTs are, whether it works offline, what export produces and whether it runs on a phone. The answers describe what is actually implemented, including what it cannot do.</p>
+    body: `<p>This page answers the thirteen questions that come up before using it: whether photos are uploaded, which RAW files it opens, what size the LUTs are, whether it works offline, what export produces and whether it runs on a phone. The answers describe what is actually implemented, including what it cannot do.</p>
 <p>To see how it works first, read <a href="/en/guides/raw-in-browser">opening a RAW in the browser</a>; to compare it with desktop software, read the <a href="/en/alternatives/lightroom-web">Lightroom comparison</a>.</p>
 <h2 id="questions">Questions and answers</h2>
 ${faqBody(FAQ_EN)}`,

@@ -43,6 +43,15 @@ Guides
 - A LUT is a colour table, not a filter: https://lut.openanthropic.com/en/guides/what-is-lut
 
 
+RAW formats
+
+- Convert a Sony ARW to JPG in the browser: https://lut.openanthropic.com/en/raw/arw
+- Convert a Canon CR3 to JPG in the browser: https://lut.openanthropic.com/en/raw/cr3
+- Convert a DNG to JPG in the browser: https://lut.openanthropic.com/en/raw/dng
+- Convert a Nikon NEF to JPG in the browser: https://lut.openanthropic.com/en/raw/nef
+- Convert a Fujifilm RAF to JPG in the browser: https://lut.openanthropic.com/en/raw/raf
+
+
 Comparisons
 
 - Is there a free browser alternative to Lightroom?: https://lut.openanthropic.com/en/alternatives/lightroom-web

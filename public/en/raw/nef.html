@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>NEF to JPG in the browser, no upload</title>
+<meta name="description" content="Open a Nikon NEF / NRW file in the browser, develop it on a 16-bit linear pipeline with 64 LUT looks, and export a full-resolution JPEG. Nothing is uploaded.">
+<link rel="canonical" href="https://lut.openanthropic.com/en/raw/nef">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/nef">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/nef">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/nef">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NEF to JPG in the browser, no upload">
+<meta property="og:description" content="Open a Nikon NEF / NRW file in the browser, develop it on a 16-bit linear pipeline with 64 LUT looks, and export a full-resolution JPEG. Nothing is uploaded.">
+<meta property="og:url" content="https://lut.openanthropic.com/en/raw/nef">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/develop-desktop.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NEF to JPG in the browser, no upload">
+<meta name="twitter:description" content="Open a Nikon NEF / NRW file in the browser, develop it on a 16-bit linear pipeline with 64 LUT looks, and export a full-resolution JPEG. Nothing is uploaded.">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/develop-desktop.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://lut.openanthropic.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Formats",
+      "item": "https://lut.openanthropic.com/en/raw/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Convert a Nikon NEF to JPG in the browser",
+      "item": "https://lut.openanthropic.com/en/raw/nef"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "NEF to JPG in the browser, no upload",
+  "description": "Open a Nikon NEF / NRW file in the browser, develop it on a 16-bit linear pipeline with 64 LUT looks, and export a full-resolution JPEG. Nothing is uploaded.",
+  "inLanguage": "en",
+  "mainEntityOfPage": "https://lut.openanthropic.com/en/raw/nef",
+  "url": "https://lut.openanthropic.com/en/raw/nef",
+  "image": "https://lut.openanthropic.com/photos/develop-desktop.jpg",
+  "datePublished": "2026-11-25",
+  "dateModified": "2026-11-25",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": "Formats"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "Convert a NEF to JPG in the browser",
+  "description": "Open a NEF in the browser, develop it, apply a look and export a full-resolution JPEG without installing anything.",
+  "image": "https://lut.openanthropic.com/photos/develop-desktop.jpg",
+  "totalTime": "PT3M",
+  "inLanguage": "en",
+  "step": [
+    {
+      "@type": "HowToStep",
+      "position": 1,
+      "name": "Open the file",
+      "text": "Drop the NEF / NRW into the browser window or press PHOTO. Decoding runs in a Web Worker on your machine; the file is never uploaded."
+    },
+    {
+      "@type": "HowToStep",
+      "position": 2,
+      "name": "Develop and grade",
+      "text": "Set white balance, exposure, highlights and shadows in the develop panel, then choose one of the 64 built-in looks (adjustable strength, optional second slot)."
+    },
+    {
+      "@type": "HowToStep",
+      "position": 3,
+      "name": "Export a full-resolution JPEG",
+      "text": "Export at 50 / 75 / 100 % of the source long edge; 100 % renders the in-memory full-resolution frame in tiles through the same pipeline as the screen."
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Does opening a RAW here upload the photo?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Decoding runs in a Web Worker on this machine, development and rendering happen on the GPU, and the file is only read locally — there is no upload endpoint. The only network requests are the app assets and a /api/geo country lookup used to choose the interface language."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the exported JPEG the camera JPEG inside the file?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Normally no: export renders the decoded 16-bit linear frame through the display transform and any look. The embedded camera JPEG is only used when a frame cannot be unpacked; then you get the camera’s own JPEG, which can still be edited and exported but carries no above-white scene data."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the result the same as a Lightroom JPEG export?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No, it is a different implementation: a 16-bit decode, darktable’s sigmoid display transform, and LUTs applied after the display transform, with no catalogue, masks or camera profiles. The result is not pixel-identical."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does the browser need to support?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A WebGL2-capable browser (a recent Chrome, Edge, Safari or Firefox). The first RAW open downloads about 3.4 MB of decoder, cached afterwards; without WebGL2 the editor cannot render."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do HE and HE* NEFs open too?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "They take the same decode path. HE and HE* are compressed NEFs; if a particular frame cannot be fully unpacked, the page continues with the camera JPEG embedded in the file instead of failing, so the worst case is a camera JPEG rather than a file that will not open."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the difference between NEF and NRW?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Both are Nikon raws. NRW is the variant used by some smaller bodies; NEF is the format written by the DSLR and Z-series mirrorless bodies. On this page they follow the same workflow."
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+</style>
+<script src="/js/beacon.js" defer></script>
+</head>
+<body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/en/guides/">Guides</a><a href="/en/looks">64 looks</a><a href="/en/alternatives/lightroom-web">vs Lightroom</a><a href="/en/faq">FAQ</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/raw/nef" hreflang="zh-CN">中文</a>
+</div></header>
+<article class="wrap">
+<div class="wrap">
+  <p class="crumbs"><a href="/">Home</a><span>/</span><a href="/en/raw/">Formats</a><span>/</span>Convert a Nikon NEF to JPG in the browser</p><p class="kicker">FORMAT · Nikon NEF</p>
+  <h1>Convert a Nikon NEF to JPG in the browser</h1>
+  <p class="lede">You have one NEF file and want a JPEG: drop it into the browser window, develop it and export. Decoding runs on your machine; the file is never uploaded and no account is needed.</p>
+  <p class="crumbs"><span>Updated 2026-11-25</span><span>5 min read</span></p>
+</div>
+<h2 id="answer">Open a NEF in the browser — no install, no upload</h2>
+<p>Drop the NEF / NRW into the browser window — or press <code>PHOTO</code> in the bottom-left corner — and the picture appears. Decoding runs in a Web Worker, development and rendering happen on the GPU, and the photo is never uploaded to a server: there is no account, no email and no “upload to convert” step. When the grade looks right, export a full-resolution JPEG.</p>
+<p>It also does not depend on a raw codec installed on the computer: the decoder is a WebAssembly module loaded with the page. So a different laptop, a locked-down work account or a borrowed machine all open the same file the same way. The first RAW open downloads about 3.4 MB of decoder, cached by the browser afterwards.</p>
+
+<h2 id="format">What a NEF file is</h2>
+<p><strong>NEF</strong> (Nikon Electronic Format) is Nikon’s raw format. It carries the sensor data, the white balance and camera colour matrix recorded at capture, and a camera-generated JPEG preview. Nikon’s DSLR and Z-series mirrorless bodies write NEF, and the decoder applies the parameters the camera recorded, so no separately installed camera profile is needed.</p>
+<p>NEF comes in variants: some bodies offer <strong>HE</strong> and <strong>HE*</strong> high-efficiency compressed NEFs (compression based on TicoRAW), which are smaller than uncompressed NEFs, and <strong>NRW</strong>, a variant used by some smaller bodies. They take the same workflow on this page; the difference is on the decoding side.</p>
+<p>This page also covers NRW, the raw variant used by some smaller Nikon bodies; it takes the same decode path as NEF.</p>
+<h3>HE / HE* and the embedded-JPEG fallback</h3>
+<p>HE and HE* are compressed NEFs. The decoder tries the full 16-bit linear decode first; if that frame cannot be unpacked — a compressed raw frame can come back truncated — the camera JPEG embedded in the file is used instead. For an HE or HE* file the worst case is that camera JPEG: still editable and exportable, but not a linear development. Uncompressed NEFs occasionally hit truncated files too, and the fallback applies to them the same way.</p>
+<p>So “will it open” and “how will it open” are two questions: the first is decided by the decoder and the file, the second decides whether you are working from 16-bit scene-linear data or from a JPEG the camera already processed.</p>
+
+<h2 id="pipeline">What the pipeline does to it</h2>
+<p>The decoder (<a href="https://github.com/ybouane/flashraw" rel="noopener">flashraw</a> compiled to WebAssembly) runs in a Web Worker and performs unpacking, demosaicing, camera white balance and the camera colour matrix. The result is decoded at 16 bits with four stops of scene headroom kept above white, then re-encoded as scene-linear half floats for the GPU; WebGL2 maps that linear data to the screen in real time. The headroom is why the highlights slider behaves like a raw processor rather than a JPEG editor: it compresses real above-white sensor data back into visible gradation instead of clipping what it never had.</p>
+<p>The display transform is darktable’s <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a> (jandren, merged for darktable 4.2): monotone on 0…∞, asymptotic to the white target instead of clipping, computed per channel with hue preservation and fitted in closed form. The repository’s <code>npm run test:tone:reference</code> renders a synthetic 128×512 linear EV ramp through an isolated darktable 5.6.2 CLI to a 16-bit PNG and compares pixels; the observed maximum linear-light error is 0.0014772 (test limit 0.0016). That validates the sigmoid curve, not a full camera RAW decode or Lightroom’s Auto algorithm.</p>
+<p>The 64 built-in looks sit after the display transform: a LUT reads display-space values, so it changes colour and contrast relationships but is not what rescues a highlight. Each stage and the measured numbers are covered in <a href="/en/guides/raw-in-browser">the RAW-in-the-browser guide</a>.</p>
+
+<h2 id="fallback">When a frame cannot be unpacked</h2>
+<p>Not every file unpacks completely. If the decoder cannot unpack the frame, or returns a truncated one, the page does not show half a black photo and does not fail outright: it falls back to the camera JPEG embedded in the file. You can still grade it, apply a look and export a JPEG, but it is the camera’s JPEG, not a 16-bit linear development — the above-white part was already compressed by the camera’s own display curve.</p>
+<p>That is the difference between the two paths: when decoding works, editing and export start from real scene-linear data; on the fallback, the starting point is a JPEG the camera already processed. The fallback is not hidden and it is not called “full decoding” — whether a file decodes depends on the file and on the current decoder.</p>
+
+<h2 id="limits">What you can and cannot do</h2>
+<p>You can open one RAW, develop it on the pipeline above, apply one built-in look (or stack a second) and export a full-resolution JPEG.</p>
+<ul>
+  <li><strong>One frame at a time.</strong> There is no batch queue, no library, no ratings, keywords or cloud catalogue.</li>
+  <li><strong>WebGL2 is required.</strong> Without WebGL2 the editor cannot render; this is not a slow CPU fallback.</li>
+  <li><strong>No .xmp presets.</strong> Standard .cube LUTs can be imported instead.</li>
+  <li><strong>Preview is capped at 4096 px</strong> on the long edge; export is not — it renders the in-memory full-resolution frame in tiles.</li>
+  <li><strong>The first RAW open downloads about 3.4 MB of decoder</strong>, served from the browser cache afterwards.</li>
+</ul>
+
+<h2 id="next">Related pages</h2>
+<ul>
+  <li><a href="/en/guides/raw-in-browser">Opening a RAW in the browser: the full workflow and measured numbers</a></li>
+  <li><a href="/en/download">Download all 64 LUTs as .cube files</a></li>
+  <li><a href="/en/looks">All 64 built-in LUT looks</a></li>
+  <li><a href="/en/raw/">All five format guides (NEF / CR3 / ARW / DNG / RAF)</a></li>
+  <li><a href="/en/faq">FAQ: formats, privacy, export and offline use</a></li>
+  <li><a href="/">Open the editor and drop the NEF in</a></li>
+</ul>
+<p>Other formats: <a href="/en/raw/cr3">CR3 / CR2 (Canon)</a> · <a href="/en/raw/arw">ARW / SRF / SR2 (Sony)</a> · <a href="/en/raw/dng">DNG (Adobe / ProRAW / phones)</a> · <a href="/en/raw/raf">RAF (Fujifilm X-Trans)</a>.</p>
+<nav class="crumbs" style="display:flex;gap:12px;margin-top:44px" aria-label="Previous and next"><a class="btn ghost" href="/en/raw/dng">← Previous</a><a class="btn ghost" href="/en/raw/raf">Next →</a></nav>
+<div class="cta">
+  <h2>Try it in the browser</h2>
+  <p>Open a RAW, grade it, stack a look, export a JPEG — all on your machine, with no upload and no account.</p>
+  <a class="btn" href="/">Open the editor</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/en/about">About & privacy</a><a href="/en/privacy">Privacy</a><a href="/en/guides/">All guides</a><a href="/en/get-luts">LUT sources</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
+</body>
+</html>

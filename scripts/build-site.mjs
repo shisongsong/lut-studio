@@ -37,6 +37,7 @@ async function loadPages() {
 const HUBS = {
   guides: { zh: '指南', en: 'Guides' },
   alternatives: { zh: '工具对比', en: 'Comparisons' },
+  raw: { zh: '格式', en: 'Formats' },
 };
 
 const TRAIL = {
@@ -163,6 +164,7 @@ Sitemap: ${SITE.origin}/sitemap.xml
 
 function llmsTxt(pages) {
   const guides = pages.filter((p) => p.hub === 'guides');
+  const formats = pages.filter((p) => p.hub === 'raw');
   const lines = [];
   lines.push(`# ${SITE.name}`);
   lines.push('');
@@ -188,6 +190,13 @@ function llmsTxt(pages) {
     const en = guide.en;
     lines.push(`- [${en.h1 || en.title}](${SITE.origin}${pagePath('en', guide.slug)}): ${en.description}`);
     lines.push(`- [${zh.h1 || zh.title}](${SITE.origin}${pagePath('zh', guide.slug)}): ${zh.description}`);
+  }
+  lines.push('');
+  lines.push('## Formats');
+  lines.push('');
+  for (const format of formats) {
+    lines.push(`- [${format.en.h1 || format.en.title}](${SITE.origin}${pagePath('en', format.slug)}): ${format.en.description}`);
+    lines.push(`- [${format.zh.h1 || format.zh.title}](${SITE.origin}${pagePath('zh', format.slug)}): ${format.zh.description}`);
   }
   lines.push('');
   lines.push('## Comparisons');
@@ -223,6 +232,7 @@ const FACTS = [
 function llmsFull(pages) {
   const guides = pages.filter((p) => p.hub === 'guides');
   const alternatives = pages.filter((p) => p.hub === 'alternatives');
+  const formats = pages.filter((p) => p.hub === 'raw');
   const section = (title, body) => `${title}\n\n${body}\n`;
   const parts = [];
   parts.push(`# ${SITE.name} — full text`);
@@ -247,6 +257,7 @@ function llmsFull(pages) {
 - Imported LUTs and preferences live in the browser's IndexedDB/localStorage; there is no cloud sync.
 - Vendored LUTs are original recipes, not vendor files; they approximate the named film stocks and camera profiles rather than reproducing their official LUT data.`));
   parts.push(section('Guides', guides.map((g) => `- ${g.en.h1 || g.en.title}: ${SITE.origin}${pagePath('en', g.slug)}`).join('\n')));
+  parts.push(section('RAW formats', formats.map((f) => `- ${f.en.h1 || f.en.title}: ${SITE.origin}${pagePath('en', f.slug)}`).join('\n')));
   parts.push(section('Comparisons', alternatives.map((g) => `- ${g.en.h1 || g.en.title}: ${SITE.origin}${pagePath('en', g.slug)}`).join('\n')));
   parts.push(`## Contact\n\n${SITE.repo}`);
   return parts.join('\n\n');
@@ -307,10 +318,17 @@ function validate(pages) {
       }
     }
     // Internal links must point at a page that will exist in that language.
+    // Two things are not pages and must not be validated as such: static files
+    // with an extension (a zip download, an image) and deep links into the app
+    // that carry a query string (§/?look=..., §/?mode=merge) — the path part of
+    // a query-string link is still checked, just without the query. This was a
+    // false positive that blocked /download from shipping.
     for (const m of (copy.body || '').matchAll(/href="(\/[^"#]*)/g)) {
       const href = m[1];
       if (href.startsWith('/photos/') || href.startsWith('/luts-src/') || href.endsWith('.xml') || href.endsWith('.txt') || href.endsWith('.json') || href === '/get-luts') continue;
-      const bare = href.replace(/\/$/, '') || '/';
+      const pathname = href.split('?')[0] || '/';
+      if (/\.[a-z0-9]{2,5}$/i.test(pathname)) continue; // static asset, not a page
+      const bare = pathname.replace(/\/$/, '') || '/';
       if (bare === '/') continue;
       const isEn = bare === '/en' || bare.startsWith('/en/');
       const target = isEn ? bare.slice(3) || '/' : bare;

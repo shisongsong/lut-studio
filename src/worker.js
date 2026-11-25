@@ -259,6 +259,42 @@ async function logBotHit(env, request, path) {
   }
 }
 
+// ---- asset versioning ------------------------------------------------------
+// scripts/build-versions.mjs hashes the assets that are fetched by fixed path.
+// Every HTML response gets `?v=<hash>` appended to those URLs, and a request
+// whose `?v=` still matches the manifest may be cached for a year. A deploy
+// changes the hash, the HTML points at a new URL, and nothing has to be purged.
+// If the manifest is absent (self-hosted mirror, old deploy) HTML is served
+// unchanged and everything falls back to the short-TTL policy.
+let versionsPromise = null;
+
+function loadVersions(env, request) {
+  if (!versionsPromise) {
+    versionsPromise = (async () => {
+      try {
+        const url = new URL('/js/versions.json', request.url);
+        const res = await env.ASSETS.fetch(new Request(url.toString()));
+        return res.ok ? await res.json() : {};
+      } catch {
+        return {};
+      }
+    })();
+  }
+  return versionsPromise;
+}
+
+// Only URLs that appear as a quoted literal in our own HTML: script imports,
+// `new Worker(...)`, fetch('...'), <link href> and <img src>. Absolute URLs and
+// prose are left alone.
+const ASSET_URL_RE = /(["'])(\/(?:js\/[A-Za-z0-9_.-]+\.js|luts\.bin(?:\.gz)?|photos\/[A-Za-z0-9_./-]+\.(?:webp|jpg|jpeg|png)))\1/g;
+
+function stampAssetUrls(html, versions) {
+  return html.replace(ASSET_URL_RE, (match, quote, path) => {
+    const version = versions[path];
+    return version ? `${quote}${path}?v=${version}${quote}` : match;
+  });
+}
+
 // ---- cache policy ----------------------------------------------------------
 // Fonts, the decoder binaries and the marketing photos are effectively app
 // version-independent: a stale copy is invisible. If the RAW decoder is ever
@@ -266,9 +302,21 @@ async function logBotHit(env, request, path) {
 // reusing this path, otherwise browsers keep the old binary for a week.
 const LONG_LIVED = /^\/(fonts|vendor|photos)\//;
 
-function cacheControlFor(path) {
+function cacheControlFor(path, search, versions) {
+  // A content-addressed URL can never go stale.
+  if (versions) {
+    const version = new URLSearchParams(search).get('v');
+    if (version && versions[path] === version) return 'public, max-age=31536000, immutable';
+  }
   if (LONG_LIVED.test(path) || path === '/og.png' || path === '/favicon.svg') {
     return 'public, max-age=604800, stale-while-revalidate=86400';
+  }
+  // The downloadable LUT pack changes only when the looks change, and it is
+  // 15 MB: a five-minute TTL would make repeat downloaders re-fetch it. One day
+  // plus a week of stale-while-revalidate keeps it cheap without pinning an old
+  // pack for long.
+  if (path.startsWith('/download/')) {
+    return 'public, max-age=86400, stale-while-revalidate=604800';
   }
   // HTML is handled separately; app JS, the LUT pack and looks.json change
   // together on deploy, so they stay on a short TTL with revalidation.
@@ -279,6 +327,11 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    // Page-like requests need the manifest to stamp asset URLs; versioned asset
+    // requests need it to decide whether their cache entry is immutable.
+    const pageLike = path === '/' || path.endsWith('/') || path.endsWith('.html') || !path.includes('.');
+    const versions = pageLike || url.searchParams.has('v') ? await loadVersions(env, request) : null;
 
     if (path === '/api/beacon') return handleBeacon(request, env, ctx);
 
@@ -337,10 +390,18 @@ export default {
     // Generated HTML is rebuilt on every deploy; a short edge TTL keeps a deploy
     // from being invisible for hours without forcing a revalidation per request.
     if ((response.headers.get('content-type') || '').includes('text/html')) {
-      return withHeaders(response, { 'cache-control': 'public, max-age=300, must-revalidate' });
+      const body = await response.text();
+      const stamped = versions && Object.keys(versions).length ? stampAssetUrls(body, versions) : body;
+      return new Response(stamped, {
+        status: response.status,
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'cache-control': 'public, max-age=300, must-revalidate',
+        },
+      });
     }
     if (response.status === 200) {
-      return withHeaders(response, { 'cache-control': cacheControlFor(path) });
+      return withHeaders(response, { 'cache-control': cacheControlFor(path, url.search, versions) });
     }
     return response;
   },

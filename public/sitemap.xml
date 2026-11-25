@@ -55,6 +55,24 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/alternatives/" />
   </url>
   <url>
+    <loc>https://lut.openanthropic.com/download</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/download" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/download" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/download" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/en/download</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/download" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/download" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/download" />
+  </url>
+  <url>
     <loc>https://lut.openanthropic.com/faq</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>monthly</changefreq>
@@ -163,6 +181,60 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/privacy" />
   </url>
   <url>
+    <loc>https://lut.openanthropic.com/raw/arw</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/arw" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/arw" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/arw" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/en/raw/arw</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/arw" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/arw" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/arw" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/raw/cr3</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/cr3" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/cr3" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/cr3" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/en/raw/cr3</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/cr3" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/cr3" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/cr3" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/raw/dng</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/dng" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/dng" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/dng" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/en/raw/dng</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/dng" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/dng" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/dng" />
+  </url>
+  <url>
     <loc>https://lut.openanthropic.com/guides/raw-in-browser</loc>
     <lastmod>2026-11-20</lastmod>
     <changefreq>monthly</changefreq>
@@ -179,6 +251,60 @@
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/guides/raw-in-browser" />
     <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/guides/raw-in-browser" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/guides/raw-in-browser" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/raw/nef</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/nef" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/nef" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/nef" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/en/raw/nef</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/nef" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/nef" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/nef" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/raw/raf</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/raf" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/raf" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/raf" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/en/raw/raf</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/raf" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/raf" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/raf" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/raw/</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/en/raw/</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/" />
   </url>
   <url>
     <loc>https://lut.openanthropic.com/guides/what-is-lut</loc>

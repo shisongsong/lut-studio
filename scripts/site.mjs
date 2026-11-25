@@ -42,7 +42,7 @@ export function jsonLdScript(content) {
 /** zh paths live at the root, English mirrors under /en. `slug` is bare. */
 export function pagePath(lang, slug) {
   const clean = slug.replace(/^\/+|\/+$/g, '');
-  const isHub = clean === 'guides' || clean === 'alternatives';
+  const isHub = clean === 'guides' || clean === 'alternatives' || clean === 'raw';
   const suffix = isHub ? '/' : '';
   return lang === 'zh' ? `/${clean}${suffix}` : `/en/${clean}${suffix}`;
 }

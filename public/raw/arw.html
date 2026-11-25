@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>在浏览器里把 ARW 转成 JPG（不上传）</title>
+<meta name="description" content="把索尼 ARW / SRF / SR2 拖进浏览器就能显影并导出全分辨率 JPG：16 位线性处理、64 款 LUT，不装软件、不上传照片。">
+<link rel="canonical" href="https://lut.openanthropic.com/raw/arw">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/raw/arw">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/raw/arw">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/raw/arw">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在浏览器里把 ARW 转成 JPG（不上传）">
+<meta property="og:description" content="把索尼 ARW / SRF / SR2 拖进浏览器就能显影并导出全分辨率 JPG：16 位线性处理、64 款 LUT，不装软件、不上传照片。">
+<meta property="og:url" content="https://lut.openanthropic.com/raw/arw">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/develop-desktop.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="在浏览器里把 ARW 转成 JPG（不上传）">
+<meta name="twitter:description" content="把索尼 ARW / SRF / SR2 拖进浏览器就能显影并导出全分辨率 JPG：16 位线性处理、64 款 LUT，不装软件、不上传照片。">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/develop-desktop.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "https://lut.openanthropic.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "格式",
+      "item": "https://lut.openanthropic.com/raw/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "把索尼 ARW 转成 JPG，在浏览器里完成",
+      "item": "https://lut.openanthropic.com/raw/arw"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "在浏览器里把 ARW 转成 JPG（不上传）",
+  "description": "把索尼 ARW / SRF / SR2 拖进浏览器就能显影并导出全分辨率 JPG：16 位线性处理、64 款 LUT，不装软件、不上传照片。",
+  "inLanguage": "zh-CN",
+  "mainEntityOfPage": "https://lut.openanthropic.com/raw/arw",
+  "url": "https://lut.openanthropic.com/raw/arw",
+  "image": "https://lut.openanthropic.com/photos/develop-desktop.jpg",
+  "datePublished": "2026-11-25",
+  "dateModified": "2026-11-25",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": "格式"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "把 ARW 转成 JPG：在浏览器里打开、显影、导出",
+  "description": "不安装软件，在浏览器里打开 ARW、显影、套 look，并导出全分辨率 JPEG。",
+  "image": "https://lut.openanthropic.com/photos/develop-desktop.jpg",
+  "totalTime": "PT3M",
+  "inLanguage": "zh-CN",
+  "step": [
+    {
+      "@type": "HowToStep",
+      "position": 1,
+      "name": "打开文件",
+      "text": "把 ARW / SRF / SR2 拖进浏览器窗口，或点左下角的 PHOTO 选文件；解码在本机 Web Worker 里完成，文件不上传。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 2,
+      "name": "显影、套 look",
+      "text": "用色调面板调白平衡、曝光、高光与阴影，再在 64 款内置 look 里选一款（强度可调，也能叠加第二款）。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 3,
+      "name": "导出全分辨率 JPEG",
+      "text": "按源图长边的 50 / 75 / 100% 导出；100% 用内存里的全分辨率帧分块渲染，和屏幕共用同一条管线。"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "在浏览器里打开 RAW 会上传照片吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不会。解码在本机的 Web Worker 里完成，显影和渲染在 GPU 上完成，文件只在本机读取，没有上传接口。唯一的网络请求是应用自身的静态资源，以及用来选择界面语言的 /api/geo 国家查询。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "导出的 JPG 和相机内嵌的 JPEG 一样吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "正常路径不一样：导出的是解码后的 16 位线性帧，经 sigmoid 显示变换和可选的 LUT 渲染；相机 JPEG 只在某一帧拆不开时作为回退。回退时拿到的就是相机当时那张 JPEG，可以继续调色和导出，但里面没有高于白的场景数据。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "和 Lightroom 导出的 JPG 结果一样吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不是同一个实现。这里是一条独立的管线：16 位解码、darktable sigmoid 显示变换、LUT 排在显示变换之后；没有 Lightroom 的目录、蒙版和相机配置文件，所以结果不会逐像素一致。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "浏览器需要满足什么条件？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "需要支持 WebGL2 的浏览器（Chrome、Edge、Safari、Firefox 的较新版本）。第一次打开 RAW 要下载约 3.4 MB 的解码器，之后从浏览器缓存加载；不支持 WebGL2 的设备上编辑器无法渲染。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "ARW 和 SRF / SR2 有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "ARW 是索尼现在使用的 RAW 容器，SRF 和 SR2 出现在更早的机型上；扩展名不同，这一页按同一套流程处理。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "索尼机身的压缩 RAW 能打开吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "扩展名通常仍是 .ARW；能不能完整线性解码由具体文件决定，解不开时会回退到内嵌的相机 JPEG，而不是报错。"
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+</style>
+<script src="/js/beacon.js" defer></script>
+</head>
+<body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/guides/">指南</a><a href="/looks">64 款 LUT</a><a href="/alternatives/lightroom-web">对比 Lightroom</a><a href="/faq">常见问题</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/en/raw/arw" hreflang="en">EN</a>
+</div></header>
+<article class="wrap">
+<div class="wrap">
+  <p class="crumbs"><a href="/">首页</a><span>/</span><a href="/raw/">格式</a><span>/</span>把索尼 ARW 转成 JPG，在浏览器里完成</p><p class="kicker">格式 · 索尼 ARW</p>
+  <h1>把索尼 ARW 转成 JPG，在浏览器里完成</h1>
+  <p class="lede">手上有一个 ARW 文件，想换成 JPG：拖进浏览器窗口就能显影并导出，解码在本机完成，照片不上传，也不用注册。</p>
+  <p class="crumbs"><span>更新 2026-11-25</span><span>5 分钟</span></p>
+</div>
+<h2 id="answer">ARW 在浏览器里打开，不安装也不上传</h2>
+<p>把 ARW / SRF / SR2 拖进浏览器窗口——或者点左下角的 <code>PHOTO</code> 选文件——画面就出来了。解码在 Web Worker 里完成，显影和渲染在 GPU 上完成，照片没有被上传到任何服务器，也没有账号、邮箱或“上传后转换”的步骤。调好之后按导出，得到的是一张全分辨率 JPEG。</p>
+<p>它也不依赖电脑上装了什么 RAW 编解码器：解码器是随页面加载的 WebAssembly 模块。所以换一台电脑、用一个受限的公司账号，或者临时借来的机器，处理同一个文件的结果都一样。第一次打开 RAW 要下载约 3.4 MB 的解码器，之后由浏览器缓存。</p>
+
+<h2 id="format">ARW 是什么文件</h2>
+<p><strong>ARW</strong> 是索尼的 RAW 格式，索尼 α 系列机身都写它。文件里保存传感器原始数据、拍摄时的白平衡与相机色彩矩阵，还有一张相机 JPEG 预览。</p>
+<p><strong>SRF</strong> 与 <strong>SR2</strong> 是索尼更早的 RAW 容器，出现在早期机型上；扩展名不同，但这里按同一页的流程处理。索尼机身可以选择未压缩或压缩 RAW 记录，文件扩展名通常仍是 .ARW；能不能走完整的线性解码由文件本身决定，走不了时就用内嵌的 JPEG 回退。</p>
+<p>同一个页面也覆盖 SRF 与 SR2：它们是索尼更早的 RAW 容器，扩展名不同，流程一致。</p>
+
+
+<h2 id="pipeline">打开之后，这段 RAW 经历了什么</h2>
+<p>解码器（<a href="https://github.com/ybouane/flashraw" rel="noopener">flashraw</a> 编译成 WebAssembly）在 Web Worker 里完成解包、去马赛克、相机白平衡和相机色彩矩阵。结果按 16 位解码，并保留 4 档高于白的场景余量，再编码成场景线性半浮点交给 GPU；WebGL2 负责把这份线性数据实时映射到屏幕。这份高于白的余量，是高光滑块能像 RAW 处理器一样工作、而不是像 JPEG 编辑器那样把白色压成灰的原因。</p>
+<p>显示变换用 darktable 的 <a href="https://docs.darktable.org/usermanual/development/en/module-reference/processing-modules/sigmoid/" rel="noopener">sigmoid</a>（jandren，darktable 4.2 起合入）：在 0…∞ 上单调、渐近逼近白点而不裁切，逐通道计算并保留色相，参数用闭式解拟合。仓库里的 <code>npm run test:tone:reference</code> 用隔离配置调用 darktable 5.6.2，把合成的 128×512 线性 EV 阶梯渲染成 16 位 PNG 再逐像素比较；本机观测到的最大线性光误差为 0.0014772（测试容限 0.0016）。它验证的是 sigmoid 曲线，不是完整相机 RAW 解码或 Lightroom Auto 的等价性。</p>
+<p>64 款内置 look 排在显示变换之后：LUT 读到的已经是显示空间的值，它改变颜色和对比关系，但不负责把高光救回来。每个阶段的细节和实测数字，读<a href="/guides/raw-in-browser">在浏览器里打开 RAW</a>这篇指南。</p>
+
+<h2 id="fallback">拆不开的帧：会退到内嵌 JPEG</h2>
+<p>不是每个文件都能完整解开。如果解码器无法解包，或者返回的是截断的帧，页面不会给你半张黑图，也不会直接失败：它改用文件里内嵌的相机 JPEG。你仍然可以调色、套 look、导出 JPEG，但那是相机当时的 JPEG，不是 16 位线性显影，高于白的部分已经按相机的显示曲线压过一遍。</p>
+<p>这就是两条路径的差别：能解码时，编辑和导出都基于真实的场景线性数据；回退时，起点是相机已经处理过的 JPEG。这里不隐藏回退，也不把它说成“完整解码”——文件能不能解开，由文件本身和当前解码器决定。</p>
+
+<h2 id="limits">可以做什么，不能做什么</h2>
+<p>可以：打开单张 RAW、按上面的管线显影、套一款内置 look 或叠加第二款、导出全分辨率 JPEG。</p>
+<ul>
+  <li><strong>一次一张。</strong>没有批量队列，没有图库、评分、关键字和云端目录。</li>
+  <li><strong>需要 WebGL2。</strong>不支持 WebGL2 的设备上编辑器无法渲染，这不是降级到慢速 CPU 渲染的问题。</li>
+  <li><strong>不支持 .xmp 预设。</strong>能导入的是标准 .cube LUT。</li>
+  <li><strong>预览长边 4096 px。</strong>导出不受这个限制：用内存里的全分辨率帧分块渲染。</li>
+  <li><strong>第一次打开 RAW 要下载约 3.4 MB 的解码器</strong>，之后走浏览器缓存。</li>
+</ul>
+
+<h2 id="next">相关页面</h2>
+<ul>
+  <li><a href="/guides/raw-in-browser">在浏览器里打开 RAW：完整流程与实测数据</a></li>
+  <li><a href="/download">下载全部 64 款 LUT 的 .cube 包</a></li>
+  <li><a href="/looks">64 款内置 LUT 一览</a></li>
+  <li><a href="/raw/">全部五种格式指南（NEF / CR3 / ARW / DNG / RAF）</a></li>
+  <li><a href="/faq">常见问题：格式、隐私、导出与离线</a></li>
+  <li><a href="/">打开编辑器，直接拖入 ARW</a></li>
+</ul>
+<p>其他格式：<a href="/raw/nef">NEF（尼康）</a> · <a href="/raw/cr3">CR3 / CR2（佳能）</a> · <a href="/raw/dng">DNG（Adobe / ProRAW / 手机）</a> · <a href="/raw/raf">RAF（富士 X-Trans）</a>。</p>
+<nav class="crumbs" style="display:flex;gap:12px;margin-top:44px" aria-label="上下篇"><a class="btn ghost" href="/raw/cr3">下一篇 →</a></nav>
+<div class="cta">
+  <h2>在浏览器里试一次</h2>
+  <p>打开 RAW、调色、套 LUT、导出 JPEG —— 全程在本机完成，不上传，也不需要账号。</p>
+  <a class="btn" href="/">打开编辑器</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/about">关于与隐私</a><a href="/privacy">隐私政策</a><a href="/guides/">全部指南</a><a href="/get-luts">LUT 下载来源</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
+</body>
+</html>

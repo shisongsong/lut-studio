@@ -9,3 +9,6 @@ docs/reference/
 
 # Local calibration material (RAWs, LR exports) — not part of the app
 testdata/
+
+# Generated LUT zip pack (scripts/build-cube-zip.mjs, rebuilt on deploy)
+public/download/

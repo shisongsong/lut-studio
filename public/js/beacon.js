@@ -193,6 +193,20 @@
     if (document.visibilityState === 'hidden') flushVitals();
   });
 
+  // ---- declarative click tracking ----------------------------------------
+  // Markup uses data-track="name" (e.g. the download button), so a page can
+  // report a conversion without a hand-written handler per link.
+  document.addEventListener('click', function (e) {
+    var node = e.target && e.target.closest ? e.target.closest('[data-track]') : null;
+    if (!node) return;
+    var name = node.getAttribute('data-track');
+    if (!name) return;
+    var meta = node.getAttribute('data-track-meta');
+    try {
+      if (window.lutTrack) window.lutTrack(name, meta ? { d: meta.slice(0, 60) } : undefined);
+    } catch (err) { /* ignore */ }
+  }, true);
+
   // ---- error signal ------------------------------------------------------
   // A broken build shows up here before it shows up in the complaint inbox.
   // Three per session is enough to name the bug without drowning the table.

@@ -277,12 +277,17 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
 <table>
   <thead><tr><th>类型</th><th>格式</th></tr></thead>
   <tbody>
-    <tr><td>RAW</td><td>NEF / NRW（含 HE、HE* 压缩）、CR2、CR3、ARW、SRF、SR2、DNG、RAF、ORF、RW2、PEF、SRW、3FR、ERF、KDC、MOS、IIQ、X3F</td></tr>
+    <tr><td>RAW · 尼康</td><td>NEF / NRW（含 HE、HE* 压缩） · <a href="/raw/nef">NEF 转 JPG 指南</a></td></tr>
+    <tr><td>RAW · 佳能</td><td>CR2、CR3 · <a href="/raw/cr3">CR3 / CR2 转 JPG 指南</a></td></tr>
+    <tr><td>RAW · 索尼</td><td>ARW、SRF、SR2 · <a href="/raw/arw">ARW 转 JPG 指南</a></td></tr>
+    <tr><td>RAW · DNG</td><td>Adobe DNG、Apple ProRAW、手机与无人机 DNG · <a href="/raw/dng">DNG 转 JPG 指南</a></td></tr>
+    <tr><td>RAW · 富士</td><td>RAF（X-Trans 与 Bayer 机身） · <a href="/raw/raf">RAF 转 JPG 指南</a></td></tr>
+    <tr><td>RAW · 其他</td><td>ORF、RW2、PEF、SRW、3FR、ERF、KDC、MOS、IIQ、X3F</td></tr>
     <tr><td>普通图像</td><td>JPEG、PNG、WebP、AVIF、HEIC/HEIF、TIFF</td></tr>
     <tr><td>色彩查找表</td><td>.cube，3D（<code>LUT_3D_SIZE</code> 2–128）与 1D 都支持</td></tr>
   </tbody>
 </table>
-<p>如果某个 RAW 完全拆不开，会退回到文件里内嵌的相机 JPEG——包括解码器返回截断数据的 45 MP 级机型。这比显示半张黑图好，也比直接报错好。</p>
+<p>五种常见格式各有一篇说明，讲清这个容器里装了什么、拆不开时会发生什么；总览在<a href="/raw/">格式指南</a>。如果某个 RAW 完全拆不开，会退回到文件里内嵌的相机 JPEG——包括解码器返回截断数据的 45 MP 级机型。这比显示半张黑图好，也比直接报错好。</p>
 
 <h2 id="how">一次完整的处理流程</h2>
 <ol>

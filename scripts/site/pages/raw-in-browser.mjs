@@ -69,12 +69,17 @@ export default {
 <table>
   <thead><tr><th>类型</th><th>格式</th></tr></thead>
   <tbody>
-    <tr><td>RAW</td><td>NEF / NRW（含 HE、HE* 压缩）、CR2、CR3、ARW、SRF、SR2、DNG、RAF、ORF、RW2、PEF、SRW、3FR、ERF、KDC、MOS、IIQ、X3F</td></tr>
+    <tr><td>RAW · 尼康</td><td>NEF / NRW（含 HE、HE* 压缩） · <a href="/raw/nef">NEF 转 JPG 指南</a></td></tr>
+    <tr><td>RAW · 佳能</td><td>CR2、CR3 · <a href="/raw/cr3">CR3 / CR2 转 JPG 指南</a></td></tr>
+    <tr><td>RAW · 索尼</td><td>ARW、SRF、SR2 · <a href="/raw/arw">ARW 转 JPG 指南</a></td></tr>
+    <tr><td>RAW · DNG</td><td>Adobe DNG、Apple ProRAW、手机与无人机 DNG · <a href="/raw/dng">DNG 转 JPG 指南</a></td></tr>
+    <tr><td>RAW · 富士</td><td>RAF（X-Trans 与 Bayer 机身） · <a href="/raw/raf">RAF 转 JPG 指南</a></td></tr>
+    <tr><td>RAW · 其他</td><td>ORF、RW2、PEF、SRW、3FR、ERF、KDC、MOS、IIQ、X3F</td></tr>
     <tr><td>普通图像</td><td>JPEG、PNG、WebP、AVIF、HEIC/HEIF、TIFF</td></tr>
     <tr><td>色彩查找表</td><td>.cube，3D（<code>LUT_3D_SIZE</code> 2–128）与 1D 都支持</td></tr>
   </tbody>
 </table>
-<p>如果某个 RAW 完全拆不开，会退回到文件里内嵌的相机 JPEG——包括解码器返回截断数据的 45 MP 级机型。这比显示半张黑图好，也比直接报错好。</p>
+<p>五种常见格式各有一篇说明，讲清这个容器里装了什么、拆不开时会发生什么；总览在<a href="/raw/">格式指南</a>。如果某个 RAW 完全拆不开，会退回到文件里内嵌的相机 JPEG——包括解码器返回截断数据的 45 MP 级机型。这比显示半张黑图好，也比直接报错好。</p>
 
 <h2 id="how">一次完整的处理流程</h2>
 <ol>
@@ -121,12 +126,17 @@ export default {
 <table>
   <thead><tr><th>Type</th><th>Formats</th></tr></thead>
   <tbody>
-    <tr><td>RAW</td><td>NEF / NRW (including HE and HE* compression), CR2, CR3, ARW, SRF, SR2, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ, X3F</td></tr>
+    <tr><td>RAW · Nikon</td><td>NEF / NRW (including HE and HE* compression) · <a href="/en/raw/nef">NEF to JPG guide</a></td></tr>
+    <tr><td>RAW · Canon</td><td>CR2, CR3 · <a href="/en/raw/cr3">CR3 / CR2 to JPG guide</a></td></tr>
+    <tr><td>RAW · Sony</td><td>ARW, SRF, SR2 · <a href="/en/raw/arw">ARW to JPG guide</a></td></tr>
+    <tr><td>RAW · DNG</td><td>Adobe DNG, Apple ProRAW, phone and drone DNG · <a href="/en/raw/dng">DNG to JPG guide</a></td></tr>
+    <tr><td>RAW · Fujifilm</td><td>RAF (X-Trans and Bayer bodies) · <a href="/en/raw/raf">RAF to JPG guide</a></td></tr>
+    <tr><td>RAW · others</td><td>ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ, X3F</td></tr>
     <tr><td>Images</td><td>JPEG, PNG, WebP, AVIF, HEIC/HEIF, TIFF</td></tr>
     <tr><td>Look-up tables</td><td>.cube, both 3D (<code>LUT_3D_SIZE</code> 2–128) and 1D</td></tr>
   </tbody>
 </table>
-<p>If a RAW cannot be unpacked at all, the app falls back to the camera JPEG embedded in the file — including 45 MP-class bodies whose frames the decoder returns truncated. That beats showing half a black frame, and it beats failing outright.</p>
+<p>The five common formats each have a page of their own explaining what the container holds and what happens when a frame cannot be unpacked; <a href="/en/raw/">the format guides</a> list them. If a RAW cannot be unpacked at all, the app falls back to the camera JPEG embedded in the file — including 45 MP-class bodies whose frames the decoder returns truncated. That beats showing half a black frame, and it beats failing outright.</p>
 
 <h2 id="how">One pass through the app</h2>
 <ol>

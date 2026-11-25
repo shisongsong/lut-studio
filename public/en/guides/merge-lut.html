@@ -287,6 +287,7 @@ for slot in [A, B]:
 output = clamp(v, 0, 1)</code></pre>
 <p>That is exactly the shader’s <code>applyLut</code>: <code>mix(c, texture(lut, clamp(c,0,1)).rgb, s)</code>. The merge runs the same loop over every node of a 33³ grid and writes a new 33³ cube. Source cubes are read with trilinear interpolation, and the output is quantised to 1/255 per channel — the same precision as the LUT texture in the browser.</p>
 <p>If both strengths are at 100 %, a host app that renders the downloaded .cube at 100 % strength reproduces the screen: same formula, same node grid, same quantisation. <a href="/en/guides/lut-size">The LUT precision measurement</a> explains why 33³ is the authored size for these looks.</p>
+<p>If you would rather stack them in your own app, <a href="/en/download">download all 64 cubes</a> in one zip.</p>
 
 <h2 id="file">What is in the exported .cube</h2>
 <p>The file is plain text: four header lines and 35,937 rows of RGB values.</p>

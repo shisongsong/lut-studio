@@ -79,7 +79,7 @@ export default {
     body: `<p>每一款都能调强度，也可以把两款叠在一起（比如一层胶片底子加一层轻微的高光偏色），再合并成一个 <code>.cube</code> 导出。内置 look 用 33³ 精度打包，和下载到的立方体是同一份数据。</p>
 ${groups('zh')}
 <h2 id="how-to">怎么用</h2>
-<p>打开浏览器里的编辑器，拖入一张照片，在底部的胶片条里切换 look；底部的纵向滑轨调强度，<code>DUAL LUT</code> 打开第二个槽位。想把这些 look 用在别的软件里，可以在 <a href="/get-luts">LUT 下载来源</a> 页面找到官方 LUT 的市场位置，或者直接用仓库里的 <code>.cube</code> 文件。</p>
+<p>打开浏览器里的编辑器，拖入一张照片，在底部的胶片条里切换 look；底部的纵向滑轨调强度，<code>DUAL LUT</code> 打开第二个槽位。想把这些 look 用在别的软件里，可以直接<a href="/download">打包下载全部 64 款 .cube</a>（MIT 许可、不注册）；要用厂商的 LOG LUT，去 <a href="/get-luts">官方下载入口</a> 拿文件再导入编辑器。</p>
 <p>不确定 LUT 精度会不会影响画质，可以先看 <a href="/guides/lut-size">LUT 精度实测</a>。</p>`,
     faq: [
       ['这些 LUT 和柯达、富士官方的一样吗？', '不一样。它们是按对应风格的色彩响应重新生成的配方，不是厂商文件；观感接近，但不是逐字节复刻。'],
@@ -96,7 +96,7 @@ ${groups('zh')}
     body: `<p>Every look has an adjustable strength, two looks can be stacked (a film base plus a slight highlight tint, for example), and the stack can be baked into one <code>.cube</code> for other software. The built-in pack is 33³, and it is the same data as the downloadable cubes.</p>
 ${groups('en')}
 <h2 id="how-to">How to use them</h2>
-<p>Open the editor in the browser, drop in a photo, and switch looks in the filmstrip along the bottom; the vertical rail sets strength and <code>DUAL LUT</code> opens the second slot. To use the same grades in other software, the <a href="/get-luts">LUT sources</a> page covers where the camera makers publish theirs, and the repository has these looks as <code>.cube</code> files.</p>
+<p>Open the editor in the browser, drop in a photo, and switch looks in the filmstrip along the bottom; the vertical rail sets strength and <code>DUAL LUT</code> opens the second slot. To use the same grades in other software, <a href="/download">download all 64 as .cube files</a> (MIT, no signup); for vendor LOG LUTs, the <a href="/get-luts">LUT sources</a> page covers where the camera makers publish theirs.</p>
 <p>If you are unsure whether LUT precision matters, the <a href="/guides/lut-size">measured LUT precision</a> write-up has the numbers.</p>`,
     faq: [
       ['Are these the same as the official Kodak or Fujifilm LUTs?', 'No. They are recipes regenerated to match the colour response of those styles, not vendor files. Close in look, not a byte-for-byte reproduction.'],

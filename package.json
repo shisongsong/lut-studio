@@ -17,7 +17,7 @@
     "export:cubes": "node scripts/export-cubes.mjs",
     "test:tone": "node scripts/test-tone-curve.mjs && node scripts/test-tone-model.mjs && node scripts/test-local-laplacian.mjs && node scripts/test-camera-look.mjs && node scripts/test-auto-tone.mjs && node scripts/test-renderer-sampling.mjs",
     "test:tone:reference": "node scripts/test-darktable-sigmoid.mjs",
-    "predeploy": "npm run build:luts && npm run build:gz && npm run build:site",
+    "predeploy": "npm run build:luts && npm run build:gz && npm run build:zip && npm run build:site && npm run build:versions",
     "build:gz": "node scripts/compress-assets.mjs",
     "build:site": "node scripts/build-site.mjs",
     "seo:audit": "node scripts/seo-audit.mjs",
@@ -25,7 +25,9 @@
     "indexnow": "node scripts/indexnow.mjs",
     "traffic": "node scripts/traffic-report.mjs",
     "traffic:prune": "node scripts/traffic-report.mjs --prune",
-    "db:schema": "npx wrangler d1 execute lut-studio-db --remote --file scripts/analytics-schema.sql"
+    "db:schema": "npx wrangler d1 execute lut-studio-db --remote --file scripts/analytics-schema.sql",
+    "build:versions": "node scripts/build-versions.mjs",
+    "build:zip": "node scripts/build-cube-zip.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.85.0"

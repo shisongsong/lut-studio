@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0a0b">
 <title>常见问题：RAW 格式、LUT、隐私、离线与开源许可</title>
-<meta name="description" content="关于这个浏览器 RAW 编辑器最常被问到的 12 个问题：照片会不会上传、能打开哪些格式、LUT 多大、能否离线、导出得到什么，以及它做不到的事。">
+<meta name="description" content="关于这个浏览器 RAW 编辑器最常被问到的 13 个问题：照片会不会上传、能打开哪些格式、LUT 多大、能否离线、导出得到什么，以及它做不到的事。">
 <link rel="canonical" href="https://lut.openanthropic.com/faq">
 <link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/faq">
 <link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/faq">
@@ -16,7 +16,7 @@
 <meta property="og:site_name" content="LUT ARCHIVE">
 <meta property="og:type" content="article">
 <meta property="og:title" content="常见问题：RAW 格式、LUT、隐私、离线与开源许可">
-<meta property="og:description" content="关于这个浏览器 RAW 编辑器最常被问到的 12 个问题：照片会不会上传、能打开哪些格式、LUT 多大、能否离线、导出得到什么，以及它做不到的事。">
+<meta property="og:description" content="关于这个浏览器 RAW 编辑器最常被问到的 13 个问题：照片会不会上传、能打开哪些格式、LUT 多大、能否离线、导出得到什么，以及它做不到的事。">
 <meta property="og:url" content="https://lut.openanthropic.com/faq">
 <meta property="og:image" content="https://lut.openanthropic.com/photos/home-desktop.jpg">
 <meta property="og:image:width" content="1200">
@@ -25,7 +25,7 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="常见问题：RAW 格式、LUT、隐私、离线与开源许可">
-<meta name="twitter:description" content="关于这个浏览器 RAW 编辑器最常被问到的 12 个问题：照片会不会上传、能打开哪些格式、LUT 多大、能否离线、导出得到什么，以及它做不到的事。">
+<meta name="twitter:description" content="关于这个浏览器 RAW 编辑器最常被问到的 13 个问题：照片会不会上传、能打开哪些格式、LUT 多大、能否离线、导出得到什么，以及它做不到的事。">
 <meta name="twitter:image" content="https://lut.openanthropic.com/photos/home-desktop.jpg">
 <script type="application/ld+json">
 {
@@ -41,7 +41,7 @@
     {
       "@type": "ListItem",
       "position": 2,
-      "name": "使用之前，你大概会问的 12 个问题",
+      "name": "使用之前，你大概会问的 13 个问题",
       "item": "https://lut.openanthropic.com/faq"
     }
   ]
@@ -52,7 +52,7 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "headline": "LUT ARCHIVE 常见问题",
-  "description": "关于浏览器 RAW 编辑器最常被问到的 12 个问题：上传、格式、LUT 尺寸、.cube 导入、log 输入、导出、手机、离线、批量与许可证。",
+  "description": "关于浏览器 RAW 编辑器最常被问到的 13 个问题：上传、格式、LUT 尺寸、.cube 导入、log 输入、导出、手机、离线、批量与许可证。",
   "inLanguage": "zh-CN",
   "mainEntityOfPage": "https://lut.openanthropic.com/faq",
   "url": "https://lut.openanthropic.com/faq",
@@ -91,6 +91,14 @@
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "NEF / NRW（含 HE、HE* 压缩）、CR2、CR3、ARW、SRF、SR2、DNG、RAF、ORF、RW2、PEF、SRW、3FR、ERF、KDC、MOS、IIQ、X3F。普通的 JPEG、PNG、WebP、AVIF、HEIC/HEIF、TIFF 也能打开。如果某个 RAW 完全拆不开，会退回到文件里内嵌的相机 JPEG，而不是显示半张黑图。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "NEF、CR3、ARW、DNG、RAF 分别怎么转成 JPG？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "五种常见格式各有一页： NEF 、 CR3 / CR2 、 ARW 、 DNG 、 RAF 。每一页讲这个容器装了什么、浏览器怎么解码、拆不开时怎么回退到内嵌 JPEG，以及导出的到底是什么；总览在 格式指南 。"
       }
     },
     {
@@ -282,16 +290,17 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
 </div></header>
 <article class="wrap">
 <div class="wrap">
-  <p class="crumbs"><a href="/">首页</a><span>/</span>使用之前，你大概会问的 12 个问题</p><p class="kicker">常见问题</p>
-  <h1>使用之前，你大概会问的 12 个问题</h1>
+  <p class="crumbs"><a href="/">首页</a><span>/</span>使用之前，你大概会问的 13 个问题</p><p class="kicker">常见问题</p>
+  <h1>使用之前，你大概会问的 13 个问题</h1>
   <p class="lede">照片去了哪里、能打开哪些文件、LUT 有多精确、断网还能不能用——这一页按实际实现回答，也把做不到的部分一起说清楚。</p>
   <p class="crumbs"><span>更新 2026-11-19</span><span>6 分钟</span></p>
 </div>
-<p>这一页把使用前最常被问到的 12 个问题一次答完：照片会不会上传、能打开哪些 RAW、LUT 用多大尺寸、能不能离线、导出得到什么、手机上能不能用。答案按实际实现写，包括它做不到的部分。</p>
+<p>这一页把使用前最常被问到的 13 个问题一次答完：照片会不会上传、能打开哪些 RAW、LUT 用多大尺寸、能不能离线、导出得到什么、手机上能不能用。答案按实际实现写，包括它做不到的部分。</p>
 <p>想先看它怎么工作，读<a href="/guides/raw-in-browser">在浏览器里打开 RAW</a>；想比较桌面软件，看<a href="/alternatives/lightroom-web">与 Lightroom 的对比</a>。</p>
 <h2 id="questions">问题与答案</h2>
 <div class="faq"><details open><summary>照片会被上传到服务器吗？</summary><div class="a"><p>不会。RAW 解码在本机的 Web Worker 里完成，显影和渲染在 GPU 上完成，文件只在本机读取，没有上传接口。整站只有两类网络请求：应用自身的静态资源，以及用来选择初始界面语言的 <code>/api/geo</code> 国家码查询。没有账号系统，也没有统计或跟踪 Cookie，细节写在<a href="/privacy">隐私说明</a>里。</p></div></details>
 <details><summary>支持哪些 RAW 格式？</summary><div class="a"><p>NEF / NRW（含 HE、HE* 压缩）、CR2、CR3、ARW、SRF、SR2、DNG、RAF、ORF、RW2、PEF、SRW、3FR、ERF、KDC、MOS、IIQ、X3F。普通的 JPEG、PNG、WebP、AVIF、HEIC/HEIF、TIFF 也能打开。如果某个 RAW 完全拆不开，会退回到文件里内嵌的相机 JPEG，而不是显示半张黑图。</p></div></details>
+<details><summary>NEF、CR3、ARW、DNG、RAF 分别怎么转成 JPG？</summary><div class="a"><p>五种常见格式各有一页：<a href="/raw/nef">NEF</a>、<a href="/raw/cr3">CR3 / CR2</a>、<a href="/raw/arw">ARW</a>、<a href="/raw/dng">DNG</a>、<a href="/raw/raf">RAF</a>。每一页讲这个容器装了什么、浏览器怎么解码、拆不开时怎么回退到内嵌 JPEG，以及导出的到底是什么；总览在<a href="/raw/">格式指南</a>。</p></div></details>
 <details><summary>真的免费吗？用什么许可证？</summary><div class="a"><p>免费，也不需要注册。代码以 MIT 许可证开源，<a href="https://github.com/shisongsong/lut-studio" rel="noopener">源码在 GitHub 上</a>，可以自己读、自己部署。没有订阅，也没有需要付费才能解锁的功能。</p></div></details>
 <details><summary>LUT 是什么？内置 LUT 用多大尺寸？</summary><div class="a"><p>LUT 是一张“输入颜色对应输出颜色”的查找表，等于把一条调色固化下来，套用时比重新调一遍滑块更快，也更容易带到别的软件里。内置的 64 款 look 打包成 33×33×33：每个通道 33 级，共 35,937 个节点，相对原始配方是精确的。我们也测过更小的尺寸——17³ 平均误差 0.226 级（满量程 255，最大 20.8），21³ 平均 0.182（最大 11.6），25³ 平均 0.128（最大 11.3）；再往上到 65³ 只是把体积放大几十倍，看不出差别。全部 look 在 <a href="/looks">LUT 目录</a>里。</p></div></details>
 <details><summary>可以导入自己的 .cube 文件吗？</summary><div class="a"><p>可以。3D LUT（<code>LUT_3D_SIZE</code> 2–128）和 1D LUT 都支持，1D 会烘焙到 3D 网格上，带 UTF-8 BOM 的文件也能正常读。文件在本机解析，不经过服务器；导入后出现在“我的 LUT”里，关掉页面再打开还在。</p></div></details>

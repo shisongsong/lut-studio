@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0a0b">
 <title>FAQ: RAW formats, LUT size, privacy, offline use and license</title>
-<meta name="description" content="Twelve answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.">
+<meta name="description" content="Thirteen answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.">
 <link rel="canonical" href="https://lut.openanthropic.com/en/faq">
 <link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/faq">
 <link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/faq">
@@ -16,7 +16,7 @@
 <meta property="og:site_name" content="LUT ARCHIVE">
 <meta property="og:type" content="article">
 <meta property="og:title" content="FAQ: RAW formats, LUT size, privacy, offline use and license">
-<meta property="og:description" content="Twelve answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.">
+<meta property="og:description" content="Thirteen answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.">
 <meta property="og:url" content="https://lut.openanthropic.com/en/faq">
 <meta property="og:image" content="https://lut.openanthropic.com/photos/home-desktop.jpg">
 <meta property="og:image:width" content="1200">
@@ -25,7 +25,7 @@
 <meta property="og:locale:alternate" content="zh_CN">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="FAQ: RAW formats, LUT size, privacy, offline use and license">
-<meta name="twitter:description" content="Twelve answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.">
+<meta name="twitter:description" content="Thirteen answers about the browser RAW editor: uploads, supported RAW formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.">
 <meta name="twitter:image" content="https://lut.openanthropic.com/photos/home-desktop.jpg">
 <script type="application/ld+json">
 {
@@ -41,7 +41,7 @@
     {
       "@type": "ListItem",
       "position": 2,
-      "name": "The twelve questions people ask before using it",
+      "name": "The thirteen questions people ask before using it",
       "item": "https://lut.openanthropic.com/en/faq"
     }
   ]
@@ -52,7 +52,7 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "headline": "LUT ARCHIVE FAQ",
-  "description": "Twelve answers about the browser RAW editor: uploads, formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.",
+  "description": "Thirteen answers about the browser RAW editor: uploads, formats, LUT size, .cube import, log input, export, phones, offline use, batch and license.",
   "inLanguage": "en",
   "mainEntityOfPage": "https://lut.openanthropic.com/en/faq",
   "url": "https://lut.openanthropic.com/en/faq",
@@ -91,6 +91,14 @@
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "NEF / NRW (including HE and HE* compression), CR2, CR3, ARW, SRF, SR2, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ and X3F. It also opens JPEG, PNG, WebP, AVIF, HEIC/HEIF and TIFF. If a RAW cannot be unpacked at all, the camera JPEG embedded in the file is used instead of showing half a black frame."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I convert NEF, CR3, ARW, DNG or RAF to JPG?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Each of the five common formats has its own page: NEF , CR3 / CR2 , ARW , DNG and RAF . Each covers what the container holds, how the browser decodes it, how a frame that cannot be unpacked falls back to the embedded JPEG, and what export produces; the format guides list them."
       }
     },
     {
@@ -282,16 +290,17 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
 </div></header>
 <article class="wrap">
 <div class="wrap">
-  <p class="crumbs"><a href="/">Home</a><span>/</span>The twelve questions people ask before using it</p><p class="kicker">FAQ</p>
-  <h1>The twelve questions people ask before using it</h1>
+  <p class="crumbs"><a href="/">Home</a><span>/</span>The thirteen questions people ask before using it</p><p class="kicker">FAQ</p>
+  <h1>The thirteen questions people ask before using it</h1>
   <p class="lede">Where the photo goes, which files it opens, how exact the LUTs are, whether it still works without a connection — answered from what is actually implemented, including what it does not do.</p>
   <p class="crumbs"><span>Updated 2026-11-19</span><span>6 min read</span></p>
 </div>
-<p>This page answers the twelve questions that come up before using it: whether photos are uploaded, which RAW files it opens, what size the LUTs are, whether it works offline, what export produces and whether it runs on a phone. The answers describe what is actually implemented, including what it cannot do.</p>
+<p>This page answers the thirteen questions that come up before using it: whether photos are uploaded, which RAW files it opens, what size the LUTs are, whether it works offline, what export produces and whether it runs on a phone. The answers describe what is actually implemented, including what it cannot do.</p>
 <p>To see how it works first, read <a href="/en/guides/raw-in-browser">opening a RAW in the browser</a>; to compare it with desktop software, read the <a href="/en/alternatives/lightroom-web">Lightroom comparison</a>.</p>
 <h2 id="questions">Questions and answers</h2>
 <div class="faq"><details open><summary>Does it upload my photos?</summary><div class="a"><p>No. RAW decoding runs in a Web Worker on this machine, development and rendering happen on the GPU, and files are only read locally — there is no upload endpoint. The only network requests are the app's own assets and an <code>/api/geo</code> country lookup used to choose the initial interface language. There is no account system and no analytics or tracking cookies; the <a href="/en/privacy">privacy note</a> has the details.</p></div></details>
 <details><summary>Which RAW formats can it open?</summary><div class="a"><p>NEF / NRW (including HE and HE* compression), CR2, CR3, ARW, SRF, SR2, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ and X3F. It also opens JPEG, PNG, WebP, AVIF, HEIC/HEIF and TIFF. If a RAW cannot be unpacked at all, the camera JPEG embedded in the file is used instead of showing half a black frame.</p></div></details>
+<details><summary>How do I convert NEF, CR3, ARW, DNG or RAF to JPG?</summary><div class="a"><p>Each of the five common formats has its own page: <a href="/en/raw/nef">NEF</a>, <a href="/en/raw/cr3">CR3 / CR2</a>, <a href="/en/raw/arw">ARW</a>, <a href="/en/raw/dng">DNG</a> and <a href="/en/raw/raf">RAF</a>. Each covers what the container holds, how the browser decodes it, how a frame that cannot be unpacked falls back to the embedded JPEG, and what export produces; <a href="/en/raw/">the format guides</a> list them.</p></div></details>
 <details><summary>Is it really free, and under what license?</summary><div class="a"><p>Yes, and there is no sign-up. The code is MIT-licensed and published <a href="https://github.com/shisongsong/lut-studio" rel="noopener">on GitHub</a>, so you can read it or deploy your own copy. There is no subscription and no paid tier.</p></div></details>
 <details><summary>What is a LUT, and what size are the built-in ones?</summary><div class="a"><p>A LUT is a look-up table mapping input colour to output colour: a grade frozen into data, so applying it is faster and more portable than recreating a series of slider moves. The 64 built-in looks ship as a 33×33×33 pack — 33 steps per channel, 35,937 entries — which is exact against the authored recipes. Smaller sizes were measured too: 17³ has a mean error of 0.226 levels out of 255 (maximum 20.8), 21³ a mean of 0.182 (max 11.6), 25³ a mean of 0.128 (max 11.3); going up to 65³ would multiply the storage for no visible gain. The full list is in the <a href="/en/looks">look catalogue</a>.</p></div></details>
 <details><summary>Can I import my own .cube files?</summary><div class="a"><p>Yes. 3D LUTs (<code>LUT_3D_SIZE</code> 2–128) and 1D LUTs are supported; 1D tables are baked onto a 3D grid, and a UTF-8 BOM is tolerated. Files are parsed locally and never uploaded, and they appear under “My LUTs”, where they survive a reload.</p></div></details>

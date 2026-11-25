@@ -277,12 +277,17 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
 <table>
   <thead><tr><th>Type</th><th>Formats</th></tr></thead>
   <tbody>
-    <tr><td>RAW</td><td>NEF / NRW (including HE and HE* compression), CR2, CR3, ARW, SRF, SR2, DNG, RAF, ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ, X3F</td></tr>
+    <tr><td>RAW · Nikon</td><td>NEF / NRW (including HE and HE* compression) · <a href="/en/raw/nef">NEF to JPG guide</a></td></tr>
+    <tr><td>RAW · Canon</td><td>CR2, CR3 · <a href="/en/raw/cr3">CR3 / CR2 to JPG guide</a></td></tr>
+    <tr><td>RAW · Sony</td><td>ARW, SRF, SR2 · <a href="/en/raw/arw">ARW to JPG guide</a></td></tr>
+    <tr><td>RAW · DNG</td><td>Adobe DNG, Apple ProRAW, phone and drone DNG · <a href="/en/raw/dng">DNG to JPG guide</a></td></tr>
+    <tr><td>RAW · Fujifilm</td><td>RAF (X-Trans and Bayer bodies) · <a href="/en/raw/raf">RAF to JPG guide</a></td></tr>
+    <tr><td>RAW · others</td><td>ORF, RW2, PEF, SRW, 3FR, ERF, KDC, MOS, IIQ, X3F</td></tr>
     <tr><td>Images</td><td>JPEG, PNG, WebP, AVIF, HEIC/HEIF, TIFF</td></tr>
     <tr><td>Look-up tables</td><td>.cube, both 3D (<code>LUT_3D_SIZE</code> 2–128) and 1D</td></tr>
   </tbody>
 </table>
-<p>If a RAW cannot be unpacked at all, the app falls back to the camera JPEG embedded in the file — including 45 MP-class bodies whose frames the decoder returns truncated. That beats showing half a black frame, and it beats failing outright.</p>
+<p>The five common formats each have a page of their own explaining what the container holds and what happens when a frame cannot be unpacked; <a href="/en/raw/">the format guides</a> list them. If a RAW cannot be unpacked at all, the app falls back to the camera JPEG embedded in the file — including 45 MP-class bodies whose frames the decoder returns truncated. That beats showing half a black frame, and it beats failing outright.</p>
 
 <h2 id="how">One pass through the app</h2>
 <ol>
