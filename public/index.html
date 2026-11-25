@@ -122,6 +122,10 @@ a.tbtn{text-decoration:none}
 .look-name .en{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
 .look-name .cat{color:var(--accent);transition:color .3s}
 .hint{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--faint);white-space:nowrap;opacity:.75}
+.trust{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--faint);white-space:nowrap;opacity:.9}
+.trust::before{content:'◦ ';color:var(--accent)}
+.quick #photoBtn.primary{color:var(--ink);border:1px solid rgba(217,199,163,.5);padding:3px 8px;border-radius:2px}
+.quick #photoBtn.primary:hover{border-color:var(--accent);color:#fff}
 @media (max-width:700px){.hint{display:none}.look-name h1{font-size:13px}}
 .meta{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--faint)}
 .meta b{font-weight:400;color:var(--muted)}
@@ -197,13 +201,25 @@ a.tbtn{text-decoration:none}
 .quick button.on{color:var(--accent);border-color:var(--accent)}
 
 @media(max-width:820px){
-  .quick{gap:14px;padding-bottom:2px}
+  .quick{gap:6px 14px;padding-bottom:2px}
   .quick button{font-size:7.5px}
+  /* Phones: the type stays small, the tap target does not. Measured on 390 px,
+     25 of 90 controls were under 44 px and the three actions a phone user needs
+     (photo / tone / export) were 15 px tall. An explicit min-height + centered
+     flex box is the only version that is reliably hittable: a transparent
+     ::after expansion lost the probe to the rows painted after it. */
+  .quick button{min-height:40px;display:inline-flex;align-items:center;padding:0 1px}
+  .quick #photoBtn.primary{min-height:38px;padding:0 10px}
+  .cats button{min-height:30px;display:inline-flex;align-items:center}
+  .strengths{margin-bottom:2px}
+  .filmwrap{margin-top:-2px}
+  .trust{font-size:7.5px}
 }
 
 @media(max-width:820px){
-  .topbar{padding:14px 14px}
-  .top-actions .tbtn:not(.solid){display:inline-block;font-size:8px}
+  .topbar{padding:14px 14px;flex-wrap:nowrap;gap:10px}
+  .top-actions{flex-wrap:nowrap;gap:10px;flex:none}
+  .top-actions .tbtn:not(.solid){display:inline-flex;align-items:center;font-size:8px;min-height:34px;padding:0 2px}
   .bottom{padding:0 14px max(14px,env(safe-area-inset-bottom));gap:10px}
   .look-name h1{font-size:13px}
   .hint{display:none}
@@ -439,6 +455,7 @@ a.tbtn{text-decoration:none}
         </div>
       </div>
       <div class="hint" id="hint">轻点图像进入纯净模式 · 长按看原图 · 双指缩放</div>
+      <div class="trust" id="trustLine">照片不上传 · 只在本机处理</div>
     </div>
     <div class="strengths" id="strengths">
       <div class="strength" id="strengthA">
@@ -455,7 +472,7 @@ a.tbtn{text-decoration:none}
     <div class="cats" id="cats"></div>
     <div class="filmwrap"><div class="film" id="film"></div></div>
     <div class="quick">
-      <button id="photoBtn">PHOTO</button>
+      <button id="photoBtn" class="primary">打开照片</button>
       <button id="zoomBtn" class="zoom" title="缩放 / Zoom">100%</button>
       <button id="dualBtn" class="dual">DUAL LUT</button>
       <button id="logBtn" title="输入曲线 / input curve">sRGB</button>
@@ -643,7 +660,7 @@ const el = {
   photoBtn: $('#photoBtn'), dualBtn: $('#dualBtn'),
   exportBtn: $('#exportBtn'), fileInput: $('#fileInput'), intro: $('#intro'),
   toast: $('#toast'), drop: $('#drop'), metaDims: $('#metaDims'), metaName: $('#metaName'), accentDot: $('#accentDot'),
-  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), introWait: $('#introWait'), importBtn: $('#importBtn'), mergeBtn: $('#mergeBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'), zoomBtn: $('#zoomBtn'),
+  langBtn: $('#langBtn'), cats: $('#cats'), logBtn: $('#logBtn'), metaLooks: $('#metaLooks'), introSub: $('#introSub'), introWait: $('#introWait'), trustLine: $('#trustLine'), importBtn: $('#importBtn'), mergeBtn: $('#mergeBtn'), importInput: $('#importInput'), importError: $('#importError'), autoBtn: $('#autoBtn'), toneBtn: $('#toneBtn'), zoomBtn: $('#zoomBtn'),
   busy: $('#busy'), busyTitle: $('#busyTitle'), busySteps: $('#busySteps'), busyTrack: $('#busyTrack'), busyFill: $('#busyFill'), busySub: $('#busySub'), busyClock: $('#busyClock'),
   loadPillFill: $('#loadPillFill'), loadPillPct: $('#loadPillPct'),
   devPanel: $('#devPanel'), devTitle: $('#devTitle'), devSub: $('#devSub'), devBody: $('#devBody'), devAuto: $('#devAuto'), devCamLook: $('#devCamLook'), devReset: $('#devReset'), devClose: $('#devClose'), devPick: $('#devPick'), devHint: $('#devHint'), devHist: $('#devHist'), lqip: $('#lqip'), loadPill: $('#loadPill'), loadPillText: $('#loadPillText'),
@@ -3142,10 +3159,11 @@ function applyLang(lang, { persist = true } = {}){
   el.langBtn.textContent = t(lang, 'language');
   if (el.autoBtn) syncAutoBtn();
   updateDevLang();
-  el.photoBtn.textContent = t(lang, 'photo');
+  el.photoBtn.textContent = t(lang, 'openPhoto');
   updateZoomUI();
   el.exportBtn.textContent = `${t(lang, 'export')} ↗`;
   el.hint.textContent = t(lang, 'hint');
+  if (el.trustLine) el.trustLine.textContent = t(lang, 'trustLine');
   el.importBtn.textContent = t(lang, 'importLut');
   if (el.mergeBtn) el.mergeBtn.textContent = t(lang, 'mergeLut');
   updateLogUI();

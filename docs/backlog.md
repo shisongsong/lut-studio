@@ -47,10 +47,14 @@ funnel step), that wins.
   per category (or the ~16 looks nearest the selected category first) so the
   strip fills progressively; ship the 21³ subset in front of the 33³ pack.
   Measure with `events`: `looks` (ms) should drop, `ready` must not move.
-- **B3 — Mobile tap targets: 25 of 90 visible controls are under 44 px**; PHOTO
-  28.5×15, 色调 28.5×15, 导出 39×15 in the quick bar. Add `min-height:44px`
-  padding boxes in the `max-width:820px` block (keep the type size; grow the box),
-  and give the empty state one obvious `打开照片 / OPEN PHOTO` button.
+- **B3 — Mobile tap targets: key ones fixed 2026-11-25, rest open.** The quick
+  bar buttons are now real 40 px-tall boxes (photo 38, tone/export/zoom/import 40),
+  top-bar links 34–36 px, category chips 30 px — measured on 390 px before/after:
+  PHOTO 28.5×15 → 55×38, 色调 28.5×15 → ~19×40, 导出 39×15 → ~29×40, no horizontal
+  overflow, 导出 still above the fold. Still open: the *type* is 7–8 px (readability,
+  see B5) and the 44 px Apple-HIG target is only reached by width+gap, not height.
+  A transparent `::after` expansion was tried first and failed the hit probe
+  (rows painted later won the hit test) — do not retry it.
 - **B4 — English mode: leaks fixed 2026-11-25; switch cost remains.** All the
   leaked strings now have `t()` keys and are updated by `applyLang()` (nav, intro
   wait, close `aria-label`s, merge `title`, import sheet copy). Measured after the
@@ -60,9 +64,14 @@ funnel step), that wins.
 - **B5 — Body text is 7–8.5 px on mobile** (154 visible nodes under 12 px);
   `--faint` contrast was raised .32→.46 on 2026-11-25, still below 4.5:1.
   Raise `.meta/.hint/.chip .nm/.dev-sub` to ≥10 px on phones.
-- **B6 — First-visit trust signal is invisible.** No "photos never leave this
-  device" line and no open-photo affordance in the first viewport; the demo +
-  65 looks read as a gallery, not an editor. One line of trust copy + one CTA.
+- **B6 — First-visit trust signal: shipped 2026-11-25.** A muted line
+  `◦ 照片不上传 · 只在本机处理` / `◦ Photos never leave your device` now sits under
+  the look name (visible on phone and desktop; the `.hint` above it is hidden on
+  phones), and the primary action is a bordered `打开照片` / `Open photo` button
+  instead of a 8 px `PHOTO` text run. Verified in headless at 390 px and 1440 px,
+  both languages, no page errors, no horizontal overflow. Watch `events.photo`
+  and the ready→photo conversion in the daily report; if conversion does not move
+  in two weeks, try a larger empty-state CTA over the canvas.
 
 ## Growth (needs content, not code)
 

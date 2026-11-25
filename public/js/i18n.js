@@ -35,6 +35,7 @@ export const I18N = {
     autoToneTitle: '自动色调：按直方图摆好曝光、对比度、高光、阴影、白色、黑色',
     // Static chrome that the language switch used to leave in Chinese.
     navGuides: '指南', navLooks: 'LUT 目录', introWait: 'LOADING · 加载中',
+    openPhoto: '打开照片', trustLine: '照片不上传 · 只在本机处理',
     closeLabel: '关闭', mergeTitle: '合并当前单/双 LUT 并保存下载',
     importTitle: '导入 LUT',
     importHelp: '支持 .cube：3D LUT（LUT_3D_SIZE 2–128）和 1D LUT 都行，只在本地解析，不上传。',
@@ -98,6 +99,7 @@ export const I18N = {
     autoToneTitle: 'Auto tone: exposure, contrast, highlights, shadows, whites and blacks from the histogram',
     // Static chrome that the language switch used to leave in Chinese.
     navGuides: 'Guides', navLooks: 'Look catalogue', introWait: 'LOADING · one moment',
+    openPhoto: 'Open photo', trustLine: 'Photos never leave your device',
     closeLabel: 'Close', mergeTitle: 'Merge the current single or dual LUT stack and download it',
     importTitle: 'Import LUT',
     importHelp: 'Any .cube works: 3D LUTs (LUT_3D_SIZE 2–128) and 1D LUTs are parsed locally and never uploaded.',
