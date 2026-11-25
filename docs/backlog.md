@@ -193,6 +193,30 @@ funnel step), that wins.
   that block: a crawler 404 usually means a broken internal link or an outdated
   sitemap entry.
 
+## Tried and rejected (with numbers — do not retry blindly)
+
+- **Externalising the inline app module into `/js/app.js`: reverted 2026-11-25.**
+  The 193 KB `public/index.html` carries ~149 KB of inline app JS, which looked
+  like the obvious thing to move into a versioned, cacheable file. Measured on
+  the 1.6 Mbps / 200 ms throttled profile, same harness, p50 of 3 runs:
+
+  | variant | first look | FCP | DCL | HTML transfer |
+  | --- | --- | --- | --- | --- |
+  | inline (current) | **2026 ms** | 536 ms | **1502 ms** | 59 KB gz |
+  | external app.js + modulepreload + early LUT hint | 2371 ms | 488 ms | 2300 ms | 13.5 KB gz |
+
+  Transfer drops by 45 KB and FCP improves ~50 ms, but the LUT fetch can no
+  longer start until `app.js` has arrived, which pushes the product's core
+  moment (first usable look) **~350 ms later** and DCL ~800 ms later. The inline
+  module is part of the HTML the browser already has; splitting it serialises
+  the pipeline on a slow link. Repeat visits barely benefit either — HTML is
+  revalidated with a cheap 304 either way. Keep it inline; if the HTML ever
+  grows much larger, revisit by measuring with `scripts/bench-app-load.mjs`
+  rather than by intuition.
+- **Transparent `::after` expansion for mobile tap targets: rejected.** The hit
+  probe showed the rows painted after the button won the hit test, so the extra
+  area was not actually tappable (see B3).
+
 ## Guardrails
 
 - Never claim Lightroom equivalence, never fabricate numbers, never add

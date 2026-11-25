@@ -448,6 +448,7 @@ npm run seo:validate   # parse every JSON-LD block and every hreflang pair
 npm run indexnow       # submit the sitemap to Bing/Yandex after a deploy
 npm run build:cubes    # copy luts-src/*.cube to /download/cubes (generated, git-ignored)
 npm run build:previews # render /photos/looks/*.jpg with headless Chromium (content tool)
+node scripts/bench-app-load.mjs  # FCP / DCL / time-to-first-look under a throttled 1.6 Mbps profile (dev tool)
 ```
 
 See [`docs/seo.md`](docs/seo.md) for the page contract, the URL rules and the
