@@ -100,7 +100,6 @@ async function writeFile(rel, content) {
 function sitemapXml(pages) {
   const staticPages = [
     { path: '/', priority: '1.0', changefreq: 'weekly' },
-    { path: '/get-luts', priority: '0.5', changefreq: 'monthly', lastmod: '2026-11-17' },
   ];
   const entries = [];
   for (const page of pages) {
@@ -178,6 +177,7 @@ function llmsTxt(pages) {
   lines.push(`- [Look catalogue](${SITE.origin}/looks): all 64 built-in looks with names, categories and intent.`);
   lines.push(`- [Machine-readable looks](${SITE.origin}/looks.json): JSON array of every look (id, zh/en name, category).`);
   lines.push(`- [Official LUT sources](${SITE.origin}/get-luts): where the camera makers publish .cube files, and how to import them.`);
+  lines.push(`- [官方 LUT 下载入口](${SITE.origin}/get-luts): 松下、富士、佳能、尼康、索尼发布 .cube 的官方页面与 LOG 输入说明。`);
   lines.push('');
   lines.push('## What it can do');
   lines.push('');
@@ -325,7 +325,7 @@ function validate(pages) {
     // false positive that blocked /download from shipping.
     for (const m of (copy.body || '').matchAll(/href="(\/[^"#]*)/g)) {
       const href = m[1];
-      if (href.startsWith('/photos/') || href.startsWith('/luts-src/') || href.endsWith('.xml') || href.endsWith('.txt') || href.endsWith('.json') || href === '/get-luts') continue;
+      if (href.startsWith('/photos/') || href.startsWith('/luts-src/') || href.endsWith('.xml') || href.endsWith('.txt') || href.endsWith('.json')) continue;
       const pathname = href.split('?')[0] || '/';
       if (/\.[a-z0-9]{2,5}$/i.test(pathname)) continue; // static asset, not a page
       const bare = pathname.replace(/\/$/, '') || '/';

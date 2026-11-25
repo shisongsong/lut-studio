@@ -477,7 +477,6 @@ public/            # the whole app (no build step)
   js/i18n.js       # zh/en strings
   js/lut-store.js  # IndexedDB store for imported .cube LUTs
   luts.bin         # baked LUT texture (64 looks)
-  get-luts.html    # how to get vendor LUTs + download the bundled ones
   photos/demo.webp # default demo photo
   fonts/           # IBM Plex Mono, Instrument Sans/Serif (woff2)
 luts-src/          # 44 × 33³ .cube files (downloadable)

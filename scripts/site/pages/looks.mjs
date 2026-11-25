@@ -96,7 +96,7 @@ ${groups('zh')}
     body: `<p>Every look has an adjustable strength, two looks can be stacked (a film base plus a slight highlight tint, for example), and the stack can be baked into one <code>.cube</code> for other software. The built-in pack is 33³, and it is the same data as the downloadable cubes.</p>
 ${groups('en')}
 <h2 id="how-to">How to use them</h2>
-<p>Open the editor in the browser, drop in a photo, and switch looks in the filmstrip along the bottom; the vertical rail sets strength and <code>DUAL LUT</code> opens the second slot. To use the same grades in other software, <a href="/download">download all 64 as .cube files</a> (MIT, no signup); for vendor LOG LUTs, the <a href="/get-luts">LUT sources</a> page covers where the camera makers publish theirs.</p>
+<p>Open the editor in the browser, drop in a photo, and switch looks in the filmstrip along the bottom; the vertical rail sets strength and <code>DUAL LUT</code> opens the second slot. To use the same grades in other software, <a href="/download">download all 64 as .cube files</a> (MIT, no signup); for vendor LOG LUTs, the <a href="/en/get-luts">LUT sources</a> page covers where the camera makers publish theirs.</p>
 <p>If you are unsure whether LUT precision matters, the <a href="/guides/lut-size">measured LUT precision</a> write-up has the numbers.</p>`,
     faq: [
       ['Are these the same as the official Kodak or Fujifilm LUTs?', 'No. They are recipes regenerated to match the colour response of those styles, not vendor files. Close in look, not a byte-for-byte reproduction.'],

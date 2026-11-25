@@ -91,6 +91,24 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/faq" />
   </url>
   <url>
+    <loc>https://lut.openanthropic.com/get-luts</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/get-luts" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/get-luts" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/get-luts" />
+  </url>
+  <url>
+    <loc>https://lut.openanthropic.com/en/get-luts</loc>
+    <lastmod>2026-11-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/get-luts" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/get-luts" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/get-luts" />
+  </url>
+  <url>
     <loc>https://lut.openanthropic.com/guides/</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -328,11 +346,5 @@
     <loc>https://lut.openanthropic.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://lut.openanthropic.com/get-luts</loc>
-    <lastmod>2026-11-17</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
   </url>
 </urlset>

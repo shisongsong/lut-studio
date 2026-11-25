@@ -8,6 +8,7 @@
 - [Look catalogue](https://lut.openanthropic.com/looks): all 64 built-in looks with names, categories and intent.
 - [Machine-readable looks](https://lut.openanthropic.com/looks.json): JSON array of every look (id, zh/en name, category).
 - [Official LUT sources](https://lut.openanthropic.com/get-luts): where the camera makers publish .cube files, and how to import them.
+- [官方 LUT 下载入口](https://lut.openanthropic.com/get-luts): 松下、富士、佳能、尼康、索尼发布 .cube 的官方页面与 LOG 输入说明。
 
 ## What it can do
 

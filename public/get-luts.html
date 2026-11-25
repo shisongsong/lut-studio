@@ -4,218 +4,273 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0a0b">
-<title>获取 LUT — 相机厂商官方 LUT 与导入方法</title>
-<meta name="description" content="松下、富士、佳能、尼康、索尼的官方 LUT 下载地址，以及把 .cube 导入浏览器暗房的方法。应用自带 64 款自研 look，支持导入任意 .cube。">
+<title>相机厂商官方 LUT 下载与导入方法</title>
+<meta name="description" content="松下、富士、佳能、尼康、索尼的官方 .cube 下载入口，以及把厂商 LUT 导入浏览器暗房的步骤，附 LOG 输入说明。">
 <link rel="canonical" href="https://lut.openanthropic.com/get-luts">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/get-luts">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/get-luts">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/get-luts">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
 <meta property="og:type" content="article">
-<meta property="og:title" content="获取 LUT — 相机厂商官方 LUT 与导入方法">
-<meta property="og:description" content="松下、富士、佳能、尼康、索尼官方 LUT 下载来源，以及导入浏览器暗房的步骤。">
+<meta property="og:title" content="相机厂商官方 LUT 下载与导入方法">
+<meta property="og:description" content="松下、富士、佳能、尼康、索尼的官方 .cube 下载入口，以及把厂商 LUT 导入浏览器暗房的步骤，附 LOG 输入说明。">
 <meta property="og:url" content="https://lut.openanthropic.com/get-luts">
-<meta property="og:image" content="https://lut.openanthropic.com/og.png">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/zoom.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="相机厂商官方 LUT 下载与导入方法">
+<meta name="twitter:description" content="松下、富士、佳能、尼康、索尼的官方 .cube 下载入口，以及把厂商 LUT 导入浏览器暗房的步骤，附 LOG 输入说明。">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/zoom.jpg">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@graph": [
+  "@type": "BreadcrumbList",
+  "itemListElement": [
     {
-      "@type": "TechArticle",
-      "headline": "获取 LUT — 相机厂商官方 LUT 与导入方法",
-      "description": "松下、富士、佳能、尼康、索尼的官方 LUT 下载地址，以及把 .cube 导入浏览器暗房的方法。",
-      "inLanguage": "zh-CN",
-      "url": "https://lut.openanthropic.com/get-luts",
-      "mainEntityOfPage": "https://lut.openanthropic.com/get-luts",
-      "datePublished": "2026-11-17",
-      "dateModified": "2026-11-19",
-      "author": { "@type": "Organization", "name": "LUT ARCHIVE", "url": "https://lut.openanthropic.com/" },
-      "publisher": { "@type": "Organization", "name": "LUT ARCHIVE", "url": "https://lut.openanthropic.com/" }
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "https://lut.openanthropic.com/"
     },
     {
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "LUT ARCHIVE", "item": "https://lut.openanthropic.com/" },
-        { "@type": "ListItem", "position": 2, "name": "获取 LUT", "item": "https://lut.openanthropic.com/get-luts" }
-      ]
+      "@type": "ListItem",
+      "position": 2,
+      "name": "厂商 LUT 去哪里下载，怎么用",
+      "item": "https://lut.openanthropic.com/get-luts"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "相机厂商官方 LUT 下载与导入方法",
+  "description": "松下、富士、佳能、尼康、索尼的官方 .cube 下载入口，以及把厂商 LUT 导入浏览器暗房的步骤。",
+  "inLanguage": "zh-CN",
+  "mainEntityOfPage": "https://lut.openanthropic.com/get-luts",
+  "url": "https://lut.openanthropic.com/get-luts",
+  "image": "https://lut.openanthropic.com/photos/zoom.jpg",
+  "datePublished": "2026-11-25",
+  "dateModified": "2026-11-25",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": null
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "厂商 LUT 能再分发吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不能。松下、富士、佳能、尼康、索尼的条款只允许个人在本机使用，这也是本站不打包厂商 LUT 的原因。你自己下载、自己导入即可，文件不会上传。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么套上厂商 LUT 之后画面发灰？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "多半是输入曲线没对上：LOG LUT 需要 LOG 编码的输入。名字里带 F-Log / V-Log 的文件会自动切换，其余在「输入曲线」面板里手动选。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "可以直接套在 JPEG 照片上吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "可以，但结果会偏离设计意图：LUT 期望的是 LOG 输入，JPEG 是 sRGB。把强度降到 30–60% 通常更自然，或者选本站为照片设计的 look。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "站内 look 和厂商 LUT 有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "站内 64 款是自研配方生成的 33³ LUT，为显示编码的照片设计，MIT 授权可自由使用；厂商 LUT 是按各自相机 LOG 曲线做的转换表，许可只限本机个人使用。"
+      }
     }
   ]
 }
 </script>
 <style>
 :root{
-  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.56); --faint:rgba(242,241,236,.32);
-  --line:rgba(242,241,236,.16); --accent:#d9c7a3;
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
   --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
-a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.32)}
-a:hover{border-color:var(--ink)}
-.wrap{max-width:860px;margin:0 auto;padding:28px 24px 80px}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:22px;border-bottom:1px solid var(--line)}
-.brand{font-family:var(--mono);font-size:10px;letter-spacing:.16em}
-.nav{display:flex;gap:16px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--faint)}
-.nav a{color:var(--faint);border:0}
-.nav a:hover{color:var(--ink)}
-.kicker{margin:56px 0 10px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
-h1{margin:0 0 18px;font-size:clamp(34px,5vw,56px);font-weight:300;letter-spacing:-.025em;line-height:1.02}
-.lede{margin:0 0 14px;font-size:16px;line-height:1.75;color:var(--muted);max-width:62ch}
-.meta{margin:22px 0 0;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--faint)}
-h2{margin:56px 0 16px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;font-weight:400}
-h3{margin:28px 0 8px;font-size:15px;font-weight:400}
-p{margin:0 0 14px;font-size:15px;line-height:1.75;color:rgba(242,241,236,.78)}
-ol,ul{margin:0 0 14px;padding-left:20px}
-li{margin:0 0 10px;font-size:15px;line-height:1.7;color:rgba(242,241,236,.78)}
-.rule{border-top:1px solid var(--line);margin:44px 0}
-.sources{display:grid;gap:0}
-.source{display:grid;grid-template-columns:180px 1fr;gap:20px;padding:18px 0;border-bottom:1px solid var(--line)}
-.source:first-child{border-top:1px solid var(--line)}
-.source dt{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted)}
-.source dd{margin:0;font-size:14px;line-height:1.7;color:rgba(242,241,236,.78)}
-.source dd a{display:inline-block;margin-top:4px;font-size:13px}
-.note{padding:16px 18px;border:1px solid var(--line);background:rgba(242,241,236,.03);font-size:14px;line-height:1.7;color:var(--muted)}
-footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
-footer a{color:var(--faint);border:0}
-footer a:hover{color:var(--ink)}
-@media(max-width:640px){
-  .wrap{padding:20px 18px 60px}
-  .source{grid-template-columns:1fr;gap:6px}
-  .nav{gap:10px}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
 }
 </style>
 <script src="/js/beacon.js" defer></script>
 </head>
 <body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/guides/">指南</a><a href="/looks">64 款 LUT</a><a href="/alternatives/lightroom-web">对比 Lightroom</a><a href="/faq">常见问题</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/en/get-luts" hreflang="en">EN</a>
+</div></header>
+<article class="wrap">
 <div class="wrap">
-  <header class="topbar">
-    <a class="brand" href="/">LUT ARCHIVE</a>
-    <nav class="nav">
-      <a href="/">编辑器</a>
-      <a href="/guides/">指南</a>
-      <a href="https://github.com/shisongsong/lut-studio" target="_blank" rel="noopener">GitHub</a>
-    </nav>
-  </header>
-
-  <p class="kicker">LUT Sources</p>
-  <h1>获取 LUT</h1>
-  <p class="lede">
-    LUT Archive 自带 64 个自研 look，全部由 <code>scripts/looks.mjs</code> 的调色配方生成，
-    MIT 授权，可以直接下载成 <code>.cube</code> 用在 Resolve / Premiere / Photoshop 里。
-    不清楚 LUT 的 1D / 3D 区别和 LOG 输入前提，先看 <a href="/guides/what-is-lut">LUT 是什么</a>；
-    想看这 64 个 look 的具体风格，<a href="/looks">LUT 目录</a> 里有全部名称和适用场景。
-  </p>
-  <p class="lede">
-    厂商官方 LUT（松下、富士、佳能、尼康、索尼）是免费下载的，但条款只允许本机个人使用，
-    不能再分发。所以它们不在仓库里，而是由你自己下载后导入——整个过程只在本机完成。
-  </p>
-  <p class="meta">最后更新：2026-11-17 · 导入功能 v1</p>
-
-  <h2>三步导入</h2>
-  <ol>
-    <li>从下面的官方页面下载 <code>.cube</code> 文件（有些是 zip，解压后使用）。</li>
-    <li>打开 <a href="/">LUT Archive</a>，点底部「导入 LUT」。</li>
-    <li>选择文件即可。LUT 会存进浏览器 IndexedDB，出现在「我的 LUT」分类里，刷新不丢。</li>
-  </ol>
-  <div class="note">
-    官方 LUT 大多是为 LOG 素材（V-Log / F-Log）做的转换，直接套普通 sRGB 照片会过曝、偏色。
-    导入后应用会按 LUT 文件名自动切到对应的输入曲线（F-Log / F-Log2 / V-Log），
-    先把照片按该 log 曲线重编码再套 LUT——这样官方 LUT 才会按设计的样子出图。
-    色域仍按 sRGB 处理，所以色相会有轻微偏差，不是逐字节一致。
-    注意：输入曲线只决定 LUT 拿到什么，它本身不是调色。没有 LOG LUT 把它转回显示时，
-    画面发灰是正常现象；切回内置 look 会自动回到 sRGB。需要手动指定时，点底部
-    原来的 <code>sRGB</code> 按钮会打开「输入曲线」面板。
-    想在别的软件里复现同一套观感，可以先在 <a href="/">编辑器</a> 里把两层 look
-    <a href="/guides/merge-lut">合并成一个 .cube</a> 再下载。
-  </div>
-  <div class="note" style="margin-top:12px">
-    RAW（NEF / CR2 / CR3 / ARW / DNG / RAF 等）可以直接上传，而且是真冲洗：应用内置了
-    flashraw 的 WebAssembly 版本（约 3.4 MB，第一次上传 RAW 时才下载），在本机完成解包、
-    AHD 去马赛克、相机白平衡、相机色彩矩阵和 sRGB 编码。26MP 的尼康 NEF 约 1 秒出全分辨率
-    5568×3712，导出也是 100% 原始尺寸。尼康的 HE/HE*（TicoRAW）压缩也支持——这是很多开源
-    RAW 软件还读不了的格式。文件完全解不开时才会退回内嵌的相机 JPEG。
-  </div>
-
-  <h2>官方来源</h2>
-  <dl class="sources">
-    <div class="source">
-      <dt>Panasonic VariCam</dt>
-      <dd>
-        35 款 VariCam / AU-EVA1 艺术 look（V-Log 输入，E-E 版本）。
-        <br><a href="https://pro-av.panasonic.net/en/cinema_camera_varicam_eva/support/lut/" target="_blank" rel="noopener">官方 LUT Library →</a>
-      </dd>
-    </div>
-    <div class="source">
-      <dt>Panasonic LUMIX</dt>
-      <dd>
-        V-Log → V709 转换、S1H RAW Gamut 等技术 LUT。
-        <br><a href="https://av.jpn.support.panasonic.com/support/global/cs/dsc/download/lut/index.html" target="_blank" rel="noopener">LUMIX LUT 下载页 →</a>
-      </dd>
-    </div>
-    <div class="source">
-      <dt>FUJIFILM</dt>
-      <dd>
-        X-T5 / X100VI 等机型的 F-Log / F-Log2 3D-LUT（ETERNA、ETERNA Bleach Bypass、WDR 等）。
-        <br><a href="https://www.fujifilm-x.com/global/support/download/lut/" target="_blank" rel="noopener">Film Simulation 3D-LUT →</a>
-      </dd>
-    </div>
-    <div class="source">
-      <dt>Canon</dt>
-      <dd>
-        官方 Look File 仅授权在 Canon 指定软件/机身内使用，条款禁止再分发与反向工程，
-        <strong>不建议</strong>在第三方编辑器里使用。
-        <br><a href="https://color.ssw.imaging-saas.canon/color/en/pc/" target="_blank" rel="noopener">Canon Look File（请先读条款）→</a>
-      </dd>
-    </div>
-    <div class="source">
-      <dt>Nikon</dt>
-      <dd>
-        N-Log LUT 以安装器形式分发（.exe / .dmg），条款禁止复制与再分发。
-        <br><a href="https://www.nikonimgsupport.com/eu/BV_article?articleNo=000066446" target="_blank" rel="noopener">N-Log LUT 说明 →</a>
-      </dd>
-    </div>
-    <div class="source">
-      <dt>Sony</dt>
-      <dd>
-        Sony LUT Library 部分需要 My Sony 账号登录，且条款限制再分发。
-        <br><a href="https://www.sony.net/di/lut/" target="_blank" rel="noopener">Sony LUT 页面 →</a>
-      </dd>
-    </div>
-    <div class="source">
-      <dt>Blackmagic</dt>
-      <dd>
-        BMD 的 LUT 随 DaVinci Resolve 安装包分发，不单独提供下载。装了 Resolve 的话，
-        可以在 <code>DaVinci Resolve/LUT/Blackmagic Design/</code> 里找到并导入。
-      </dd>
-    </div>
-  </dl>
-
-  <h2>为什么仓库里不放这些 LUT</h2>
-  <p>
-    松下、富士等厂商的 LUT 下载页只写了「免费下载」，没有开源或再分发许可；按站点条款，
-    它们仅限本机个人使用。把这些文件放进公开仓库属于再分发，会让仓库面临下架风险。
-  </p>
-  <p>
-    所以 LUT Archive 的做法是：<strong>内置的 64 个 look 全部自研、MIT 可分发；第三方 LUT 由用户自己下载后本地导入。</strong>
-    功能上两者完全一样——都能当 A/B 轨用，都能调强度。
-  </p>
-
-  <h2>下载内置的 64 个 LUT</h2>
-  <p>
-    仓库里的 <code>luts-src/</code> 就是全部 64 个 33³ <code>.cube</code> 文件，文件名即 look id。
-    也可以本地重新生成：
-  </p>
-  <ol>
-    <li><code>npm run export:cubes</code> — 从调色配方生成 <code>.cube</code></li>
-    <li><code>npm run build:luts</code> — 烘焙成网站用的 <code>public/luts.bin</code></li>
-  </ol>
-  <p>
-    <a href="https://github.com/shisongsong/lut-studio/tree/main/luts-src" target="_blank" rel="noopener">在 GitHub 上浏览 luts-src/ →</a>
-  </p>
-
-  <footer>
-    <span>© 2026 LUT Archive · MIT</span> ·
-    <a href="/">返回编辑器</a> ·
-    <a href="https://github.com/shisongsong/lut-studio" target="_blank" rel="noopener">GitHub</a>
-  </footer>
+  <p class="crumbs"><a href="/">首页</a><span>/</span>厂商 LUT 去哪里下载，怎么用</p><p class="kicker">LUT 来源</p>
+  <h1>厂商 LUT 去哪里下载，怎么用</h1>
+  <p class="lede">松下、富士、佳能、尼康、索尼都免费发布自己的 .cube LUT，但条款只允许你在自己的机器上使用，不能再分发——所以它们不在这个站的仓库里。这里给出官方入口、每支 LUT 期望的 LOG 输入，以及在本机导入使用的完整步骤。</p>
+  <p class="crumbs"><span>更新 2026-11-25</span><span>5 分钟</span></p>
 </div>
+<p>本站自带的 64 款 look 是自研配方，MIT 授权，可以<a href="/download">直接打包下载</a>。厂商 LUT 是另一回事：它们是按各自相机的 LOG 曲线做的转换表，用对了会让画面非常接近厂商标配，用错了（直接套在 sRGB 照片上）就会过曝、偏色——这不是 LUT 坏了，是输入前提没满足。</p>
+
+<h2 id="sources">官方下载入口</h2>
+<table>
+<caption>厂商官方 LUT 来源（2026-11 核对）</caption>
+<thead><tr><th scope="col">品牌</th><th scope="col">官方页面</th><th scope="col">需要的输入</th></tr></thead>
+<tbody>
+<tr><th scope="row">Panasonic VariCam / EVA1</th><td>VariCam 35 与 AU-EVA1 的艺术 look，V-Log 输入。<br><a href="https://pro-av.panasonic.net/en/cinema_camera_varicam_eva/support/lut/" rel="noopener">VariCam LUT Library →</a></td><td>V-Log</td></tr>
+<tr><th scope="row">Panasonic LUMIX</th><td>LUMIX 相机的 V-Log / V-Log L 转换 LUT。<br><a href="https://av.jpn.support.panasonic.com/support/global/cs/dsc/download/lut/index.html" rel="noopener">LUMIX LUT download →</a></td><td>V-Log</td></tr>
+<tr><th scope="row">Fujifilm</th><td>Film Simulation 的 3D LUT，F-Log / F-Log2 输入，也包括部分机型的内置胶片模拟。<br><a href="https://www.fujifilm-x.com/global/support/download/lut/" rel="noopener">Film Simulation 3D-LUT →</a></td><td>F-Log / F-Log2</td></tr>
+<tr><th scope="row">Canon</th><td>Canon Log 2 / Canon Log 3 的 Look File，下载与条款在同一个页面（需要先读条款）。<br><a href="https://color.ssw.imaging-saas.canon/color/en/pc/" rel="noopener">Canon Look File →</a></td><td>Canon Log 2 / 3</td></tr>
+<tr><th scope="row">Nikon</th><td>N-Log LUT（第 2 版起包含 RED 风格的 creative LUT），N-Log 输入。<br><a href="https://downloadcenter.nikonimglib.com/en/download/sw/258.html" rel="noopener">N-Log LUT →</a></td><td>N-Log</td></tr>
+<tr><th scope="row">Sony</th><td>S-Log3 / S-Gamut3.Cine 的 Look Profile 与 s709 监视 LUT，全部免费。<br><a href="https://pro.sony/ue_US/technology/professional-video-lut-look-up-table" rel="noopener">Sony LUT Library →</a></td><td>S-Log / S-Log2 / S-Log3</td></tr>
+</tbody>
+</table>
+<p>有些页面会按地区或账号做跳转；尼康的 LUT 打包成 Windows / macOS 安装包，运行后在 <code>3DLUT</code> 文件夹里取 <code>.cube</code>。厂商偶尔改 URL——如果你发现某个入口失效，<a href="https://github.com/shisongsong/lut-studio/issues" rel="noopener">提个 issue</a>，这一页会跟着更新。</p>
+
+<h2 id="import">三步导入</h2>
+<ol>
+<li><strong>下载 .cube</strong>：从上面的官方页面保存文件（有些是 zip，解压后使用）。</li>
+<li><strong>打开编辑器，导入</strong>：回到<a href="/">浏览器编辑器</a>，点底部「导入 LUT」，选择文件。文件只在本机解析，存进浏览器的 IndexedDB，出现在「我的 LUT」里，刷新不丢。</li>
+<li><strong>确认输入曲线</strong>：名字里带 F-Log / F-Log2 / V-Log 的 LUT 会被自动识别并切换输入曲线；名字看不出来的旧版文件，点底部原来的 sRGB 按钮，在「输入曲线」面板里手动选。</li>
+</ol>
+
+<h2 id="log">为什么必须管输入曲线</h2>
+<p>LOG 把场景亮度铺平保存：暗部被抬起来，0–1 的码值里塞进远超显示的动态范围。厂商的转换 LUT 是给「已经是 LOG 编码」的输入设计的，每个码值对应一个确定的场景亮度。普通照片是 sRGB 显示编码——同一个暗部细节在 sRGB 里的码值高得多。把 sRGB 喂给 LOG LUT，等于告诉它「这块阴影比实际暗得多」，于是整体压暗、颜色跑偏。输入曲线的作用就是在 LUT 之前把照片按对应的 log 传递函数重新编码。</p>
+<p>色域这里仍按 sRGB 处理，所以厂商 LUT 的结果会接近但不逐字节一致。输入曲线只决定 LUT 拿到什么，它本身不是调色：没有 LOG LUT 把它转回显示时，画面发灰是正常的。</p>
+
+<h2 id="limits">边界</h2>
+<ul>
+<li>厂商 LUT 的许可只覆盖本机个人使用，不能随插件、预设包或站点再分发；下载地址请始终指向厂商官方页面。</li>
+<li>这些 LUT 是为视频的 LOG 素材准备的。拿它调照片时从 100% 强度开始判断，多数情况下 30–60% 更合适。</li>
+<li>LUT 只是色彩映射：已经过曝的死白像素回不来，RAW 的高光恢复发生在 LUT 之前——这也是这个编辑器先把 RAW 在 16 位线性空间显影、再做显示变换、最后才套 LUT 的原因。</li>
+<li>想把手上的两支 LUT 固定成一个文件，可以在编辑器里叠加后<a href="/guides/merge-lut">合并成一个 .cube</a>再下载。</li>
+</ul>
+
+<h2 id="more">相关</h2>
+<p><a href="/guides/what-is-lut">LUT 是什么（1D vs 3D、LOG 前提）</a> · <a href="/download">下载本站 64 款原创 LUT</a> · <a href="/looks">完整 look 目录</a> · <a href="/guides/raw-in-browser">在浏览器里打开 RAW</a> · <a href="/faq">常见问题</a></p>
+
+<div class="cta">
+  <h2>在浏览器里试一次</h2>
+  <p>打开 RAW、调色、套 LUT、导出 JPEG —— 全程在本机完成，不上传，也不需要账号。</p>
+  <a class="btn" href="/">打开编辑器</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/about">关于与隐私</a><a href="/privacy">隐私政策</a><a href="/guides/">全部指南</a><a href="/get-luts">LUT 下载来源</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
 </body>
 </html>

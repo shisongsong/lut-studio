@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>Official camera LUT downloads and how to import them</title>
+<meta name="description" content="Where Panasonic, Fujifilm, Canon, Nikon and Sony publish their .cube LUTs, which log curve each expects, and how to import them locally.">
+<link rel="canonical" href="https://lut.openanthropic.com/en/get-luts">
+<link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/get-luts">
+<link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/get-luts">
+<link rel="alternate" hreflang="x-default" href="https://lut.openanthropic.com/en/get-luts">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<meta property="og:site_name" content="LUT ARCHIVE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Official camera LUT downloads and how to import them">
+<meta property="og:description" content="Where Panasonic, Fujifilm, Canon, Nikon and Sony publish their .cube LUTs, which log curve each expects, and how to import them locally.">
+<meta property="og:url" content="https://lut.openanthropic.com/en/get-luts">
+<meta property="og:image" content="https://lut.openanthropic.com/photos/zoom.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Official camera LUT downloads and how to import them">
+<meta name="twitter:description" content="Where Panasonic, Fujifilm, Canon, Nikon and Sony publish their .cube LUTs, which log curve each expects, and how to import them locally.">
+<meta name="twitter:image" content="https://lut.openanthropic.com/photos/zoom.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://lut.openanthropic.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Where vendor LUTs come from, and how to use them",
+      "item": "https://lut.openanthropic.com/en/get-luts"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Official camera LUT downloads and how to import them",
+  "description": "Where Panasonic, Fujifilm, Canon, Nikon and Sony publish their .cube LUTs, and how to import them locally.",
+  "inLanguage": "en",
+  "mainEntityOfPage": "https://lut.openanthropic.com/en/get-luts",
+  "url": "https://lut.openanthropic.com/en/get-luts",
+  "image": "https://lut.openanthropic.com/photos/zoom.jpg",
+  "datePublished": "2026-11-25",
+  "dateModified": "2026-11-25",
+  "author": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LUT ARCHIVE",
+    "url": "https://lut.openanthropic.com"
+  },
+  "articleSection": null
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Can I redistribute vendor LUTs?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Panasonic, Fujifilm, Canon, Nikon and Sony licence their LUTs for personal local use only, which is why this site does not bundle them. Download them yourself and import locally — the file never leaves your machine."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does a vendor LUT look washed out?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Almost always the input curve: a log LUT expects log-encoded input. Names containing F-Log / V-Log switch automatically; pick the rest manually in the input-curve panel."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I apply one to a JPEG?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, but the result is off by design: the LUT expects log input while a JPEG is sRGB. Try 30–60 % strength, or use one of the site’s photo-oriented looks instead."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the difference between the built-in looks and vendor LUTs?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The 64 built-in looks are original 33³ recipes designed for display-encoded photos and released under the MIT licence; vendor LUTs are conversion tables for that camera’s log curve, licensed for local personal use only."
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#f2f1ec; --muted:rgba(242,241,236,.58); --faint:rgba(242,241,236,.34);
+  --line:rgba(242,241,236,.14); --accent:#d9c7a3;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.7}
+img{max-width:100%;height:auto;display:block;border:1px solid var(--line)}
+a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(242,241,236,.28)}
+a:hover{border-color:var(--accent);color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.wide{max-width:1180px}
+header.site{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header.site .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;border:0;color:var(--ink)}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.brand:hover{color:var(--ink)}
+nav.site{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+nav.site a{border:0;color:var(--muted)}
+nav.site a:hover{color:var(--ink)}
+.lang{font-family:var(--mono);font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:5px 9px;color:var(--ink)}
+.lang:hover{border-color:var(--accent);color:var(--accent)}
+main{display:block;padding:64px 0 40px}
+.crumbs{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin:0 0 34px}
+.crumbs a{border:0;color:var(--faint)}
+.crumbs a:hover{color:var(--ink)}
+.crumbs span{margin:0 7px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin:0 0 14px}
+h1{font-size:clamp(30px,4.4vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.07;margin:0 0 20px;max-width:22ch}
+h2{font-size:clamp(20px,2.4vw,26px);font-weight:400;letter-spacing:-.01em;line-height:1.25;margin:52px 0 14px}
+h3{font-size:16px;font-weight:500;margin:28px 0 8px}
+p{margin:0 0 16px;color:rgba(242,241,236,.82);font-size:16px}
+.lede{font-size:18px;line-height:1.65;color:var(--muted);max-width:64ch;margin:0 0 26px}
+ul,ol{margin:0 0 18px;padding-left:22px}
+li{margin:0 0 8px;color:rgba(242,241,236,.82)}
+li strong,p strong{color:var(--ink);font-weight:500}
+code{font-family:var(--mono);font-size:.86em;background:rgba(242,241,236,.07);border:1px solid var(--line);padding:1px 5px}
+pre{background:rgba(242,241,236,.05);border:1px solid var(--line);padding:16px;overflow-x:auto}
+pre code{background:0;border:0;padding:0;font-size:12px;line-height:1.6}
+blockquote{margin:26px 0;padding:2px 0 2px 20px;border-left:2px solid var(--accent);color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td{color:rgba(242,241,236,.82)}
+.figure{margin:30px 0}
+.figure figcaption{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);padding-top:9px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}
+.facts div{background:var(--bg);padding:16px}
+.facts dt{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 6px}
+.facts dd{margin:0;font-size:15px;color:var(--ink)}
+.cta{margin:56px 0 0;padding:30px;border:1px solid var(--line);background:
+  radial-gradient(120% 160% at 0% 0%,rgba(217,199,163,.10),transparent 60%)}
+.cta h2{margin:0 0 8px;font-size:20px}
+.cta p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.btn{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#141414;border:1px solid var(--accent);padding:11px 18px;transition:.15s}
+.btn:hover{background:#e7d7b6;border-color:#e7d7b6;color:#141414}
+.btn.ghost{background:0;color:var(--ink);border-color:rgba(242,241,236,.4)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);padding:20px;transition:border-color .15s,background .15s;display:block;border-bottom:1px solid var(--line)}
+a.card:hover{border-color:rgba(217,199,163,.55);background:rgba(242,241,236,.03)}
+.card h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.card .tag{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin:0 0 10px}
+footer.site{border-top:1px solid var(--line);margin-top:72px;padding:30px 0 60px}
+footer.site .bar{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint)}
+footer.site a{border:0;color:var(--faint)}
+footer.site a:hover{color:var(--ink)}
+footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
+.lookgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:30px 0;padding:0;list-style:none}
+.look{border:1px solid var(--line);padding:14px 16px}
+.look b{display:block;font-weight:400;font-size:14px;color:var(--ink)}
+.look span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--faint);margin-top:5px;text-transform:uppercase}
+.toc{border:1px solid var(--line);padding:18px 22px;margin:28px 0}
+.toc p{margin:0 0 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.toc ol{margin:0;padding-left:18px}
+.toc li{margin:0 0 6px;font-size:14px}
+.faq{margin:26px 0 0}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-size:16px;color:var(--ink);list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";font-family:var(--mono);color:var(--accent);margin-right:10px}
+.faq details[open] summary::before{content:"−"}
+.faq .a{padding:12px 0 2px 22px;font-size:15px;color:rgba(242,241,236,.78)}
+.faq .a p{margin:0 0 10px}
+@media(max-width:720px){
+  nav.site{display:none}
+  main{padding:40px 0 24px}
+  .wrap,.wide{padding:0 18px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+</style>
+<script src="/js/beacon.js" defer></script>
+</head>
+<body>
+<header class="site"><div class="bar">
+  <a class="brand" href="/"><span class="dot"></span>LUT ARCHIVE</a>
+  <nav class="site" aria-label="Primary"><a href="/en/guides/">Guides</a><a href="/en/looks">64 looks</a><a href="/en/alternatives/lightroom-web">vs Lightroom</a><a href="/en/faq">FAQ</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></nav>
+  <a class="lang" href="https://lut.openanthropic.com/get-luts" hreflang="zh-CN">中文</a>
+</div></header>
+<article class="wrap">
+<div class="wrap">
+  <p class="crumbs"><a href="/">Home</a><span>/</span>Where vendor LUTs come from, and how to use them</p><p class="kicker">LUT SOURCES</p>
+  <h1>Where vendor LUTs come from, and how to use them</h1>
+  <p class="lede">Panasonic, Fujifilm, Canon, Nikon and Sony all publish their own .cube LUTs for free — but their terms only allow personal local use and forbid redistribution, which is why they are not in this site’s repository. Here are the official entry points, the log input each pack expects, and how to import one locally.</p>
+  <p class="crumbs"><span>Updated 2026-11-25</span><span>5 min read</span></p>
+</div>
+<p>The 64 looks that ship with the editor are original recipes under the MIT licence and can be <a href="/en/download">downloaded as a pack</a>. Vendor LUTs are a different thing: they are conversion tables built for that camera’s own log curve. Applied correctly they get very close to the manufacturer’s look; applied straight to an sRGB photo they blow out and shift colour — not because the LUT is broken, but because its input precondition is not met.</p>
+
+<h2 id="sources">Official download pages</h2>
+<table>
+<caption>Official vendor LUT sources (checked Nov 2026)</caption>
+<thead><tr><th scope="col">Brand</th><th scope="col">Official page</th><th scope="col">Input it expects</th></tr></thead>
+<tbody>
+<tr><th scope="row">Panasonic VariCam / EVA1</th><td>Arty looks for VariCam 35 and AU-EVA1, authored for V-Log input.<br><a href="https://pro-av.panasonic.net/en/cinema_camera_varicam_eva/support/lut/" rel="noopener">VariCam LUT Library →</a></td><td>V-Log</td></tr>
+<tr><th scope="row">Panasonic LUMIX</th><td>Conversion LUTs for LUMIX cameras shooting V-Log / V-Log L.<br><a href="https://av.jpn.support.panasonic.com/support/global/cs/dsc/download/lut/index.html" rel="noopener">LUMIX LUT download →</a></td><td>V-Log</td></tr>
+<tr><th scope="row">Fujifilm</th><td>Film Simulation 3D LUTs for F-Log / F-Log2 input, including several built-in film simulations.<br><a href="https://www.fujifilm-x.com/global/support/download/lut/" rel="noopener">Film Simulation 3D-LUT →</a></td><td>F-Log / F-Log2</td></tr>
+<tr><th scope="row">Canon</th><td>Look Files for Canon Log 2 / Canon Log 3, with the licence terms on the same page (read them first).<br><a href="https://color.ssw.imaging-saas.canon/color/en/pc/" rel="noopener">Canon Look File →</a></td><td>Canon Log 2 / 3</td></tr>
+<tr><th scope="row">Nikon</th><td>N-Log LUTs (version 2 added RED-style creative looks), authored for N-Log input.<br><a href="https://downloadcenter.nikonimglib.com/en/download/sw/258.html" rel="noopener">N-Log LUT →</a></td><td>N-Log</td></tr>
+<tr><th scope="row">Sony</th><td>Look Profiles for S-Log3 / S-Gamut3.Cine plus the s709 monitoring look, all free.<br><a href="https://pro.sony/ue_US/technology/professional-video-lut-look-up-table" rel="noopener">Sony LUT Library →</a></td><td>S-Log / S-Log2 / S-Log3</td></tr>
+</tbody>
+</table>
+<p>Some pages redirect by region or ask for an account; Nikon ships its LUTs as a Windows / macOS installer that unpacks <code>.cube</code> files into a <code>3DLUT</code> folder. Vendors change these URLs every few years — if one is dead, <a href="https://github.com/shisongsong/lut-studio/issues" rel="noopener">open an issue</a> and this page gets updated.</p>
+
+<h2 id="import">Three steps to import</h2>
+<ol>
+<li><strong>Download the .cube</strong> from the official page above (some are zips — unzip first).</li>
+<li><strong>Open the editor and import</strong>: in the <a href="/">browser editor</a>, press “Import LUT” at the bottom and choose the file. It is parsed locally, stored in the browser’s IndexedDB and appears under “My LUTs”; it survives a reload.</li>
+<li><strong>Confirm the input curve</strong>: files whose name carries F-Log / F-Log2 / V-Log switch automatically; for older files whose name says nothing, open the “Input curve” panel (the sRGB button at the bottom) and pick it manually.</li>
+</ol>
+
+<h2 id="log">Why the input curve matters</h2>
+<p>Log encoding flattens scene brightness: shadows are lifted so the 0–1 code range carries far more dynamic range than a display does. A vendor conversion LUT is authored for input that is already log-encoded — every code value corresponds to a known scene luminance. An ordinary photo is display-encoded sRGB, where the same shadow detail sits at a much higher code value. Feeding sRGB to a log LUT tells it “this shadow is far darker than it is”, so the image goes dark and the colour drifts. The input curve re-encodes the photo with the matching log transfer function before the table is sampled.</p>
+<p>Gamut is still treated as sRGB, so vendor LUTs land close to, but not byte-exact, the manufacturer’s output. The input curve only decides what the LUT receives — it is not a grade by itself. With no log LUT converting back to display, a washed-out picture is expected.</p>
+
+<h2 id="limits">The limits</h2>
+<ul>
+<li>Vendor terms cover personal local use only: never redistribute the files with a plugin, preset pack or site. Always point at the manufacturer’s page.</li>
+<li>These LUTs are made for log video. Judging one on a photo, start at 100 % strength but expect 30–60 % to look more natural.</li>
+<li>A LUT is a colour mapping: fully clipped highlights cannot come back, and RAW highlight recovery happens before the LUT — which is why this editor develops the RAW in 16-bit linear, applies the display transform, then samples the table.</li>
+<li>To fix two LUTs into one file, stack and <a href="/en/guides/merge-lut">merge them into a single .cube</a> in the editor and download that.</li>
+</ul>
+
+<h2 id="more">Related</h2>
+<p><a href="/en/guides/what-is-lut">What a LUT is (1D vs 3D, the log precondition)</a> · <a href="/en/download">Download this site’s 64 original LUTs</a> · <a href="/en/looks">The full look catalogue</a> · <a href="/en/guides/raw-in-browser">Opening a RAW in the browser</a> · <a href="/en/faq">FAQ</a></p>
+
+<div class="cta">
+  <h2>Try it in the browser</h2>
+  <p>Open a RAW, grade it, stack a look, export a JPEG — all on your machine, with no upload and no account.</p>
+  <a class="btn" href="/">Open the editor</a>
+</div>
+</article>
+<footer class="site"><div class="bar">
+  <span>© 2026 LUT ARCHIVE · MIT</span>
+  <div class="links"><a href="/en/about">About & privacy</a><a href="/en/privacy">Privacy</a><a href="/en/guides/">All guides</a><a href="/en/get-luts">LUT sources</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/shisongsong/lut-studio" rel="noopener">GitHub</a></div>
+</div></footer>
+</body>
+</html>

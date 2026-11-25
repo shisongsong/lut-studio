@@ -103,8 +103,15 @@ funnel step), that wins.
   Tri-X, Velvia 50, Leica Classic, …), each with a uniquely rendered
   before/after, the `.cube` download, `?look=<id>` CTA, and one honest
   "approximates the stock, not film data" line. Publish in batches of 4–6.
-- **C3 — `/en/get-luts` does not exist** (zh page is hand-written outside the
-  page system). Port it to a page module so hreflang/sitemap/JSON-LD come free.
+- **C3 — `/en/get-luts`: shipped 2026-11-25.** The hand-written zh-only
+  `public/get-luts.html` was ported to `scripts/site/pages/get-luts.mjs`, so both
+  languages are generated with hreflang pairs, JSON-LD, sitemap entries and the
+  standard nav. Content rewritten: vendor sources table (verified 2026-11-25 —
+  Nikon's old support link was dead and now points at the N-Log LUT v2.00
+  download page), the three-step import, the log-input explanation and the
+  redistribution limits, plus four FAQs. `/en/download` and `/en/looks` now link
+  the English mirror. Live: `/get-luts` and `/en/get-luts` (39 sitemap URLs
+  submitted to IndexNow).
 - **C4 — Distribution, in order of expected value:** one honest Show HN, one
   r/postprocessing before/after (never r/photography — Rule 1 bans promotion),
   Product Hunt with 4–5 real stills, V2EX /go/create, 少数派 社区作品. One good
