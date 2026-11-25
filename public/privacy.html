@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0a0b">
 <title>隐私政策：照片不上传，没有账号</title>
-<meta name="description" content="照片只在本机解码与渲染；没有账号、没有追踪 Cookie。唯一网络请求是页面资源与界面语言用的国家查询。">
+<meta name="description" content="照片只在本机解码与渲染；没有账号、没有追踪 Cookie、没有第三方分析脚本。唯一的统计是本站自己记录的匿名访问计数。">
 <link rel="canonical" href="https://lut.openanthropic.com/privacy">
 <link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/privacy">
 <link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/privacy">
@@ -16,7 +16,7 @@
 <meta property="og:site_name" content="LUT ARCHIVE">
 <meta property="og:type" content="article">
 <meta property="og:title" content="隐私政策：照片不上传，没有账号">
-<meta property="og:description" content="照片只在本机解码与渲染；没有账号、没有追踪 Cookie。唯一网络请求是页面资源与界面语言用的国家查询。">
+<meta property="og:description" content="照片只在本机解码与渲染；没有账号、没有追踪 Cookie、没有第三方分析脚本。唯一的统计是本站自己记录的匿名访问计数。">
 <meta property="og:url" content="https://lut.openanthropic.com/privacy">
 <meta property="og:image" content="https://lut.openanthropic.com/og.png">
 <meta property="og:image:width" content="1200">
@@ -25,7 +25,7 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="隐私政策：照片不上传，没有账号">
-<meta name="twitter:description" content="照片只在本机解码与渲染；没有账号、没有追踪 Cookie。唯一网络请求是页面资源与界面语言用的国家查询。">
+<meta name="twitter:description" content="照片只在本机解码与渲染；没有账号、没有追踪 Cookie、没有第三方分析脚本。唯一的统计是本站自己记录的匿名访问计数。">
 <meta name="twitter:image" content="https://lut.openanthropic.com/og.png">
 <script type="application/ld+json">
 {
@@ -52,12 +52,12 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "headline": "隐私政策",
-  "description": "LUT ARCHIVE 如何处理你的照片与数据：照片不上传，没有账号，没有追踪 Cookie。",
+  "description": "LUT ARCHIVE 如何处理你的照片与数据：照片不上传，没有账号，没有追踪 Cookie，只有一个汇总访问量的自有统计。",
   "inLanguage": "zh-CN",
   "mainEntityOfPage": "https://lut.openanthropic.com/privacy",
   "url": "https://lut.openanthropic.com/privacy",
-  "datePublished": "2026-11-19",
-  "dateModified": "2026-11-19",
+  "datePublished": "2026-11-25",
+  "dateModified": "2026-11-25",
   "author": {
     "@type": "Organization",
     "name": "LUT ARCHIVE",
@@ -167,6 +167,7 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
   .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
 }
 </style>
+<script src="/js/beacon.js" defer></script>
 </head>
 <body>
 <header class="site"><div class="bar">
@@ -179,26 +180,45 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
   <p class="crumbs"><a href="/">首页</a><span>/</span>照片不离开这台电脑</p><p class="kicker">隐私</p>
   <h1>照片不离开这台电脑</h1>
   <p class="lede">这一页只陈述实际发生的事，不写法律套话。</p>
-  <p class="crumbs"><span>更新 2026-11-19</span></p>
+  <p class="crumbs"><span>更新 2026-11-25</span></p>
 </div>
 <h2 id="photos">照片</h2>
-<p>照片在浏览器的 Web Worker 和 GPU 里解码、显影、渲染、导出。应用没有上传照片的接口，也没有任何代码会把图像数据发到服务器。你关掉标签页，照片就没了（除非你自己另存了导出的 JPEG）。</p>
+<p>照片在浏览器的 Web Worker 和 GPU 里解码、显影、渲染、导出。应用没有上传照片的接口，也没有任何代码会把图像数据发到服务器。你关掉标签页，照片就没了（除非你自己另存了导出的 JPEG）。<strong>统计请求里不包含照片、文件名、元数据或你导入的 LUT。</strong></p>
 
 <h2 id="network">网络请求</h2>
-<p>页面只会请求自己的资源：HTML、脚本、字体、示例图、LUT 数据包，以及第一次打开 RAW 时才下载的约 3.4 MB 解码器。此外有一个 <code>/api/geo</code> 请求，向 Cloudflare 查询你所在的国家代码，仅用于决定界面默认显示中文还是英文；它不包含照片，也不会被写入数据库。</p>
+<p>页面只会请求自己的资源：HTML、脚本、字体、示例图、LUT 数据包，以及第一次打开 RAW 时才下载的约 3.4 MB 解码器。此外有两个本站自己的接口：</p>
+<ul>
+  <li><code>/api/geo</code>：向 Cloudflare 查询你所在的国家代码，仅用于决定界面默认显示中文还是英文。</li>
+  <li><code>/api/beacon</code>：匿名的访问统计，见下一节。如果你的浏览器开启了「请勿追踪」（DNT），这个请求根本不会发出。</li>
+</ul>
+
+<h2 id="measure">访问统计</h2>
+<p>为了知道站点是否真的可用、哪些页面没人看、加载到底有多慢，本站记录一份汇总访问日志（存在 Cloudflare D1，不上传给任何第三方）。每次访问记录的内容只有：</p>
+<ul>
+  <li>访问的页面路径，以及来源网站的域名（例如 <code>google.com</code>，不记录完整来源链接）；</li>
+  <li>浏览器自己生成的随机访客编号（存在本机 localStorage，和你的身份无关，清除浏览器数据即可重置）；</li>
+  <li>界面语言、设备类型（桌面 / 平板 / 手机）、视口宽度；</li>
+  <li>性能指标（加载耗时、最大内容绘制、布局偏移）与几个功能事件的名称（例如「打开了照片」「套用了某个 LUT」「导出了 JPEG」）；</li>
+  <li>Cloudflare 边缘提供的两位国家代码。</li>
+</ul>
+<p>不记录：IP 地址（Worker 从不读取）、完整 User-Agent、Cookie、照片内容、文件名、你导入或合并的 LUT 内容、任何可以还原成具体个人的信息。项目不建立用户画像，也不把这些数据用于广告或出售。</p>
+<p><strong>如何退出统计</strong>：在浏览器里开启「请勿追踪」（Do Not Track），或在开发者工具里执行一次 <code>localStorage.setItem('lut.noTrack','1')</code> 后刷新页面。退出后编辑器功能完全不受影响。</p>
 
 <h2 id="local">本地存储</h2>
 <ul>
   <li>你导入的 <code>.cube</code> LUT 存在浏览器的 IndexedDB 里，只在本机。</li>
-  <li>界面语言、Fit/Fill 选择、自动亮度开关这类偏好存在 localStorage。</li>
-  <li>没有登录、没有 Cookie 追踪、没有第三方分析脚本、没有广告。</li>
+  <li>界面语言、自动亮度开关这类偏好，以及上面那个随机访客编号，存在 localStorage。</li>
+  <li>没有登录、没有 Cookie、没有第三方分析脚本、没有广告。</li>
 </ul>
+
+<h2 id="retention">保留时间</h2>
+<p>访问日志只保留最近 180 天，之后由维护脚本删除；汇总报表里不含任何可以指向个人的字段。</p>
 
 <h2 id="hosting">托管</h2>
 <p>站点托管在 Cloudflare Workers 上。和所有网站一样，托管方会为传输和安全目的处理请求元数据（IP、User-Agent、时间）。项目本身不建立用户档案，也不把这些数据用于分析或营销。</p>
 
 <h2 id="changes">变更</h2>
-<p>如果这份政策有实质变化，会随代码一起提交，可以在 <a href="https://github.com/shisongsong/lut-studio" rel="noopener">仓库</a> 的历史里查到。</p>
+<p>如果这份政策有实质变化，会随代码一起提交，可以在 <a href="https://github.com/shisongsong/lut-studio" rel="noopener">仓库</a> 的历史里查到。这份统计是 2026-11-25 加入的。</p>
 
 <div class="cta">
   <h2>在浏览器里试一次</h2>

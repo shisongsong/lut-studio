@@ -399,6 +399,7 @@ ${page.robots ? `<meta name="robots" content="${page.robots}">` : ''}
 <meta name="twitter:image" content="${absolute(page.image || '/og.png')}">
 ${headJsonLd}
 <style>${CSS}</style>
+<script src="/js/beacon.js" defer></script>
 </head>
 <body>
 ${navHtml(lang, altUrl)}

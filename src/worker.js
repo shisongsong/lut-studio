@@ -1,7 +1,7 @@
 /**
  * LUT ARCHIVE — Cloudflare Worker.
  *
- * Static assets are served from env.ASSETS. The worker adds three things on top:
+ * Static assets are served from env.ASSETS. The worker adds, on top of that:
  *
  *  1. clean URLs. The crawlable pages are generated as `foo.html` files but are
  *     canonical without the extension (`/guides/raw-in-browser`), so `.html` is
@@ -9,8 +9,14 @@
  *     with `.html` / `/index.html`. Without this every page would have two URLs
  *     and Google would pick one for us.
  *  2. a real 404 page instead of the assets binding's bare "Not Found".
- *  3. /api/geo, the only dynamic route: Cloudflare's two-letter country code so
- *     the client can pick its initial language.
+ *  3. /api/geo, the country hint the client uses for its initial language.
+ *  4. /api/beacon, first-party, cookieless analytics (see public/js/beacon.js):
+ *     pageviews, the product funnel and field Core Web Vitals go to D1. Crawler
+ *     hits are counted separately so the daily report can tell "nobody visits"
+ *     apart from "crawlers visit but the pages lose the ranking".
+ *  5. cache headers that tell the truth: fonts, vendor binaries and marketing
+ *     photos change only on a redesign, so they may sit in the browser cache;
+ *     HTML and app JS stay on a short TTL because they change together.
  *
  * `run_worker_first` is on in wrangler.jsonc so these redirects are ours and
  * not the assets layer's temporary 307s: a permanent redirect is what tells a
@@ -20,6 +26,11 @@
  * Worker responses on its own, so an origin-compressed body ends up compressed
  * twice and the browser only undoes one layer. The LUT pack is instead shipped
  * as a plain `luts.bin.gz` asset that the page inflates itself.
+ *
+ * Analytics privacy: no IP address is stored (it is never read), the user agent
+ * is reduced to a short label, the referrer to a bare hostname, and the visitor
+ * id is random and browser-generated. Nothing here links a visit to a photo —
+ * photos never leave the device at all.
  */
 import { notFoundHtml } from './not-found.js';
 
@@ -36,6 +47,9 @@ const notFound = () =>
 const REDIRECT = (location, status = 301) =>
   new Response(null, { status, headers: { location, 'cache-control': 'public, max-age=3600' } });
 
+const noContent = () =>
+  new Response(null, { status: 204, headers: { 'cache-control': 'no-store' } });
+
 function withHeaders(response, headers) {
   const next = new Response(response.body, response);
   for (const [name, value] of Object.entries(headers)) next.headers.set(name, value);
@@ -48,10 +62,225 @@ async function asset(env, request, pathname) {
   return env.ASSETS.fetch(new Request(url, request));
 }
 
+// ---- crawler classification ------------------------------------------------
+// Order matters: the named crawlers are also matched by the generic pattern, so
+// test the specific ones first. AI crawlers are tracked by name on purpose: the
+// pages are written for answer engines too, and this is the only way to know
+// whether they actually arrive.
+const NAMED_BOTS = [
+  [/googlebot|google-inspectiontool|googleother/i, 'googlebot'],
+  [/bingbot|bingpreview|adidxbot/i, 'bingbot'],
+  [/baiduspider/i, 'baiduspider'],
+  [/yandex(bot|images)/i, 'yandexbot'],
+  [/applebot/i, 'applebot'],
+  [/duckduckbot/i, 'duckduckbot'],
+  [/gptbot|openai/i, 'gptbot'],
+  [/claudebot|claude-web|anthropic/i, 'claudebot'],
+  [/perplexitybot|perplexity/i, 'perplexitybot'],
+  [/ccbot|commoncrawl/i, 'ccbot'],
+  [/bytespider/i, 'bytespider'],
+  [/petalbot|huaweicloud/i, 'petalbot'],
+  [/semrushbot|ahrefsbot|mj12bot|dotbot|dataforseo|screaming frog/i, 'seo-tools'],
+  [/amazonbot/i, 'amazonbot'],
+  [/facebookexternalhit|twitterbot|linkedinbot|telegrambot|whatsapp|slackbot/i, 'social-preview'],
+  [/curl\/|wget\/|python-requests|python-urllib|go-http-client|okhttp|axios\/|node-fetch|undici|postman/i, 'script'],
+  [/headlesschrome|puppeteer|playwright|lighthouse|chrome-lighthouse/i, 'headless-browser'],
+  [/bot\b|crawler|spider|slurp|crawl/i, 'other-bot'],
+];
+
+function classifyBot(ua) {
+  if (!ua) return 'no-ua';
+  for (const [re, name] of NAMED_BOTS) if (re.test(ua)) return name;
+  return '';
+}
+
+// A URL a crawler would consider a page (not an asset request).
+function looksLikePage(path) {
+  return !path.includes('.');
+}
+
+// ---- analytics -------------------------------------------------------------
+const DAY_OFFSET_SECONDS = 8 * 60 * 60; // reports are in the owner's UTC+8 day
+
+function dayOf(ts) {
+  return new Date((ts + DAY_OFFSET_SECONDS) * 1000).toISOString().slice(0, 10);
+}
+
+function clip(value, max) {
+  if (typeof value !== 'string') return '';
+  return value.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, max);
+}
+
+function intIn(value, min, max) {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return null;
+  return Math.min(max, Math.max(min, n));
+}
+
+function cleanPath(value) {
+  let path = clip(value, 120);
+  if (!path.startsWith('/')) path = '/' + path;
+  if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
+  return path || '/';
+}
+
+function validVid(value) {
+  const vid = typeof value === 'string' ? value : '';
+  return /^[a-z0-9]{6,24}$/.test(vid) ? vid : '';
+}
+
+const DEVICES = new Set(['desktop', 'tablet', 'mobile']);
+
+async function handleBeacon(request, env, ctx) {
+  if (request.method !== 'POST') return noContent();
+
+  // Same-origin only. sendBeacon from the site sends `Origin`; a curl drive-by
+  // usually does not, so a missing origin is accepted but a foreign one is not.
+  const origin = request.headers.get('origin');
+  if (origin) {
+    let originHost = '';
+    try {
+      originHost = new URL(origin).host;
+    } catch {
+      return noContent();
+    }
+    if (originHost && originHost !== new URL(request.url).host) return noContent();
+  }
+
+  let body;
+  try {
+    const text = await request.text();
+    if (text.length > 4096) return noContent();
+    body = JSON.parse(text);
+  } catch {
+    return noContent();
+  }
+  if (!body || typeof body !== 'object') return noContent();
+  if (!env.DB) return noContent();
+
+  const ua = request.headers.get('user-agent') || '';
+  if (classifyBot(ua)) return noContent(); // do not let crawlers pollute human data
+
+  const now = Math.floor(Date.now() / 1000);
+  const day = dayOf(now);
+  const country = clip((request.cf && request.cf.country) || '', 4);
+  const base = body.b && typeof body.b === 'object' ? body.b : {};
+  const vid = validVid(base.vid);
+  if (!vid) return noContent();
+
+  const path = cleanPath(base.p);
+  const device = DEVICES.has(base.d) ? base.d : '';
+  const kind = body.t;
+
+  const write = (async () => {
+    try {
+      if (kind === 'p') {
+        await env.DB.prepare(
+          `INSERT INTO visits (day, ts, vid, path, ref, country, lang, device, client, new_visitor, vw, ua)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+          .bind(
+            day,
+            now,
+            vid,
+            path,
+            clip(base.r, 60),
+            country,
+            clip(base.l, 12),
+            device,
+            'browser',
+            base.n ? 1 : 0,
+            intIn(base.w, 0, 8000),
+            uaFamily(ua) // coarse family label, never the raw UA string
+          )
+          .run();
+      } else if (kind === 'v') {
+        const v = body.v && typeof body.v === 'object' ? body.v : {};
+        await env.DB.prepare(
+          `INSERT INTO vitals (day, ts, vid, path, device, country, lcp, inp, cls, ttfb, fcp)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+          .bind(
+            day,
+            now,
+            vid,
+            path,
+            device,
+            country,
+            intIn(v.lcp, 0, 120000),
+            intIn(v.inp, 0, 120000),
+            intIn(v.cls, 0, 100000),
+            intIn(v.ttfb, 0, 120000),
+            intIn(v.fcp, 0, 120000)
+          )
+          .run();
+      } else if (kind === 'e') {
+        const name = clip(body.n, 40);
+        if (!name) return;
+        await env.DB.prepare(
+          `INSERT INTO events (day, ts, vid, name, path, meta, country, device)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+          .bind(day, now, vid, name, path, clip(body.m, 160), country, device)
+          .run();
+      }
+    } catch {
+      // Analytics must never take the site down; a failed insert is dropped.
+    }
+  })();
+
+  ctx.waitUntil(write);
+  return noContent();
+}
+
+// The stored label is a coarse browser family, not the raw UA string.
+function uaFamily(ua) {
+  if (!ua) return '';
+  if (/edg\//i.test(ua)) return 'edge';
+  if (/opr\/|opera/i.test(ua)) return 'opera';
+  if (/firefox\//i.test(ua)) return 'firefox';
+  if (/chrome\/|crios\//i.test(ua)) return 'chrome';
+  if (/safari\//i.test(ua)) return 'safari';
+  if (/micromessenger|wechat/i.test(ua)) return 'wechat';
+  return 'other';
+}
+
+async function logBotHit(env, request, path) {
+  if (!env.DB || !looksLikePage(path)) return;
+  const bot = classifyBot(request.headers.get('user-agent') || '');
+  if (!bot) return;
+  const now = Math.floor(Date.now() / 1000);
+  try {
+    await env.DB.prepare('INSERT INTO bot_hits (day, ts, bot, path, status) VALUES (?, ?, ?, ?, ?)')
+      .bind(dayOf(now), now, bot, cleanPath(path), 200)
+      .run();
+  } catch {
+    /* dropped, see above */
+  }
+}
+
+// ---- cache policy ----------------------------------------------------------
+// Fonts, the decoder binaries and the marketing photos are effectively app
+// version-independent: a stale copy is invisible. If the RAW decoder is ever
+// upgraded, move it to a new /vendor/flashraw-<version>/ directory instead of
+// reusing this path, otherwise browsers keep the old binary for a week.
+const LONG_LIVED = /^\/(fonts|vendor|photos)\//;
+
+function cacheControlFor(path) {
+  if (LONG_LIVED.test(path) || path === '/og.png' || path === '/favicon.svg') {
+    return 'public, max-age=604800, stale-while-revalidate=86400';
+  }
+  // HTML is handled separately; app JS, the LUT pack and looks.json change
+  // together on deploy, so they stay on a short TTL with revalidation.
+  return 'public, max-age=300, must-revalidate';
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    if (path === '/api/beacon') return handleBeacon(request, env, ctx);
 
     if (path === '/api/geo') {
       const country = (request.cf && request.cf.country) || 'US';
@@ -62,6 +291,9 @@ export default {
         },
       });
     }
+
+    // Count crawler page fetches once per request, in the background.
+    if (request.method === 'GET') ctx.waitUntil(logBotHit(env, request, path));
 
     // One canonical form per page: /index.html and /foo.html both redirect to
     // the clean URL a crawler should index. Google Search Console verification
@@ -106,6 +338,9 @@ export default {
     // from being invisible for hours without forcing a revalidation per request.
     if ((response.headers.get('content-type') || '').includes('text/html')) {
       return withHeaders(response, { 'cache-control': 'public, max-age=300, must-revalidate' });
+    }
+    if (response.status === 200) {
+      return withHeaders(response, { 'cache-control': cacheControlFor(path) });
     }
     return response;
   },

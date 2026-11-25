@@ -390,6 +390,7 @@ a.tbtn{text-decoration:none}
   *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
 }
 </style>
+<script src="/js/beacon.js" defer></script>
 </head>
 <body>
 <noscript>
@@ -583,6 +584,19 @@ import { neutralAutoValues, cameraAutoTargets, solveCameraAutoTone } from '/js/a
 import { evStats } from '/js/tone-curve.js';
 
 const $ = (s) => document.querySelector(s);
+
+// ---- first-party analytics (js/beacon.js) -------------------------------
+// Product-funnel events only: the path a visitor takes, never anything about
+// the photo. window.lutTrack is absent when the visitor opted out, so every
+// call site must tolerate that.
+function track(name, meta){ try { if (window.lutTrack) window.lutTrack(name, meta); } catch (e) {} }
+let trackReady = false;
+let trackLook = false;
+function trackWhenReady(){
+  if (trackReady || !state.demoLoaded || !state.lutsReady) return;
+  trackReady = true;
+  track('ready', { ms: Math.round(performance.now()) });
+}
 const el = {
   app: $('#app'), field: $('#field'), base: $('#base'), layerA: $('#layerA'), layerB: $('#layerB'),
   bottom: $('.bottom'), film: $('#film'), lookNo: $('#lookNo'),
@@ -1126,6 +1140,7 @@ async function loadDemoImage(){
     updateToneGuide(source);
     el.lqip?.remove();
     state.demoLoaded = true;
+    trackWhenReady();
     resetViewForPhoto();
     el.metaDims.textContent = `${source.width} × ${source.height}`;
     sizeCanvases();
@@ -1144,6 +1159,7 @@ async function loadLutsInBackground(){
     const buf = await loadLutPack();
     luts = new Uint8Array(buf);
     state.lutsReady = true;
+    trackWhenReady();
     setLoadTask('luts', null);
     render({ instant: true });
     setLookText();
@@ -2338,6 +2354,7 @@ async function handleImport(files){
       el.importError.hidden = true;
       el.importError.textContent = '';
     }
+    if (ok) track('cube', { n: ok });
     toast(ok ? t(state.lang, 'importOk').replace('{n}', String(ok)) : t(state.lang, 'importFail'), problems.length ? 6000 : 2400);
   } finally {
     busyHide();
@@ -2504,6 +2521,7 @@ function renderFilmThumbs(){
 }
 
 function selectLook(id, slot = 'A'){
+  if (!trackLook) { trackLook = true; track('look', { id }); }
   state.noLook = false;
   if (state.dual.enabled && slot === 'B') {
     if (state.dual.b !== id) state.logManual = false;
@@ -2950,6 +2968,7 @@ function applyAutoTone() {
   });
   setTone(values);
   commitAutoTone();
+  track('autotone', {});
 }
 
 function togglePick(force) {
@@ -3146,6 +3165,7 @@ async function exportImage(quality){
     a.href = URL.createObjectURL(blob);
     const tag = state.noLook ? 'developed' : `${state.dual.enabled ? 'dual-' : ''}${state.look}`;
     a.download = `lut-archive-${tag}-${quality}pct-${Date.now()}.jpg`;
+    track('export', { w, h, q: quality, mb: Math.round((blob.size || 0) / 1048576) });
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 3000);
     toast(`${t(state.lang, 'exportDone')} ${w}×${h} · ${(blob.size / 1024 / 1024).toFixed(1)} MB`);
@@ -3292,7 +3312,11 @@ function bind(){
     if (source?.cameraStats) fitCameraLookFromStats();
     else render();
   });
-  el.langBtn.addEventListener('click', () => applyLang(state.lang === 'zh' ? 'en' : 'zh'));
+  el.langBtn.addEventListener('click', () => {
+    const next = state.lang === 'zh' ? 'en' : 'zh';
+    applyLang(next);
+    track('lang', { to: next });
+  });
 
   // ---------- zoom / pan on the photo stage ----------
   // Pinch and drag are pointer-event based, so the same code drives touch, pen
@@ -3878,6 +3902,7 @@ async function loadFile(file){
     state.rawMeta = null;
     beginPhoto(0);
     applyCanvasImage(img, file.name);
+    track('photo', { kind: 'image', mb: Math.round((file.size || 0) / 1048576) });
     setDevelop(true);
   } catch { toast(t(state.lang, 'formatError')); }
   finally { busyHide(); }
@@ -3929,6 +3954,7 @@ async function loadRaw(file){
       busyUpdate({ step: 2, progress: 1 });
       state.rawMeta = { model: out.model || '', width: out.width, height: out.height };
       beginPhoto(out.exposureEV || 0);
+      track('photo', { kind: 'raw', mb: Math.round((file.size || 0) / 1048576) });
       const ev = state.autoBright && state.rawExposure
         ? ` · ${t(state.lang, 'autoBright')} ${state.rawExposure >= 0 ? '+' : ''}${state.rawExposure.toFixed(1)} EV`
         : '';

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0a0b">
 <title>Privacy policy: no uploads, no account</title>
-<meta name="description" content="Photos are decoded and rendered on your machine only. No account, no tracking cookies; the only network requests are app assets and a country lookup.">
+<meta name="description" content="Photos are decoded and rendered on your machine only. No account, no tracking cookies, no third-party analytics — just one anonymous first-party visit counter.">
 <link rel="canonical" href="https://lut.openanthropic.com/en/privacy">
 <link rel="alternate" hreflang="zh-CN" href="https://lut.openanthropic.com/privacy">
 <link rel="alternate" hreflang="en" href="https://lut.openanthropic.com/en/privacy">
@@ -16,7 +16,7 @@
 <meta property="og:site_name" content="LUT ARCHIVE">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Privacy policy: no uploads, no account">
-<meta property="og:description" content="Photos are decoded and rendered on your machine only. No account, no tracking cookies; the only network requests are app assets and a country lookup.">
+<meta property="og:description" content="Photos are decoded and rendered on your machine only. No account, no tracking cookies, no third-party analytics — just one anonymous first-party visit counter.">
 <meta property="og:url" content="https://lut.openanthropic.com/en/privacy">
 <meta property="og:image" content="https://lut.openanthropic.com/og.png">
 <meta property="og:image:width" content="1200">
@@ -25,7 +25,7 @@
 <meta property="og:locale:alternate" content="zh_CN">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Privacy policy: no uploads, no account">
-<meta name="twitter:description" content="Photos are decoded and rendered on your machine only. No account, no tracking cookies; the only network requests are app assets and a country lookup.">
+<meta name="twitter:description" content="Photos are decoded and rendered on your machine only. No account, no tracking cookies, no third-party analytics — just one anonymous first-party visit counter.">
 <meta name="twitter:image" content="https://lut.openanthropic.com/og.png">
 <script type="application/ld+json">
 {
@@ -52,12 +52,12 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "headline": "Privacy policy",
-  "description": "How LUT ARCHIVE handles your photos and data: no upload, no account, no tracking cookies.",
+  "description": "How LUT ARCHIVE handles your photos and data: no upload, no account, no tracking cookies, one aggregate first-party counter.",
   "inLanguage": "en",
   "mainEntityOfPage": "https://lut.openanthropic.com/en/privacy",
   "url": "https://lut.openanthropic.com/en/privacy",
-  "datePublished": "2026-11-19",
-  "dateModified": "2026-11-19",
+  "datePublished": "2026-11-25",
+  "dateModified": "2026-11-25",
   "author": {
     "@type": "Organization",
     "name": "LUT ARCHIVE",
@@ -167,6 +167,7 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
   .facts{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
 }
 </style>
+<script src="/js/beacon.js" defer></script>
 </head>
 <body>
 <header class="site"><div class="bar">
@@ -179,26 +180,45 @@ footer.site .links{display:flex;flex-wrap:wrap;gap:16px}
   <p class="crumbs"><a href="/">Home</a><span>/</span>Your photos stay on your computer</p><p class="kicker">PRIVACY</p>
   <h1>Your photos stay on your computer</h1>
   <p class="lede">This page only describes what actually happens. No legal boilerplate.</p>
-  <p class="crumbs"><span>Updated 2026-11-19</span></p>
+  <p class="crumbs"><span>Updated 2026-11-25</span></p>
 </div>
 <h2 id="photos">Photos</h2>
-<p>Photos are decoded, developed, rendered and exported inside the browser, in a Web Worker and on the GPU. There is no upload endpoint and no code path that sends image data to a server. Close the tab and the photo is gone, unless you saved the exported JPEG yourself.</p>
+<p>Photos are decoded, developed, rendered and exported inside the browser, in a Web Worker and on the GPU. There is no upload endpoint and no code path that sends image data to a server. Close the tab and the photo is gone, unless you saved the exported JPEG yourself. <strong>The visit statistics never include your photo, its file name, its metadata, or any LUT you imported.</strong></p>
 
 <h2 id="network">Network requests</h2>
-<p>The page only requests its own assets: HTML, scripts, fonts, the sample photo, the LUT pack, and the ~3.4 MB decoder that is fetched the first time a RAW is opened. There is one <code>/api/geo</code> request to Cloudflare that returns a two-letter country code, used solely to choose the initial interface language. It carries no photo data and is not written to a database.</p>
+<p>The page only requests its own assets: HTML, scripts, fonts, the sample photo, the LUT pack, and the ~3.4 MB decoder that is fetched the first time a RAW is opened. There are two endpoints of our own:</p>
+<ul>
+  <li><code>/api/geo</code> — returns a two-letter country code from Cloudflare, used solely to pick the initial interface language.</li>
+  <li><code>/api/beacon</code> — the anonymous visit counter described below. If your browser sends Do Not Track, this request is never made at all.</li>
+</ul>
+
+<h2 id="measure">Visit statistics</h2>
+<p>So that we can tell whether the site actually works, which pages nobody reads, and how slow the load really is, the site keeps one aggregate visit log (in Cloudflare D1, never sent to a third party). Each visit records only:</p>
+<ul>
+  <li>the page path, and the hostname of the referring site (e.g. <code>google.com</code> — never the full referring URL);</li>
+  <li>a random visitor id the browser generates itself and keeps in localStorage; it is not derived from you, and clearing site data resets it;</li>
+  <li>interface language, device class (desktop / tablet / phone), viewport width;</li>
+  <li>performance numbers (load timing, largest contentful paint, layout shift) and the names of a few feature events (e.g. "opened a photo", "applied a LUT", "exported a JPEG");</li>
+  <li>the two-letter country code supplied by Cloudflare's edge.</li>
+</ul>
+<p>Never recorded: IP address (the Worker never reads it), full User-Agent string, cookies, photo content, file names, imported or merged LUT contents, or anything that could be traced back to a person. No profiles are built, and the data is not sold or used for advertising.</p>
+<p><strong>Opting out</strong>: enable Do Not Track in the browser, or run <code>localStorage.setItem('lut.noTrack','1')</code> once in the developer console and reload. The editor is unaffected.</p>
 
 <h2 id="local">Local storage</h2>
 <ul>
   <li><code>.cube</code> LUTs you import are stored in the browser's IndexedDB, on this machine only.</li>
-  <li>Preferences such as interface language, Fit/Fill and the auto-brightness toggle are stored in localStorage.</li>
-  <li>No sign-in, no tracking cookies, no third-party analytics, no ads.</li>
+  <li>Preferences such as interface language and the auto-brightness toggle, plus the random visitor id mentioned above, live in localStorage.</li>
+  <li>No sign-in, no cookies, no third-party analytics, no ads.</li>
 </ul>
+
+<h2 id="retention">Retention</h2>
+<p>Visit rows are kept for 180 days and then deleted by the maintenance script. Report output contains no per-person fields.</p>
 
 <h2 id="hosting">Hosting</h2>
 <p>The site runs on Cloudflare Workers. As with any website, the host processes request metadata (IP address, User-Agent, timestamp) for delivery and security. The project does not build user profiles or use that data for analytics or marketing.</p>
 
 <h2 id="changes">Changes</h2>
-<p>If this policy changes materially, the change lands with the code and is visible in the <a href="https://github.com/shisongsong/lut-studio" rel="noopener">repository</a> history.</p>
+<p>If this policy changes materially, the change lands with the code and is visible in the <a href="https://github.com/shisongsong/lut-studio" rel="noopener">repository</a> history. The visit counter was added on 2026-11-25.</p>
 
 <div class="cta">
   <h2>Try it in the browser</h2>

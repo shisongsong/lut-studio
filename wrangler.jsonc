@@ -7,6 +7,16 @@
   // `custom_domain` lets wrangler create the DNS record + certificate.
   // Remove this block to deploy to *.workers.dev instead.
   "routes": [{ "pattern": "lut.openanthropic.com", "custom_domain": true }],
+  // First-party analytics (pageviews, funnel events, field Core Web Vitals and
+  // crawler hits). Schema: scripts/analytics-schema.sql. This is the only state
+  // the site has; photos still never leave the browser.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lut-studio-db",
+      "database_id": "fa2d28cf-7395-4d6d-997a-7b733a830e54"
+    }
+  ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",

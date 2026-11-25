@@ -22,7 +22,10 @@
     "build:site": "node scripts/build-site.mjs",
     "seo:audit": "node scripts/seo-audit.mjs",
     "seo:validate": "node scripts/seo-validate.mjs",
-    "indexnow": "node scripts/indexnow.mjs"
+    "indexnow": "node scripts/indexnow.mjs",
+    "traffic": "node scripts/traffic-report.mjs",
+    "traffic:prune": "node scripts/traffic-report.mjs --prune",
+    "db:schema": "npx wrangler d1 execute lut-studio-db --remote --file scripts/analytics-schema.sql"
   },
   "devDependencies": {
     "wrangler": "^4.85.0"
