@@ -75,12 +75,16 @@ funnel step), that wins.
   see B5) and the 44 px Apple-HIG target is only reached by width+gap, not height.
   A transparent `::after` expansion was tried first and failed the hit probe
   (rows painted later won the hit test) — do not retry it.
-- **B4 — English mode: leaks fixed 2026-11-25; switch cost remains.** All the
-  leaked strings now have `t()` keys and are updated by `applyLang()` (nav, intro
-  wait, close `aria-label`s, merge `title`, import sheet copy). Measured after the
-  fix, the only Chinese left in EN mode is the `中文` toggle itself. Still open:
-  the switch rebuilds the 65-chip strip (280–390 ms) — update text nodes in place
-  instead of calling `buildFilm()` when the inventory has not changed.
+- **B4 — English mode: leaks fixed 2026-11-25; switch cost fixed too.** All the
+  leaked strings have `t()` keys and are updated by `applyLang()`; the only
+  Chinese left in EN mode is the `中文` toggle itself. The switch no longer
+  rebuilds the strip: `applyLang()` updates the chip labels and category labels
+  in place, and only calls `buildFilm()` if the inventory changed underneath it.
+  Measured on the same harness: click-to-paint **208 ms → 112 ms p50** (n=3), and
+  the thumbnails are no longer touched at all (canvas hashes identical before and
+  after the switch, 0 chips re-entering the `loading` state — previously all 65
+  were reset to skeletons and repainted). A category filter now also survives a
+  language switch (verified: FILM filter kept, 10 visible chips, labels updated).
 - **B5 — Mobile readability: shipped 2026-11-25.** A `@media(max-width:820px)`
   block at the **end** of the stylesheet (order matters — the develop-panel base
   rules are declared later than the first mobile block, so an override placed

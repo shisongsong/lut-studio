@@ -3264,15 +3264,30 @@ function applyLang(lang, { persist = true } = {}){
   el.exportSheet.querySelector('.export-sub').textContent = t(lang, 'exportSub');
   el.exportConfirm.textContent = t(lang, 'exportBtn');
   el.exportSheet.querySelector('.export-note').textContent = t(lang, 'exportNote');
-  buildCats();
   setLookText();
   updateSlotUI();
-  el.film.querySelectorAll('.chip').forEach(c => {
-    const nm = c.querySelector('.nm');
-    if (c.dataset.id === '__none') { nm.textContent = t(lang, 'original'); return; }
-    const look = allLooks().find(l => l.id === c.dataset.id);
-    if (look) nm.textContent = displayName(look, lang);
-  });
+  // A language switch changes chip *labels*, not the strip itself. Rebuilding
+  // the DOM (the old behaviour) reset every thumbnail to a skeleton and then
+  // repainted all 65 looks for a text change. Update the labels in place; only
+  // rebuild if the inventory changed underneath us.
+  const inventory = allLooks();
+  if (el.film.children.length === inventory.length + 1) {
+    el.film.querySelectorAll('.chip').forEach((chip) => {
+      const nm = chip.querySelector('.nm');
+      if (!nm) return;
+      if (chip.dataset.id === '__none') { nm.textContent = t(lang, 'original'); return; }
+      const look = inventory.find((l) => l.id === chip.dataset.id);
+      if (look) nm.textContent = displayName(look, lang);
+    });
+  } else {
+    buildFilm();
+  }
+  // Category buttons keep their nodes (and the active filter), only the label
+  // changes.
+  const catButtons = el.cats.querySelectorAll('button');
+  const cats = catList();
+  if (catButtons.length === cats.length) catButtons.forEach((b, i) => { b.textContent = cats[i].label; });
+  else buildCats();
   updateQualityDims();
 }
 
