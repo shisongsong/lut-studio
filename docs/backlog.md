@@ -42,11 +42,22 @@ funnel step), that wins.
   still blocks ~90–120 ms, because the six-to-ten 240 px WebGL read-backs are
   synchronous. A worker refactor is the real fix; it is a half-day job and it must
   keep `npm run test:tone`'s exact slider contracts.
-- **B2 — 1.34 MB LUT pack is a monolith on the critical path.** Ready-to-looks
-  9.7 s on a 1.6 Mbps/4× CPU profile. Options, in order of value: split the pack
-  per category (or the ~16 looks nearest the selected category first) so the
-  strip fills progressively; ship the 21³ subset in front of the 33³ pack.
-  Measure with `events`: `looks` (ms) should drop, `ready` must not move.
+- **B2 — LUT pack: progressive decode shipped 2026-11-25.** The pack is a
+  header plus one independent delta-coded block per look, so the client now
+  decodes blocks *as the gzip stream arrives* instead of waiting for the whole
+  1.34 MB (`streamLutPack` / `noteLutBytes`). Readiness became a count
+  (`lutReadyCount`), `lutData()` returns null for blocks still in flight, the
+  strip repaints as blocks land, a chip whose look has not arrived shows a toast
+  instead of selecting nothing, and a `?look=` deep link is retried until its
+  block arrives. Measured (headless, 1.6 Mbps / 250 ms RTT, local server):
+  **first look 17 ms normal / 627 ms throttled** (before: nothing until the whole
+  pack finished, ~9.7 s on the same profile), half the strip at 7.4 s, full pack
+  7.2 s, all 65 thumbnails painted at the end, deep link to the *last* look
+  applies at 7.3 s when its block lands, no console errors. Fallback to the plain
+  `luts.bin` still works (verified by blocking the .gz). New telemetry:
+  `events.looks-first` (first block) in addition to `events.looks` (whole pack).
+  Still open: on a metered connection the full pack is still downloaded in the
+  background; a `saveData`/2G variant could stop after the first N blocks.
 - **B3 — Mobile tap targets: key ones fixed 2026-11-25, rest open.** The quick
   bar buttons are now real 40 px-tall boxes (photo 38, tone/export/zoom/import 40),
   top-bar links 34–36 px, category chips 30 px — measured on 390 px before/after:

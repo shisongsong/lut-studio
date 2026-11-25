@@ -32,6 +32,7 @@ export const I18N = {
     pickHint: '点画面里的中性灰或白色', pickTooDark: '这里太暗了，换个亮一点的地方',
     picked: '白平衡已取点', autoToneDone: '自动色调已应用', resetDone: '已重置色调参数',
     lutLoading: 'LUT 加载中…', lutInflating: '解压 LUT…', lutLoadFailed: 'LUT 加载失败 · 点击重试',
+    lookLoading: '这支 look 还在下载，稍等一下',
     autoToneTitle: '自动色调：按直方图摆好曝光、对比度、高光、阴影、白色、黑色',
     // Static chrome that the language switch used to leave in Chinese.
     navGuides: '指南', navLooks: 'LUT 目录', introWait: 'LOADING · 加载中',
@@ -95,7 +96,8 @@ export const I18N = {
     devHint: 'Drag to see it live. Use the eyedropper for a grey or white reference. Nothing leaves this device.',
     pickHint: 'Click a neutral grey or white in the photo', pickTooDark: 'Too dark there — pick a brighter spot',
     picked: 'White balance set', autoToneDone: 'Auto tone applied', resetDone: 'Develop settings reset',
-    lutLoading: 'Loading LUTs…', lutInflating: 'Unpacking LUTs…', lutLoadFailed: 'LUTs failed to load · tap to retry',
+    lutLoading: 'Loading LUTs…',
+    lookLoading: 'That look is still downloading — one moment', lutInflating: 'Unpacking LUTs…', lutLoadFailed: 'LUTs failed to load · tap to retry',
     autoToneTitle: 'Auto tone: exposure, contrast, highlights, shadows, whites and blacks from the histogram',
     // Static chrome that the language switch used to leave in Chinese.
     navGuides: 'Guides', navLooks: 'Look catalogue', introWait: 'LOADING · one moment',

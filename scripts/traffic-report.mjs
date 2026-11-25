@@ -191,7 +191,7 @@ async function main() {
   console.log(`\n● funnel (people per event, ${DAYS}d)`);
   const totals = new Map();
   for (const row of events) totals.set(row.name, (totals.get(row.name) || 0) + num(row.people));
-  const order = ['ready', 'photo', 'look', 'autotone', 'export', 'cube', 'lang', 'js-error'];
+  const order = ['ready', 'looks-first', 'looks', 'photo', 'look', 'autotone', 'export', 'cube', 'download_pack', 'deeplink', 'lang', 'js-error'];
   const names = [...order.filter((n) => totals.has(n)), ...[...totals.keys()].filter((n) => !order.includes(n))];
   if (!names.length) console.log('  (no events yet)');
   const readyPeople = totals.get('ready') || 0;

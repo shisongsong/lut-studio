@@ -666,6 +666,9 @@ function applyDeepLink(){
   if (wanted) {
     const look = allLooks().find(l => l.id === wanted);
     if (!look) return;            // an imported LUT's data may still be loading
+    // The pack streams in order, so a look near the end of the catalogue can
+    // still be in flight; noteLutBytes() retries this as blocks arrive.
+    if (!lutData(look.id)) return;
     selectLook(look.id);
     track('deeplink', { look: wanted });
     deepLinkDone = true;
@@ -1079,76 +1082,102 @@ async function readBodyWithProgress(res, label, task){
 }
 
 /**
- * Load the LUT pack in the background.
+ * Stream the LUT pack in.
  *
- * It ships as `luts.bin.gz` (~1.2 MB vs 2.3 MB). The page inflates it itself
- * instead of relying on an origin `content-encoding` header: Cloudflare
- * compresses Worker responses as well, so a header-compressed body arrives
- * compressed twice and the browser only undoes one layer — which showed up as
- * rainbow garbage in the renderer. A length check catches any truncated or
- * still-compressed payload before it reaches the shader, and the plain file is
- * the last-resort fallback.
+ * The pack is a "LUTD" header followed by one delta-coded block per look, in
+ * LOOKS order, gzipped. Nothing about that layout needs all 1.34 MB before the
+ * first look works: gzip decompression is a stream, so block i is complete as
+ * soon as header + (i+1)·block bytes are out. Decoding block by block turns a
+ * slow link's "empty strip for ten seconds" into "the first looks after a
+ * fraction of a second, the rest filling in while the visitor looks at the
+ * demo". The plain `luts.bin` stays as the last-resort fallback (no
+ * DecompressionStream, or a truncated download).
  */
-async function loadLutPack(){
-  // "LUTD" | u8 edge | u8 format | u16 looks | u32 reserved, then delta-coded cubes
-  const HEADER = 8;
-  const PER = LUT_EDGE ** 3 * 4;
-  const expected = HEADER + LOOKS.length * PER;
-  /** Accept a payload only if it really is the pack this build expects. */
-  const validate = (raw) => {
-    if (!raw || raw.byteLength !== expected) return null;
-    const v = new DataView(raw);
-    const magic = String.fromCharCode(v.getUint8(0), v.getUint8(1), v.getUint8(2), v.getUint8(3));
-    if (magic !== 'LUTD') return null;
-    if (v.getUint8(4) !== LUT_EDGE) return null;
-    if (v.getUint8(5) !== 1) return null;
-    if (v.getUint16(6, true) !== LOOKS.length) return null;
-    return raw;
-  };
-  const inflate = async (packed) => {
-    if (!packed) return null;
-    const direct = validate(packed);
-    if (direct) return direct;
-    if (typeof DecompressionStream !== 'function') return null;
-    setLoadTask('luts', { text: t(state.lang, 'lutInflating'), pct: null, eta: null });
-    try {
-      const stream = new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'));
-      const raw = await new Response(stream).arrayBuffer();
-      return validate(raw);
-    } catch {
-      return null;
-    }
-  };
-  window.__lutHeader = HEADER;
-  const tryResponse = async (res) => {
-    if (!res || !res.ok) return null;
-    try {
-      const packed = await readBodyWithProgress(res, t(state.lang, 'lutLoading'), { id: 'luts' });
-      return await inflate(packed);
-    } catch {
-      return null;
-    }
-  };
-  if (window.__lutsEarly) {
-    try {
-      const early = await Promise.race([
-        window.__lutsEarly,
-        new Promise((resolve) => setTimeout(() => resolve(null), 45000)),
-      ]);
-      const raw = await tryResponse(early);
-      if (raw) return raw;
-    } catch { /* fall through to a fresh request */ }
+const LUT_HEADER = 8;
+const LUT_BLOCK = LUT_EDGE ** 3 * 4;
+let lutReadyCount = 0;     // blocks whose bytes have fully arrived
+let lutRepaintTimer = 0;
+
+/** How many looks are usable right now; repaint the strip as more arrive. */
+function noteLutBytes(filled){
+  const ready = Math.max(0, Math.min(LOOKS.length, Math.floor((filled - LUT_HEADER) / LUT_BLOCK)));
+  if (ready <= lutReadyCount) return;
+  const first = !state.lutsReady;
+  lutReadyCount = ready;
+  state.lutsReady = true;
+  setLoadTask('luts', {
+    text: `${t(state.lang, 'lutLoading')} ${ready}/${LOOKS.length}`,
+    pct: Math.round((ready / LOOKS.length) * 100),
+  });
+  if (first) {
+    track('looks-first', { looks: ready, ms: Math.round(performance.now()) });
+    setLookText();
+    updateActiveChip();
+    renderFilmThumbs();
+    applyDeepLink();
+    return;
   }
-  try {
-    const raw = await tryResponse(await fetchWithTimeout('/luts.bin.gz', 120000));
-    if (raw) return raw;
-  } catch { /* fall through to the plain file */ }
+  // Thumbnails are time-budgeted, so repaint at most a few times a second.
+  clearTimeout(lutRepaintTimer);
+  lutRepaintTimer = setTimeout(() => { renderFilmThumbs(); applyDeepLink(); }, 160);
+}
+
+async function streamLutPack(){
+  window.__lutHeader = LUT_HEADER;
+  const expected = LUT_HEADER + LOOKS.length * LUT_BLOCK;
+  const buf = new Uint8Array(expected);
+  let filled = 0;
+  let headerOk = false;
+
+  const checkHeader = () => {
+    const v = new DataView(buf.buffer, 0, LUT_HEADER);
+    const magic = String.fromCharCode(v.getUint8(0), v.getUint8(1), v.getUint8(2), v.getUint8(3));
+    if (magic !== 'LUTD' || v.getUint8(4) !== LUT_EDGE || v.getUint8(5) !== 1 || v.getUint16(6, true) !== LOOKS.length) {
+      throw new Error('unexpected LUT pack header');
+    }
+    headerOk = true;
+    luts = buf;
+  };
+  const take = (chunk) => {
+    if (filled + chunk.length > expected) throw new Error('LUT pack larger than expected');
+    buf.set(chunk, filled);
+    filled += chunk.length;
+    if (!headerOk && filled >= LUT_HEADER) checkHeader();
+    if (headerOk) noteLutBytes(filled);
+  };
+
+  if (typeof DecompressionStream === 'function') {
+    try {
+      setLoadTask('luts', { text: t(state.lang, 'lutLoading'), pct: 0 });
+      const res = await fetchWithTimeout('/luts.bin.gz', 120000);
+      if (res.ok && res.body) {
+        const reader = res.body.pipeThrough(new DecompressionStream('gzip')).getReader();
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          take(value);
+        }
+        if (filled === expected) return true;
+        console.warn(`[lut pack] short stream: ${filled}/${expected}`);
+      }
+    } catch (err) {
+      // A truncated or garbled stream must not leave a half pack behind: the
+      // fallback below re-reads the whole file into the same buffer.
+      console.warn('[lut pack] stream failed, falling back', err);
+    }
+  }
+
   try {
     const res = await fetchWithTimeout('/luts.bin', 120000);
     if (res.ok) {
       const plain = await readBodyWithProgress(res, t(state.lang, 'lutLoading'), { id: 'luts' });
-      const ok = validate(plain);
-      if (ok) return ok;
+      if (plain && plain.byteLength === expected) {
+        buf.set(new Uint8Array(plain), 0);
+        filled = expected;
+        if (!headerOk) checkHeader();
+        noteLutBytes(filled);
+        return true;
+      }
     }
   } catch { /* fall through to the error */ }
   throw new Error('LUT pack could not be loaded');
@@ -1243,8 +1272,8 @@ async function loadDemoImage(){
 async function loadLutsInBackground(){
   try {
     setLoadTask('luts', { text: t(state.lang, 'lutLoading'), pct: null });
-    const buf = await loadLutPack();
-    luts = new Uint8Array(buf);
+    await streamLutPack();
+    lutReadyCount = LOOKS.length;
     state.lutsReady = true;
     trackWhenReady();
     setLoadTask('luts', null);
@@ -1254,7 +1283,7 @@ async function loadLutsInBackground(){
     renderFilmThumbs();
     prewarmRawDecoder();
     applyDeepLink();
-    track('looks', { ms: Math.round(performance.now()) });
+    track('looks', { ms: Math.round(performance.now()), looks: LOOKS.length });
   } catch (err) {
     console.warn('[lut pack] load failed', err);
     // A failed pack must not leave the strip shimmering forever: the pill turns
@@ -1586,6 +1615,9 @@ function allLooks(){
  */
 const lutDecoded = new Map();
 function decodeLut(index){
+  // Only blocks whose bytes have fully arrived can be decoded; everything else
+  // is still streaming in (see noteLutBytes()).
+  if (index < 0 || index >= lutReadyCount || !luts) return null;
   const hit = lutDecoded.get(index);
   if (hit) return hit;
   const per = LUT_EDGE ** 3 * 4;
@@ -1619,14 +1651,18 @@ function lutData(id){
   if (mine) return { size: mine.size, data: mine.data };
   if (!luts) return null;
   const i = LOOKS.findIndex(l => l.id === id);
+  if (i < 0 || i >= lutReadyCount) return null;   // that block is still downloading
   return { size: LUT_EDGE, data: decodeLut(i) };
 }
 
 function currentStack(){
   if (state.noLook || !state.lutsReady) return [];
-  const stack = [{ id: state.look, parsed: lutData(state.look), strength: state.strength }];
+  const stack = [];
+  const a = lutData(state.look);
+  if (a) stack.push({ id: state.look, parsed: a, strength: state.strength });
   if (state.dual.enabled && state.dual.b) {
-    stack.push({ id: state.dual.b, parsed: lutData(state.dual.b), strength: state.dual.strengthB });
+    const b = lutData(state.dual.b);
+    if (b) stack.push({ id: state.dual.b, parsed: b, strength: state.dual.strengthB });
   }
   return stack;
 }
@@ -2537,11 +2573,16 @@ function drawFilmThumb(i, chips, all, sig){
     return;
   }
   const look = i === 0 ? null : all[i - 1];
+  const parsed = look ? lutData(look.id) : null;
+  // The pack streams in block by block: a look whose bytes are still in flight
+  // keeps its skeleton and is retried on the next pass, instead of being drawn
+  // from a half-filled block.
+  if (look && !parsed) return;
   // Thumbnails are 156x104: denoising them would cost 17 texture taps per pixel
   // and show nothing — render the look itself, without NR or the local stages.
   const adjThumb = { ...adjFor(), nr: 0, nrColor: 0, noDetail: true };
   renderer.activatePreview();
-  if (look) renderer.render([{ id: look.id, parsed: lutData(look.id), strength: 100 }], adjThumb, 156, 104, 'cover');
+  if (look) renderer.render([{ id: look.id, parsed, strength: 100 }], adjThumb, 156, 104, 'cover');
   else renderer.render([], adjThumb, 156, 104, 'cover');
   chip.querySelector('canvas').getContext('2d', { alpha: false }).drawImage(renderer.canvas, 0, 0);
   chip.classList.remove('loading');
@@ -2614,6 +2655,11 @@ function renderFilmThumbs(){
 }
 
 function selectLook(id, slot = 'A'){
+  const pendingIndex = LOOKS.findIndex(l => l.id === id);
+  if (pendingIndex >= 0 && pendingIndex >= lutReadyCount) {
+    toast(t(state.lang, 'lookLoading'));
+    return;
+  }
   if (!trackLook) { trackLook = true; track('look', { id }); }
   state.noLook = false;
   if (state.dual.enabled && slot === 'B') {
