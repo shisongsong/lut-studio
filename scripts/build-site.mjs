@@ -15,6 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderPage, pagePath, absolute, esc, SITE, stripTags } from './site.mjs';
 import { LOOKS, FILTERS } from '../public/js/looks.js';
+import { LAUNCHED_LOOK_IDS } from './site/look-page.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = path.join(ROOT, 'public');
@@ -190,6 +191,14 @@ function llmsTxt(pages) {
     const en = guide.en;
     lines.push(`- [${en.h1 || en.title}](${SITE.origin}${pagePath('en', guide.slug)}): ${en.description}`);
     lines.push(`- [${zh.h1 || zh.title}](${SITE.origin}${pagePath('zh', guide.slug)}): ${zh.description}`);
+  }
+  lines.push('');
+  lines.push('## Look pages');
+  lines.push('');
+  for (const id of LAUNCHED_LOOK_IDS) {
+    const look = LOOKS.find((l) => l.id === id);
+    if (!look) continue;
+    lines.push(`- [${look.en} LUT](${SITE.origin}/en/looks/${id}): an original 33³ recipe inspired by ${look.en}; before/after preview and a single .cube download. Chinese: ${SITE.origin}/looks/${id}`);
   }
   lines.push('');
   lines.push('## Formats');

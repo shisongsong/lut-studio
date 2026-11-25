@@ -7,6 +7,13 @@
   // `custom_domain` lets wrangler create the DNS record + certificate.
   // Remove this block to deploy to *.workers.dev instead.
   "routes": [{ "pattern": "lut.openanthropic.com", "custom_domain": true }],
+  // Also publish on the default *.workers.dev hostname. That host is not a zone,
+  // so the zone-level bot policy (which currently 403s GPTBot/ClaudeBot and asks
+  // Baiduspider to go away via managed robots.txt) does not apply there. The
+  // pages carry the canonical URL of lut.openanthropic.com, so search engines
+  // still consolidate on the real domain; this only gives crawlers a route to
+  // content the zone refuses. Remove it once the dashboard policy is fixed.
+  "workers_dev": true,
   // First-party analytics (pageviews, funnel events, field Core Web Vitals and
   // crawler hits). Schema: scripts/analytics-schema.sql. This is the only state
   // the site has; photos still never leave the browser.

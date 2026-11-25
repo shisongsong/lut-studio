@@ -35,6 +35,21 @@
 - [A LUT is a colour table, not a filter](https://lut.openanthropic.com/en/guides/what-is-lut): A LUT maps input colours to output colours. What 1D and 3D can do, what LUT_3D_SIZE means, the log input vendor LUTs expect, and why clipped highlights stay clipped.
 - [LUT 是一张颜色对照表，不是一层滤镜](https://lut.openanthropic.com/guides/what-is-lut): LUT 是输入颜色换成输出颜色的查找表。讲清 1D 与 3D 的区别、.cube 里的 LUT_3D_SIZE、厂商 LOG LUT 的输入前提，以及强度滑块和裁切高光。
 
+## Look pages
+
+- [Kodak Portra 400 LUT](https://lut.openanthropic.com/en/looks/kodak-portra-400): an original 33³ recipe inspired by Kodak Portra 400; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/kodak-portra-400
+- [Kodak Ektar 100 LUT](https://lut.openanthropic.com/en/looks/kodak-ektar-100): an original 33³ recipe inspired by Kodak Ektar 100; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/kodak-ektar-100
+- [Kodachrome 64 LUT](https://lut.openanthropic.com/en/looks/kodachrome-64): an original 33³ recipe inspired by Kodachrome 64; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/kodachrome-64
+- [Kodak Tri-X 400 LUT](https://lut.openanthropic.com/en/looks/kodak-trix-400): an original 33³ recipe inspired by Kodak Tri-X 400; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/kodak-trix-400
+- [Fujifilm Classic Chrome LUT](https://lut.openanthropic.com/en/looks/fuji-classic-chrome): an original 33³ recipe inspired by Fujifilm Classic Chrome; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/fuji-classic-chrome
+- [Fujifilm Velvia 50 LUT](https://lut.openanthropic.com/en/looks/fuji-velvia-50): an original 33³ recipe inspired by Fujifilm Velvia 50; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/fuji-velvia-50
+- [Fujifilm Acros 100 LUT](https://lut.openanthropic.com/en/looks/fuji-acros-100): an original 33³ recipe inspired by Fujifilm Acros 100; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/fuji-acros-100
+- [Leica Classic LUT](https://lut.openanthropic.com/en/looks/leica-classic): an original 33³ recipe inspired by Leica Classic; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/leica-classic
+- [Hasselblad Natural LUT](https://lut.openanthropic.com/en/looks/hasselblad-natural): an original 33³ recipe inspired by Hasselblad Natural; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/hasselblad-natural
+- [Ricoh GR Positive LUT](https://lut.openanthropic.com/en/looks/ricoh-positive): an original 33³ recipe inspired by Ricoh GR Positive; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/ricoh-positive
+- [Cinema Teal LUT](https://lut.openanthropic.com/en/looks/cinema-teal): an original 33³ recipe inspired by Cinema Teal; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/cinema-teal
+- [Bleach Bypass LUT](https://lut.openanthropic.com/en/looks/film-bleach): an original 33³ recipe inspired by Bleach Bypass; before/after preview and a single .cube download. Chinese: https://lut.openanthropic.com/looks/film-bleach
+
 ## Formats
 
 - [Convert a Sony ARW to JPG in the browser](https://lut.openanthropic.com/en/raw/arw): Open a Sony ARW / SRF / SR2 file in the browser, develop it on a 16-bit linear pipeline with 64 LUT looks, and export a full-resolution JPEG. Nothing is uploaded.

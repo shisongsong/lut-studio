@@ -357,6 +357,23 @@ that `/api/geo` will 404 and the UI falls back to `navigator.language`.
 `npm run deploy` publishes the Worker + `public/` to Cloudflare. This is the
 default and works well outside mainland China.
 
+### Crawler mirror (workers.dev)
+
+`wrangler.jsonc` also publishes the Worker on
+`https://lut-studio.shi1400875096.workers.dev`, and that is deliberate: the
+`openanthropic.com` zone currently runs Cloudflare's AI bot policy, which 403s
+GPTBot / ClaudeBot / PerplexityBot and whose managed `robots.txt` tells
+Baiduspider to go away — the opposite of what `public/robots.txt` asks for. A
+`*.workers.dev` hostname is not a zone, so that policy does not apply there.
+Every page still carries `https://lut.openanthropic.com` as its canonical, so
+search engines consolidate on the real domain.
+
+What this does **not** do: `workers.dev` is unreachable from mainland China (DNS
+poisoning), and an AI crawler that is blocked zone-wide cannot read our
+`llms.txt` to discover the mirror. It only helps once something outside the zone
+links to it. The real fix is the dashboard toggle described in
+[`docs/seo.md`](docs/seo.md) — remove this hostname afterwards.
+
 ### Self-hosted mirror (mainland China)
 
 Cloudflare's anycast IPs are commonly throttled to a few KB/s from mainland

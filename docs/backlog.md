@@ -12,7 +12,16 @@ funnel step), that wins.
 
 ## Blocked on someone other than the code (ask / wait)
 
-- **A1 — Cloudflare AI-crawler + robots gate.** Verified 2026-11-25: ClaudeBot,
+- **A1 — Cloudflare AI-crawler + robots gate.** **Partial workaround shipped
+  2026-11-25:** the Worker is also published on
+  `lut-studio.shi1400875096.workers.dev` (`workers_dev: true`), a host outside the
+  zone so the AI-bot policy does not apply; canonical tags still point at the
+  real domain. Caveats: workers.dev is DNS-poisoned/unreachable from mainland
+  China, and a zone-blocked crawler cannot read our `llms.txt` to find the
+  mirror — it needs an external link (GitHub README) as a discovery path.
+  Unverified from this machine (DNS for workers.dev resolves to poisoned IPs);
+  remove the hostname once the dashboard policy is fixed. Details follow.
+  Verified 2026-11-25: ClaudeBot,
   GPTBot and PerplexityBot get **HTTP 403** from the edge, and Cloudflare's
   *managed* robots.txt block (prepended to ours) tells **Baiduspider**, GPTBot,
   ClaudeBot, CCBot, Bytespider, KimiBot and others `Disallow: /`. Our own
