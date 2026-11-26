@@ -193,6 +193,27 @@ funnel step), that wins.
   that block: a crawler 404 usually means a broken internal link or an outdated
   sitemap entry.
 
+- **P2-2b — Demo photo as a real `<img>` for the first paint: attempted
+  2026-11-26, reverted (needs a rework, see below).** The LCP element is still
+  the 8 px `#hint` text (confirmed on a 4× CPU / 4 Mbps desktop profile: LCP
+  460 ms, 1,818 px²), because the photo only exists after the inline module has
+  run and painted a canvas. Adding `<img id="hero">` alone does **not** work:
+  - the element was removed at ~505 ms by `loadDemoImage()`, i.e. *before*
+    `img.complete` ever became true, so it never painted and never became an LCP
+    candidate;
+  - it issued a **second** request for `demo.webp`: the preload/imgsrc are
+    version-stamped (`?v=853d887c`) while the app's own `fetch()` used the
+    un-stamped URL, so the browser could not coalesce them;
+  - the intro overlay covers the whole field until ~900 ms, so even a decoded
+    hero has no visible window before the canvas paints.
+  **Rework requirements:** (1) one network request — fetch via the `<img>`
+  element and reuse it (blob URL for the canvas), or make every URL identical
+  including `?v=`; (2) remove the hero only after `decode()` + first canvas
+  paint; (3) measure both LCP *element* and perceived paint (an `lcpwho`-style
+  probe plus a 600 ms screenshot at 1.6 Mbps), and if the metric still reads
+  text, accept the audit's P2-2 guidance ("do not optimise against this LCP")
+  and target the perceived frame instead of the number.
+
 ## Tried and rejected (with numbers — do not retry blindly)
 
 - **Externalising the inline app module into `/js/app.js`: reverted 2026-11-25.**
@@ -216,6 +237,21 @@ funnel step), that wins.
 - **Transparent `::after` expansion for mobile tap targets: rejected.** The hit
   probe showed the rows painted after the button won the hit test, so the extra
   area was not actually tappable (see B3).
+
+## Watch (current as of 2026-11-26)
+
+- **Crawl spread started.** Googlebot 78 hits in the window, and it now fetches
+  more than one page: `/looks/fuji-acros-100`, `/raw/dng`, several guides —
+  the single-page crawl phase is over. Revisit the batch-2 decision at the next
+  Monday review (needs 5+ distinct look pages crawled).
+- **First external visitors.** 2026-11-26 had 3 visitors (was 1): two new ones
+  from the US and PL, both desktop, both direct/no referrer, both stopped after
+  `ready` + `looks` and never opened a photo. One reported LCP 16.8 s (TTFB was
+  187 ms), which is more likely a background tab than a site problem — the same
+  profile loads locally at LCP ~460 ms. n=2: do not optimise against this yet;
+  watch whether the next visitors interact.
+- **Crawler errors:** only `script /actuator/heapdump` (a vulnerability scanner),
+  not a real broken link.
 
 ## Guardrails
 
